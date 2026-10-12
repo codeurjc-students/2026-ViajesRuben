@@ -4,11 +4,6 @@
 
 **TripMate** is a web application that lets a group of people plan a trip together: create the trip, build its day-by-day itinerary through activities, invite other participants, and collaborate on the plan. It includes an AI assistant able to generate itinerary proposals based on the destination, dates, budget, and preferences of the group, which the user can review and accept before adding them to the trip. Each trip can also have its own Telegram group, linked to the trip by a TripMate bot, so participants can talk about the trip in a messaging app they already use, receive their invitations there, and be notified when the plan changes. The project is initially developed as a monolithic application, designed to evolve in a second thesis project (TFG2) into a distributed services architecture.
 
-<p align="center">
-  <img src="images/MyTripsWireframe.png" alt="My Trips Wireframe" width="400"/>
-  <img src="images/TripDetailWireframe.png" alt="Trip detail Wireframe" width="400"/>
-</p>
-
 > **Note:** At this stage (Phase 2), only the functional and technical objectives of the application have been defined. Development has started, but the implementation is not functional yet.
 
 ## Objectives
