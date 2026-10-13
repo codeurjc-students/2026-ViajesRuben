@@ -84,6 +84,6 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage
       - name: SonarQube Cloud analysis
-        uses: SonarSource/sonarqube-scan-action@vX.Y.Z
+        uses: SonarSource/sonarqube-scan-action@v8.3.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
