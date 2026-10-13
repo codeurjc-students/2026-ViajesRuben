@@ -3,7 +3,6 @@ name: Basic quality
 on:
   workflow_dispatch:
   push:
-    branches-ignore: [main]
 
 jobs:
   backend:
@@ -21,8 +20,16 @@ jobs:
           cache: maven
       - name: Compile
         run: mvn -B compile
-      - name: Unit tests
+      - name: Unit tests with coverage
         run: mvn -B test -Dtest='*UnitTest'
+      - name: Upload compiled classes and coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-analysis
+          path: |
+            backend/target/classes
+            backend/target/site/jacoco/jacoco.xml
+          if-no-files-found: error
 
   frontend:
     name: Frontend build and unit tests
@@ -42,3 +49,32 @@ jobs:
         run: npm run build
       - name: Unit tests with coverage
         run: npm run test:coverage
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          if-no-files-found: error
+
+  sonar:
+    name: Static code analysis (SonarQube Cloud)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download backend classes and coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-analysis
+          path: backend/target
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+      - name: SonarQube Cloud analysis
+        uses: SonarSource/sonarqube-scan-action@vX.Y.Z
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
