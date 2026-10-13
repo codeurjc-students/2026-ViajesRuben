@@ -3,9 +3,7 @@ name: Basic quality
 on:
   workflow_dispatch:
   push:
-  # FINAL (after testing), replace "push:" above with:
-  # push:
-  #   branches-ignore: [main]
+    branches-ignore: [main]
 
 jobs:
   backend:

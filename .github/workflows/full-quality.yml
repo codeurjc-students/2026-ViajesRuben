@@ -2,10 +2,8 @@ name: Full quality
 
 on:
   workflow_dispatch:
-  push:
-  # FINAL (after testing), replace "push:" above with:
-  # pull_request:
-  #   branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   backend-tests:
