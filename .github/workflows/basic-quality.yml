@@ -28,6 +28,7 @@ jobs:
           name: backend-analysis
           path: |
             backend/target/classes
+            backend/target/test-classes
             backend/target/site/jacoco/jacoco.xml
           if-no-files-found: error
 
@@ -64,6 +65,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Copy backend dependencies
+        working-directory: backend
+        run: mvn -B dependency:copy-dependencies -DoutputDirectory=target/dependency
       - name: Download backend classes and coverage
         uses: actions/download-artifact@v4
         with:
@@ -75,6 +84,6 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage
       - name: SonarQube Cloud analysis
-        uses: SonarSource/sonarqube-scan-action@v8.3.0
+        uses: SonarSource/sonarqube-scan-action@vX.Y.Z
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
