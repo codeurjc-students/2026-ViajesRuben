@@ -20,6 +20,8 @@ jobs:
           cache: maven
       - name: Compile
         run: mvn -B compile
+      - name: Check code style
+        run: mvn -B spotless:check
       - name: Unit tests with coverage
         run: mvn -B test -Dtest='*UnitTest'
       - name: Upload compiled classes and coverage
@@ -46,6 +48,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
       - name: Build
         run: npm run build
       - name: Unit tests with coverage
