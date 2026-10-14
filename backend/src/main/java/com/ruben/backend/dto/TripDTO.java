@@ -1,14 +1,17 @@
 package com.ruben.backend.dto;
 
+import com.ruben.backend.model.Trip;
 import java.time.LocalDate;
 
-import com.ruben.backend.model.Trip;
-
 public record TripDTO(
-        Long id, String name, String destination, LocalDate startDate, LocalDate endDate) {
+    Long id, String name, String destination, LocalDate startDate, LocalDate endDate) {
 
-    public static TripDTO from(Trip trip) {
-        return new TripDTO(trip.getId(), trip.getName(), trip.getDestination(),
-                trip.getStartDate(), trip.getEndDate());
-    }
+  public static TripDTO from(Trip trip) {
+    return new TripDTO(
+        trip.getId(),
+        trip.getName(),
+        trip.getDestination(),
+        trip.getStartDate(),
+        trip.getEndDate());
+  }
 }

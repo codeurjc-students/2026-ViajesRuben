@@ -15,21 +15,21 @@ import org.springframework.context.annotation.Import;
 @Import(TestcontainersConfiguration.class)
 class TripApiE2ETest {
 
-    @LocalServerPort
-    private int port;
+  @LocalServerPort private int port;
 
-    @BeforeEach
-    void setUp() {
-        RestAssured.port = port;
-    }
+  @BeforeEach
+  void setUp() {
+    RestAssured.port = port;
+  }
 
-    @Test
-    void getTripsReturnsSampleTrips() {
-        given()
-                .when().get("/api/trips")
-                .then()
-                .statusCode(200)
-                .body("name", hasItems("Trip 1", "Trip 2", "Trip 3"))
-                .body("destination", hasItems("Lisbon", "Rome", "Tokyo"));
-    }
+  @Test
+  void getTripsReturnsSampleTrips() {
+    given()
+        .when()
+        .get("/api/trips")
+        .then()
+        .statusCode(200)
+        .body("name", hasItems("Trip 1", "Trip 2", "Trip 3"))
+        .body("destination", hasItems("Lisbon", "Rome", "Tokyo"));
+  }
 }

@@ -1,8 +1,6 @@
 package com.ruben.backend.repository;
 
+import com.ruben.backend.model.Trip;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.ruben.backend.model.Trip;
-
-public interface TripRepository extends JpaRepository<Trip, Long> {
-}
+public interface TripRepository extends JpaRepository<Trip, Long> {}

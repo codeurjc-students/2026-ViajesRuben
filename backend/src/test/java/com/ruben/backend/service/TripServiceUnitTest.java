@@ -18,20 +18,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TripServiceUnitTest {
 
-    @Mock
-    private TripRepository tripRepository;
-    @InjectMocks
-    private TripService tripService;
+  @Mock private TripRepository tripRepository;
+  @InjectMocks private TripService tripService;
 
-    @Test
-    void findAllReturnsAllTripsFromRepository() {
-        when(tripRepository.findAll()).thenReturn(List.of(
+  @Test
+  void findAllReturnsAllTripsFromRepository() {
+    when(tripRepository.findAll())
+        .thenReturn(
+            List.of(
                 new Trip("Trip 1", "Lisbon", LocalDate.of(2027, 5, 1), LocalDate.of(2027, 5, 5)),
                 new Trip("Trip 2", "Rome", LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 17))));
 
-        List<TripDTO> trips = tripService.findAll();
+    List<TripDTO> trips = tripService.findAll();
 
-        assertThat(trips).extracting(TripDTO::name).containsExactly("Trip 1", "Trip 2");
-        verify(tripRepository).findAll();
-    }
+    assertThat(trips).extracting(TripDTO::name).containsExactly("Trip 1", "Trip 2");
+    verify(tripRepository).findAll();
+  }
 }

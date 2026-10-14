@@ -18,23 +18,22 @@ import org.springframework.context.annotation.Import;
 @Import(TestcontainersConfiguration.class)
 class TripServiceIntegrationTest {
 
-    @Autowired
-    private TripService tripService;
-    @Autowired
-    private TripRepository tripRepository;
+  @Autowired private TripService tripService;
+  @Autowired private TripRepository tripRepository;
 
-    @BeforeEach
-    void setUp() {
-        tripRepository.deleteAll();
-        tripRepository.saveAll(List.of(
-                new Trip("Test Trip A", "Paris", LocalDate.of(2027, 1, 1), LocalDate.of(2027, 1, 3)),
-                new Trip("Test Trip B", "Berlin", LocalDate.of(2027, 2, 1), LocalDate.of(2027, 2, 4))));
-    }
+  @BeforeEach
+  void setUp() {
+    tripRepository.deleteAll();
+    tripRepository.saveAll(
+        List.of(
+            new Trip("Test Trip A", "Paris", LocalDate.of(2027, 1, 1), LocalDate.of(2027, 1, 3)),
+            new Trip("Test Trip B", "Berlin", LocalDate.of(2027, 2, 1), LocalDate.of(2027, 2, 4))));
+  }
 
-    @Test
-    void findAllReturnsTripsStoredInDatabase() {
-        assertThat(tripService.findAll())
-                .extracting(TripDTO::name)
-                .containsExactlyInAnyOrder("Test Trip A", "Test Trip B");
-    }
+  @Test
+  void findAllReturnsTripsStoredInDatabase() {
+    assertThat(tripService.findAll())
+        .extracting(TripDTO::name)
+        .containsExactlyInAnyOrder("Test Trip A", "Test Trip B");
+  }
 }
