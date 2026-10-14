@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { getTrips } from "../services/tripService";
+import { useEffect, useState } from 'react';
+import { getTrips } from '../services/tripService';
 
 export default function TripList() {
   const [trips, setTrips] = useState([]);
@@ -8,7 +8,7 @@ export default function TripList() {
   useEffect(() => {
     getTrips()
       .then(setTrips)
-      .catch(() => setError("Could not load trips"));
+      .catch(() => setError('Could not load trips'));
   }, []);
 
   return (
@@ -20,8 +20,7 @@ export default function TripList() {
         <ul id="trips">
           {trips.map((trip) => (
             <li key={trip.id}>
-              {trip.name} - {trip.destination} ({trip.startDate} to{" "}
-              {trip.endDate})
+              {trip.name} - {trip.destination} ({trip.startDate} to {trip.endDate})
             </li>
           ))}
         </ul>
