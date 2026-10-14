@@ -1,22 +1,20 @@
 package com.ruben.backend.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.ruben.backend.dto.TripDTO;
 import com.ruben.backend.repository.TripRepository;
+import java.util.List;
+import org.springframework.stereotype.Service;
 
 @Service
 public class TripService {
 
-    private final TripRepository tripRepository;
+  private final TripRepository tripRepository;
 
-    public TripService(TripRepository tripRepository) {
-        this.tripRepository = tripRepository;
-    }
+  public TripService(TripRepository tripRepository) {
+    this.tripRepository = tripRepository;
+  }
 
-    public List<TripDTO> findAll() {
-        return tripRepository.findAll().stream().map(TripDTO::from).toList();
-    }
+  public List<TripDTO> findAll() {
+    return tripRepository.findAll().stream().map(TripDTO::from).toList();
+  }
 }
