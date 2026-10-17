@@ -1,0 +1,64 @@
+{
+  "info": {
+    "_postman_id": "23f6e1b9-46ec-4247-a794-a977b8d5ee45",
+    "name": "TripMate API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53067099",
+    "_collection_link": "https://go.postman.co/collection/53067099-23f6e1b9-46ec-4247-a794-a977b8d5ee45?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Get Trips",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": [
+        {
+          "name": "Get Trips",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": null,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Content-Length",
+              "value": "286"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 17 Oct 2026 10:17:55 GMT"
+            },
+            {
+              "key": "Keep-Alive",
+              "value": "timeout=60"
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Trip 1\",\n        \"destination\": \"Lisbon\",\n        \"startDate\": \"2027-05-01\",\n        \"endDate\": \"2027-05-05\"\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Trip 2\",\n        \"destination\": \"Rome\",\n        \"startDate\": \"2027-07-10\",\n        \"endDate\": \"2027-07-17\"\n    },\n    {\n        \"id\": 3,\n        \"name\": \"Trip 3\",\n        \"destination\": \"Tokyo\",\n        \"startDate\": \"2027-09-03\",\n        \"endDate\": \"2027-09-15\"\n    }\n]"
+        }
+      ]
+    }
+  ]
+}
