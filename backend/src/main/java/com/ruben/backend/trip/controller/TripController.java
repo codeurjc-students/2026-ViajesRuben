@@ -1,14 +1,14 @@
-package com.ruben.backend.controller;
+package com.ruben.backend.trip.controller;
 
-import com.ruben.backend.dto.TripDTO;
-import com.ruben.backend.service.TripService;
+import com.ruben.backend.trip.dto.TripDTO;
+import com.ruben.backend.trip.service.TripService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/trips")
+@RequestMapping("/api/v1/trips")
 public class TripController {
 
   private final TripService tripService;

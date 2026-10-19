@@ -1,7 +1,7 @@
-package com.ruben.backend;
+package com.ruben.backend.common;
 
-import com.ruben.backend.model.Trip;
-import com.ruben.backend.repository.TripRepository;
+import com.ruben.backend.trip.entity.Trip;
+import com.ruben.backend.trip.repository.TripRepository;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.boot.CommandLineRunner;

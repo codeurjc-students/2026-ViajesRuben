@@ -6,7 +6,7 @@ import { getTrips } from './services/tripService';
 vi.mock('./services/tripService', () => ({ getTrips: vi.fn() }));
 
 test('renders the trip list on the home page', async () => {
-  getTrips.mockResolvedValue([
+  vi.mocked(getTrips).mockResolvedValue([
     {
       id: 1,
       name: 'Trip 1',

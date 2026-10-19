@@ -3,19 +3,19 @@ info:
   title: OpenAPI definition
   version: v0
 servers:
-- url: http://localhost:8080
-  description: Generated server url
+  - url: http://localhost:8080
+    description: Generated server url
 paths:
-  /api/trips:
+  /api/v1/trips:
     get:
       tags:
-      - trip-controller
+        - trip-controller
       operationId: getTrips
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
                 type: array
                 items:

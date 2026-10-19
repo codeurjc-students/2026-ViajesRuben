@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getTrips } from '../services/tripService';
+import type { Trip } from '../types';
 
 export default function TripList() {
-  const [trips, setTrips] = useState([]);
-  const [error, setError] = useState(null);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getTrips()

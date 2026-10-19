@@ -6,7 +6,7 @@ import { getTrips } from '../services/tripService';
 vi.mock('../services/tripService', () => ({ getTrips: vi.fn() }));
 
 test('renders the list of trips', async () => {
-  getTrips.mockResolvedValue([
+  vi.mocked(getTrips).mockResolvedValue([
     {
       id: 1,
       name: 'Trip 1',
@@ -30,7 +30,7 @@ test('renders the list of trips', async () => {
 });
 
 test('shows an error message when trips cannot be loaded', async () => {
-  getTrips.mockRejectedValue(new Error('Network error'));
+  vi.mocked(getTrips).mockRejectedValue(new Error('Network error'));
 
   render(<TripList />);
 

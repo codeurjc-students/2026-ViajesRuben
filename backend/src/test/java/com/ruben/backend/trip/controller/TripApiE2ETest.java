@@ -1,4 +1,4 @@
-package com.ruben.backend.controller;
+package com.ruben.backend.trip.controller;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.hasItems;
@@ -26,7 +26,7 @@ class TripApiE2ETest {
   void getTripsReturnsSampleTrips() {
     given()
         .when()
-        .get("/api/trips")
+        .get("/api/v1/trips")
         .then()
         .statusCode(200)
         .body("name", hasItems("Trip 1", "Trip 2", "Trip 3"))

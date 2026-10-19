@@ -1,4 +1,4 @@
-package com.ruben.backend.model;
+package com.ruben.backend.trip.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
