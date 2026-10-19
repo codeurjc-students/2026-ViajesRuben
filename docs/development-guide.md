@@ -42,7 +42,7 @@ The application has three parts that run as independent processes:
 | Aspect                  | Description                                                                                                                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Type**                | Web SPA with a REST API backend (modular monolith)                                                                                                                                                                                                                    |
-| **Technologies**        | Backend: Java 21, Spring Boot, Spring Data JPA, MySQL. Frontend: React, Vite                                                                                                                                                                                          |
+| **Technologies**        | Backend: Java 21, Spring Boot, Spring Data JPA, MySQL. Frontend: React, TypeScript, Vite                                                                                                                                                                              |
 | **Tools**               | Visual Studio Code, Maven, npm, Docker, Postman, Git, GitHub                                                                                                                                                                                                          |
 | **Quality control**     | Unit, integration and system tests for backend and frontend (JUnit, Mockito, Testcontainers, Rest Assured, Selenium, Vitest, Testing Library); test coverage (JaCoCo, Vitest); static code analysis (SonarQube Cloud); code style checks (Spotless, ESLint, Prettier) |
 | **Deployment**          | Not available yet. The application will be packaged with Docker and Docker Compose in Phase 3 and deployed in Phase 4                                                                                                                                                 |
@@ -82,6 +82,11 @@ https://www.mysql.com/
 JavaScript library for building user interfaces from reusable components. It is used to implement the SPA client.
 https://react.dev/
 
+### TypeScript
+
+Typed superset of JavaScript used for all the frontend code. The compiler (`tsc`, in strict mode) checks the types before the build, and the types of the REST API data are defined in `src/types` to match the backend DTOs.
+https://www.typescriptlang.org/
+
 ### Vite
 
 Build tool and development server for the frontend. It serves the React application during development with instant reload and generates the optimized production build.
@@ -103,7 +108,7 @@ https://maven.apache.org/
 
 ### npm
 
-Package manager for JavaScript. It installs the frontend dependencies and runs its scripts (development server, build, tests, linting and formatting).
+Package manager for JavaScript (Node.js). It installs the frontend dependencies and runs its scripts (development server, build, tests, linting and formatting).
 https://www.npmjs.com/
 
 ### Docker
@@ -167,9 +172,9 @@ The REST API is documented with OpenAPI. The specification is stored in [`docs/a
 
 Current operations:
 
-| Method | URL          | Description               |
-| ------ | ------------ | ------------------------- |
-| GET    | `/api/trips` | Returns the list of trips |
+| Method | URL             | Description               |
+| ------ | --------------- | ------------------------- |
+| GET    | `/api/v1/trips` | Returns the list of trips |
 
 ## Quality control
 
@@ -181,12 +186,12 @@ The application has automated tests at every level for both the backend and the 
 | ---------------------------- | --------------------------------- | ---------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- | ------------- |
 | `TripServiceUnitTest`        | `backend/src/test/.../service`    | Backend unit                             | JUnit, Mockito                          | The service returns the list of trips, with the repository mocked                            | MF            |
 | `TripServiceIntegrationTest` | `backend/src/test/.../service`    | Backend integration (service – database) | JUnit, Spring Boot Test, Testcontainers | The service returns the trips previously stored in a real MySQL database                     | MF            |
-| `TripApiE2ETest`             | `backend/src/test/.../controller` | Backend system (REST API)                | JUnit, Rest Assured, Testcontainers     | `GET /api/trips` returns the sample trips                                                    | MF            |
+| `TripApiE2ETest`             | `backend/src/test/.../controller` | Backend system (REST API)                | JUnit, Rest Assured, Testcontainers     | `GET /api/v1/trips` returns the sample trips                                                 | MF            |
 | `TripUiE2ETest`              | `backend/src/test/.../ui`         | Frontend system (UI)                     | JUnit, Selenium (headless Chrome)       | The home page of the running application shows the sample trips in the browser               | MF            |
-| `TripList.test.jsx`          | `frontend/src/components`         | Frontend unit (component)                | Vitest, Testing Library                 | The component renders the list of trips, with the service mocked and a virtual DOM           | MF            |
-| `tripService.test.jsx`       | `frontend/src/services`           | Frontend unit (service)                  | Vitest                                  | The service requests the trips from the REST API and returns them, with the HTTP call mocked | MF            |
-| `App.test.jsx`               | `frontend/src`                    | Frontend unit (component)                | Vitest, Testing Library                 | The main component renders the trip list                                                     | MF            |
-| `TripList.int.test.jsx`      | `frontend/src/components`         | Client – server integration              | Vitest, Testing Library                 | The component renders the trips obtained from the real REST API                              | MF            |
+| `TripList.test.tsx`          | `frontend/src/components`         | Frontend unit (component)                | Vitest, Testing Library                 | The component renders the list of trips, with the service mocked and a virtual DOM           | MF            |
+| `tripService.test.tsx`       | `frontend/src/services`           | Frontend unit (service)                  | Vitest                                  | The service requests the trips from the REST API and returns them, with the HTTP call mocked | MF            |
+| `App.test.tsx`               | `frontend/src`                    | Frontend unit (component)                | Vitest, Testing Library                 | The main component renders the trip list                                                     | MF            |
+| `TripList.int.test.tsx`      | `frontend/src/components`         | Client – server integration              | Vitest, Testing Library                 | The component renders the trips obtained from the real REST API                              | MF            |
 
 Support classes (not tests): `TestcontainersConfiguration` defines the MySQL container shared by the backend integration and system tests, and `TestBackendApplication` starts the backend locally using that container as its database.
 
@@ -229,7 +234,7 @@ The code is analysed with [SonarQube Cloud](https://sonarcloud.io/summary/new_co
 
 Code size metrics (19/10/2026, from SonarQube Cloud → _Measures → Size_):
 
-| Metric               | Java (backend) | JavaScript (frontend) | Total |
+| Metric               | Java (backend) | TypeScript (frontend) | Total |
 | -------------------- | -------------- | --------------------- | ----- |
 | Lines of code        | 138            | 44                    | 182   |
 | Files                | 7              | 4                     | 11    |
@@ -326,7 +331,7 @@ cd 2026-ViajesRuben
 | Service         | URL                                   |
 | --------------- | ------------------------------------- |
 | Web application | http://localhost:5173                 |
-| REST API        | http://localhost:8080/api/trips       |
+| REST API        | http://localhost:8080/api/v1/trips    |
 | Swagger UI      | http://localhost:8080/swagger-ui.html |
 
 To stop everything, press `Ctrl + C` in the backend and frontend terminals and run `docker stop tripmate-mysql`.
@@ -375,7 +380,7 @@ Frontend:
 cd frontend
 npm test                                     # unit tests
 npm run test:coverage                        # unit tests with coverage
-npx vitest run src/components/TripList.int.test.jsx   # client – server integration tests
+npx vitest run src/components/TripList.int.test.tsx   # client – server integration tests
 ```
 
 The coverage report is generated in `frontend/coverage/index.html`. The client – server integration tests call the real REST API, so the database and the backend must be running (see [Running the application](#running-the-application)).
@@ -411,5 +416,5 @@ Technical problems found during the development and how they were solved.
 | Date         | Problem                                                                                                                | Solution                                                                                              |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Oct 14, 2026 | The backend integration and system tests failed locally with _"Previous attempts to find a Docker environment failed"_ | Testcontainers needs a running Docker engine. Docker Desktop must be started before running the tests |
-| Oct 14, 2026 | ESLint reported an unused `it` import in `TripList.test.jsx` after enabling linting                                    | Removed the unused import                                                                             |
+| Oct 14, 2026 | ESLint reported an unused `it` import in `TripList.test.tsx` after enabling linting                                    | Removed the unused import                                                                             |
 | Oct 14, 2026 | Git warned that CRLF line endings would be replaced by LF after adding `.gitattributes`                                | Expected behaviour: files are normalized to LF in the repository                                      |

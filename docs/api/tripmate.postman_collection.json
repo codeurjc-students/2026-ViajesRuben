@@ -20,14 +20,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/trips",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "trips"
-              ]
+              "raw": "{{baseUrl}}/api/v1/trips",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "trips"]
             }
           },
           "status": "OK",
