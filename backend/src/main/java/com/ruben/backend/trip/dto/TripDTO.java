@@ -1,6 +1,6 @@
-package com.ruben.backend.dto;
+package com.ruben.backend.trip.dto;
 
-import com.ruben.backend.model.Trip;
+import com.ruben.backend.trip.entity.Trip;
 import java.time.LocalDate;
 
 public record TripDTO(

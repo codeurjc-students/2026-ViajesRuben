@@ -1,11 +1,11 @@
-package com.ruben.backend.service;
+package com.ruben.backend.trip.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.ruben.backend.TestcontainersConfiguration;
-import com.ruben.backend.dto.TripDTO;
-import com.ruben.backend.model.Trip;
-import com.ruben.backend.repository.TripRepository;
+import com.ruben.backend.trip.dto.TripDTO;
+import com.ruben.backend.trip.entity.Trip;
+import com.ruben.backend.trip.repository.TripRepository;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

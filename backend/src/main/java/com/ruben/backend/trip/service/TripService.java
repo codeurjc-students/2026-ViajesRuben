@@ -1,7 +1,7 @@
-package com.ruben.backend.service;
+package com.ruben.backend.trip.service;
 
-import com.ruben.backend.dto.TripDTO;
-import com.ruben.backend.repository.TripRepository;
+import com.ruben.backend.trip.dto.TripDTO;
+import com.ruben.backend.trip.repository.TripRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
