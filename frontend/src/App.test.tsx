@@ -18,5 +18,7 @@ test('renders the trip list on the home page', async () => {
 
   render(<App />);
 
-  expect(await screen.findByText(/Trip 1 - Lisbon/)).toBeInTheDocument();
+  expect(await screen.findByText('Viaje a Lisbon')).toBeInTheDocument();
+  expect(screen.getByRole('navigation')).toBeInTheDocument();
+  expect(screen.getByRole('contentinfo')).toBeInTheDocument();
 });
