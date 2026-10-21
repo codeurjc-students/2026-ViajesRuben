@@ -25,8 +25,17 @@ test('renders the list of trips', async () => {
 
   render(<TripList />);
 
-  expect(await screen.findByText(/Trip 1 - Lisbon/)).toBeInTheDocument();
-  expect(screen.getByText(/Trip 2 - Rome/)).toBeInTheDocument();
+  expect(await screen.findByText('Viaje a Lisbon')).toBeInTheDocument();
+  expect(screen.getByText('Viaje a Rome')).toBeInTheDocument();
+});
+
+test('shows an invitation to create a trip when there are none', async () => {
+  vi.mocked(getTrips).mockResolvedValue([]);
+
+  render(<TripList />);
+
+  expect(await screen.findByText('Aún no tienes viajes. Crea el primero.')).toBeInTheDocument();
+  expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 
 test('shows an error message when trips cannot be loaded', async () => {
@@ -34,6 +43,32 @@ test('shows an error message when trips cannot be loaded', async () => {
 
   render(<TripList />);
 
-  expect(await screen.findByRole('alert')).toHaveTextContent('Could not load trips');
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'No se pudieron cargar los viajes. Recarga la página para intentarlo de nuevo.',
+  );
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
+});
+
+test('offers a button to create a new trip', async () => {
+  vi.mocked(getTrips).mockResolvedValue([]);
+
+  render(<TripList />);
+
+  expect(await screen.findByRole('button', { name: 'Crear nuevo viaje' })).toBeInTheDocument();
+});
+
+test('shows how many trips the user has', async () => {
+  vi.mocked(getTrips).mockResolvedValue([
+    {
+      id: 1,
+      name: 'Trip 1',
+      destination: 'Lisbon',
+      startDate: '2027-05-01',
+      endDate: '2027-05-05',
+    },
+  ]);
+
+  render(<TripList />);
+
+  expect(await screen.findByText('1 viaje')).toBeInTheDocument();
 });

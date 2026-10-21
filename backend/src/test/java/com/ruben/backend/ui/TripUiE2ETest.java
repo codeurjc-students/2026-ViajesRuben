@@ -34,9 +34,9 @@ class TripUiE2ETest {
   void homePageShowsSampleTrips() {
     driver.get(baseUrl);
     new WebDriverWait(driver, Duration.ofSeconds(10))
-        .until(ExpectedConditions.textToBePresentInElementLocated(By.id("trips"), "Trip 1"));
+        .until(ExpectedConditions.textToBePresentInElementLocated(By.id("trips"), "Viaje a Lisbon"));
 
     String tripsText = driver.findElement(By.id("trips")).getText();
-    assertThat(tripsText).contains("Trip 1", "Trip 2", "Trip 3", "Lisbon");
+    assertThat(tripsText).contains("Viaje a Lisbon", "Viaje a Rome", "Viaje a Tokyo");
   }
 }

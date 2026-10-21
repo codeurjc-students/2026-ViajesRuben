@@ -5,6 +5,6 @@ import TripList from './TripList';
 test('renders trips fetched from the REST API', async () => {
   render(<TripList />);
 
-  expect(await screen.findByText(/Trip 1 - Lisbon/, {}, { timeout: 5000 })).toBeInTheDocument();
-  expect(screen.getByText(/Trip 2 - Rome/)).toBeInTheDocument();
+  expect(await screen.findByText('Viaje a Lisbon', {}, { timeout: 5000 })).toBeInTheDocument();
+  expect(screen.getByText('Viaje a Rome')).toBeInTheDocument();
 });
