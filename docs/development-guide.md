@@ -311,6 +311,17 @@ cd 2026-ViajesRuben
    docker start tripmate-mysql
    ```
 
+   The backend reads its database settings from environment variables, with defaults for the local container:
+
+   | Variable      | Default                                  |
+   | ------------- | ---------------------------------------- |
+   | `DB_URL`      | `jdbc:mysql://localhost:3307/tripmate`   |
+   | `DB_USERNAME` | `root`                                   |
+   | `DB_PASSWORD` | `password`                               |
+   | `DDL_AUTO`    | `update`                                 |
+
+   Tests use `create-drop` through `backend/src/test/resources/application.properties`.
+
 2. **Start the backend** (it loads the sample data on start-up):
 
    ```bash

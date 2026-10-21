@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:8.4
+        image: mysql:9
         env:
           MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: tripplanner
+          MYSQL_DATABASE: tripmate
         ports: ["3307:3306"]
         options: >-
           --health-cmd="mysqladmin ping -h localhost"
