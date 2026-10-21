@@ -42,7 +42,7 @@ The application has three parts that run as independent processes:
 | Aspect                  | Description                                                                                                                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Type**                | Web SPA with a REST API backend (modular monolith)                                                                                                                                                                                                                    |
-| **Technologies**        | Backend: Java 21, Spring Boot, Spring Data JPA, MySQL. Frontend: React, TypeScript, Vite                                                                                                                                                                              |
+| **Technologies**        | Backend: Java 21, Spring Boot, Spring Data JPA, MySQL. Frontend: React, React Bootstrap, TypeScript, Vite                                                                                                                                                             |
 | **Tools**               | Visual Studio Code, Maven, npm, Docker, Postman, Git, GitHub                                                                                                                                                                                                          |
 | **Quality control**     | Unit, integration and system tests for backend and frontend (JUnit, Mockito, Testcontainers, Rest Assured, Selenium, Vitest, Testing Library); test coverage (JaCoCo, Vitest); static code analysis (SonarQube Cloud); code style checks (Spotless, ESLint, Prettier) |
 | **Deployment**          | Not available yet. The application will be packaged with Docker and Docker Compose in Phase 3 and deployed in Phase 4                                                                                                                                                 |
@@ -81,6 +81,11 @@ https://www.mysql.com/
 
 JavaScript library for building user interfaces from reusable components. It is used to implement the SPA client.
 https://react.dev/
+
+### React Bootstrap
+
+Bootstrap components rebuilt for React (grid, cards, alerts, forms, modals). Bootstrap is themed with the TripMate design tokens instead of its default look; see the [design system](design-system.md).
+https://react-bootstrap.github.io/
 
 ### TypeScript
 
@@ -313,12 +318,12 @@ cd 2026-ViajesRuben
 
    The backend reads its database settings from environment variables, with defaults for the local container:
 
-   | Variable      | Default                                  |
-   | ------------- | ---------------------------------------- |
-   | `DB_URL`      | `jdbc:mysql://localhost:3307/tripmate`   |
-   | `DB_USERNAME` | `root`                                   |
-   | `DB_PASSWORD` | `password`                               |
-   | `DDL_AUTO`    | `update`                                 |
+   | Variable      | Default                                |
+   | ------------- | -------------------------------------- |
+   | `DB_URL`      | `jdbc:mysql://localhost:3307/tripmate` |
+   | `DB_USERNAME` | `root`                                 |
+   | `DB_PASSWORD` | `password`                             |
+   | `DDL_AUTO`    | `update`                               |
 
    Tests use `create-drop` through `backend/src/test/resources/application.properties`.
 

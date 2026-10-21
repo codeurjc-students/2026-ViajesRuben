@@ -1,0 +1,19 @@
+.app-footer {
+  margin-top: 2rem;
+  padding: 1.25rem 0;
+  background: var(--tm-blanco);
+  border-top: 1px solid var(--tm-via-border);
+}
+
+.app-footer__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+}
+
+.app-footer__brand {
+  font-size: 1.6rem;
+  font-weight: 800;
+}

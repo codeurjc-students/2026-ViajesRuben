@@ -1,0 +1,92 @@
+/* Maps the TripMate tokens to Bootstrap variables. No raw colour values here. */
+:root {
+  --bs-body-bg: var(--tm-plano);
+  --bs-body-color: var(--tm-tinta);
+  --bs-body-font-family: var(--tm-font-sans);
+  --bs-heading-color: var(--tm-tinta);
+  --bs-secondary-color: var(--tm-via);
+  --bs-border-color: var(--tm-via-border);
+  --bs-border-radius: var(--tm-radius);
+  --bs-border-radius-sm: var(--tm-radius);
+  --bs-border-radius-lg: var(--tm-radius);
+  --bs-border-radius-pill: var(--tm-radius-pill);
+
+  --bs-primary: var(--tm-tinta);
+  --bs-link-color: var(--tm-linea);
+  --bs-link-hover-color: var(--tm-tinta);
+  --bs-link-color-rgb: 29, 95, 168;
+  --bs-focus-ring-color: var(--tm-linea);
+  --bs-danger: var(--tm-corte);
+  --bs-success: var(--tm-enlace);
+}
+
+h1,
+h2,
+h3,
+.h1,
+.h2,
+.h3,
+.h4 {
+  font-weight: 800;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--tm-tinta);
+  --bs-btn-border-color: var(--tm-tinta);
+  --bs-btn-hover-bg: var(--tm-linea);
+  --bs-btn-hover-border-color: var(--tm-linea);
+  --bs-btn-active-bg: var(--tm-linea);
+  --bs-btn-active-border-color: var(--tm-linea);
+  --bs-btn-focus-shadow-rgb: 29, 95, 168;
+}
+
+.card {
+  --bs-card-bg: var(--tm-blanco);
+  --bs-card-border-color: var(--tm-tinta);
+  --bs-card-border-radius: var(--tm-radius);
+  --bs-card-inner-border-radius: var(--tm-radius);
+  box-shadow: none;
+}
+
+.alert-danger {
+  --bs-alert-color: var(--tm-corte);
+  --bs-alert-bg: var(--tm-blanco);
+  --bs-alert-border-color: var(--tm-corte);
+}
+
+.navbar {
+  --bs-navbar-padding-y: 1rem;
+  --bs-navbar-brand-font-size: 1.6rem;
+  --bs-nav-link-font-size: 1.1rem;
+  --bs-navbar-color: var(--tm-tinta);
+  --bs-navbar-hover-color: var(--tm-linea);
+  --bs-navbar-active-color: var(--tm-tinta);
+  --bs-navbar-brand-color: var(--tm-tinta);
+  --bs-navbar-brand-hover-color: var(--tm-linea);
+  background: var(--tm-blanco);
+  border-bottom: 1px solid var(--tm-via-border);
+}
+
+.navbar-brand {
+  font-weight: 800;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--tm-linea);
+  --bs-btn-border-color: var(--tm-linea);
+  --bs-btn-hover-bg: var(--tm-linea);
+  --bs-btn-hover-border-color: var(--tm-linea);
+  --bs-btn-active-bg: var(--tm-linea);
+  --bs-btn-active-border-color: var(--tm-linea);
+  --bs-btn-focus-shadow-rgb: 29, 95, 168;
+}
+
+.btn-outline-danger {
+  --bs-btn-color: var(--tm-corte);
+  --bs-btn-border-color: var(--tm-corte);
+  --bs-btn-hover-bg: var(--tm-corte);
+  --bs-btn-hover-border-color: var(--tm-corte);
+  --bs-btn-active-bg: var(--tm-corte);
+  --bs-btn-active-border-color: var(--tm-corte);
+  --bs-btn-focus-shadow-rgb: 192, 38, 45;
+}

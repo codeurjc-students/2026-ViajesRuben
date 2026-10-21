@@ -1,0 +1,24 @@
+.app-header .nav-link.active {
+  text-decoration: underline;
+  text-decoration-color: var(--tm-linea);
+  text-decoration-thickness: var(--tm-line-width);
+  text-underline-offset: 0.5rem;
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 1.1rem;
+}
+
+.app-header__avatar {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--tm-radius-pill);
+  background: var(--tm-linea);
+  color: var(--tm-blanco);
+  font-weight: 800;
+}
