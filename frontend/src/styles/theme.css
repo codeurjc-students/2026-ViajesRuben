@@ -1,0 +1,33 @@
+/* TripMate design tokens. The only file with raw colour values. */
+:root {
+  --tm-plano: #f5f6f2;
+  --tm-blanco: #ffffff;
+  --tm-tinta: #1d2521;
+  --tm-linea: #1d5fa8;
+  --tm-corte: #c0262d;
+  --tm-enlace: #2f7a3b;
+  --tm-via: #5b6660;
+  --tm-via-border: #cfd5cf;
+  --tm-velo: #747a81;
+  --tm-linea-suave: #e3ecf6;
+
+  --tm-font-sans: 'Overpass', sans-serif;
+  --tm-font-mono: 'Overpass Mono', monospace;
+
+  --tm-radius: 4px;
+  --tm-radius-pill: 999px;
+
+  --tm-line-width: 4px;
+  --tm-stop-size: 12px;
+  --tm-stop-pitch: 2rem;
+}
+
+body {
+  background-image: url('/trip_background_image.jpg');
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  background-color: var(--tm-velo);
+  background-blend-mode: multiply;
+  font-variant-numeric: tabular-nums;
+}
