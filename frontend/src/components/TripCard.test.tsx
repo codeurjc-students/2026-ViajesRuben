@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { test, expect } from 'vitest';
+import { DEFAULT_TRIP_COVER } from '../constants/images';
 import TripCard from './TripCard';
 
 const trip = {
@@ -40,10 +41,8 @@ test('hides the edit button from participants who are not the creator', () => {
   expect(screen.queryByRole('button', { name: 'Editar Viaje a Rome' })).not.toBeInTheDocument();
 });
 
-test('shows the cover image when the trip has one', () => {
-  const { container } = render(
-    <TripCard trip={{ ...trip, coverImage: 'data:image/png;base64,AAAA' }} />,
-  );
+test('shows the default cover while trips have no image of their own', () => {
+  const { container } = render(<TripCard trip={trip} />);
 
-  expect(container.querySelector('img')).toHaveAttribute('src', 'data:image/png;base64,AAAA');
+  expect(container.querySelector('img')).toHaveAttribute('src', DEFAULT_TRIP_COVER);
 });

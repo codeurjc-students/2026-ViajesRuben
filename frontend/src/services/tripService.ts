@@ -1,8 +1,8 @@
-import type { Trip } from '../types';
+import type { Page, Trip } from '../types';
+import { request } from './apiError';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+export const DEFAULT_PAGE_SIZE = 10;
 
-export async function getTrips(): Promise<Trip[]> {
-  const response = await fetch(`${API_URL}/api/v1/trips`);
-  return response.json();
+export function getTrips(page = 0, size = DEFAULT_PAGE_SIZE): Promise<Page<Trip>> {
+  return request<Page<Trip>>(`/api/v1/trips?page=${page}&size=${size}`);
 }

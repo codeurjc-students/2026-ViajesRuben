@@ -67,6 +67,8 @@ public class SecurityConfig {
                     // TODO(B1/B4): review which trip reads stay public once trips have owners.
                     .requestMatchers(HttpMethod.GET, "/api/v1/trips")
                     .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/images/*")
+                    .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")
                     .requestMatchers("/api/**")

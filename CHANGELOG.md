@@ -16,9 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Common JSON error body (`timestamp`, `status`, `error`, `message`, `path`) for validation and security errors.
 - HTTPS on port 443 with a self-signed development keystore; port, keystore and token settings are configurable with environment variables.
 - Tests for the security base: backend unit, integration and REST API system tests.
+- `ResourceNotFoundException` (404) and `ConflictException` (409), and `GET /api/v1/trips/{id}` (404 JSON error for an unknown trip).
+- Images stored in the database: `POST /api/v1/images` (logged-in users; JPEG, PNG or WebP up to `IMAGE_MAX_SIZE`, validated by type and file signature; 201 with `Location`) and public `GET /api/v1/images/{id}` with `Content-Type` and cache headers. `Image` ids are UUIDs.
+- Frontend `ImageUpload` and `StoredImage` components and the `DEFAULT_TRIP_COVER` fallback image.
+- Error handling for invalid images (400), too large uploads (413) and missing multipart parts (400).
+- Pagination contract: `PageDTO` (`content`, `page`, `size`, `totalElements`, `last`), `?page=&size=` (10 per page by default, 50 at most) and the reusable `usePagedList` hook and "Más resultados" button in the frontend.
+- Sample data now has 12 trips and is enabled with `SAMPLE_DATA` (`app.sample-data.enabled`); trips that are missing are added on start-up.
+- Shared error page (same layout) for unknown routes (404), server errors (5xx) and no connection, with a button back to the home page.
+- Error handling for malformed JSON and wrong parameter types (400), unsupported methods (405), unknown URLs (404) and unexpected errors (500, logged, without details in the response).
 
 ### Changed
 
+- Trip cards show the default cover image; the sample city photos were removed and will be served from the database.
+- `GET /api/v1/trips` is paginated and returns a `PageDTO` instead of an array; the trip list loads 10 trips and a "Más resultados" button loads the rest.
+- Frontend routing with React Router: one route per screen of the analysis (placeholders except `/trips`), the header and footer are now a shared layout, and the trip list moved from `/` to `/trips`.
 - Frontend migrated from JavaScript to TypeScript (strict mode), with API types in `frontend/src/types/`.
 - The backend now serves HTTPS instead of HTTP on port 8080: the Vite proxy, the client – server integration tests, the OpenAPI documentation and the Postman collection use `https://localhost`.
 - The full quality workflow starts the backend on HTTPS port 8443, since the GitHub Actions runner cannot use port 443.

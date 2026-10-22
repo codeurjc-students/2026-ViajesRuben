@@ -5,6 +5,12 @@
   text-underline-offset: 0.5rem;
 }
 
+.app-header__logo {
+  display: block;
+  width: auto;
+  height: 3.5rem;
+}
+
 .app-header__user {
   display: flex;
   align-items: center;
@@ -14,9 +20,12 @@
 
 .app-header__avatar {
   display: grid;
+  flex: none;
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
+  aspect-ratio: 1;
+  line-height: 1;
   border-radius: var(--tm-radius-pill);
   background: var(--tm-linea);
   color: var(--tm-blanco);

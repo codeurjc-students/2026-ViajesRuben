@@ -6,6 +6,52 @@ servers:
   - url: https://localhost
     description: Generated server url
 paths:
+  /api/v1/images:
+    post:
+      tags:
+        - image-controller
+      summary: Upload an image
+      description:
+        "Multipart form with the picture in the `file` part: JPEG, PNG\
+        \ or WebP up to the configured size. The `Location` header has the URL to\
+        \ read it."
+      operationId: upload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "201":
+          description: Image stored
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ImageDTO"
+        "400":
+          description: "Missing, empty or not a JPEG, PNG or WebP image"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: The image is too large
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/auth/logout:
     post:
       tags:
@@ -60,16 +106,123 @@ paths:
     get:
       tags:
         - trip-controller
+      summary: List trips
+      description:
+        "Paginated: `?page=0&size=10` (10 per page by default, 50 at most).\
+        \ Sorted by start date."
       operationId: getTrips
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "startDate,ASC"
+              - "id,ASC"
+            items:
+              type: string
       responses:
         "200":
-          description: OK
+          description: One page of trips
           content:
             "*/*":
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/TripDTO"
+                $ref: "#/components/schemas/PageDTOTripDTO"
+        "400":
+          description: "Invalid page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{id}:
+    get:
+      tags:
+        - trip-controller
+      summary: Get a trip by id
+      operationId: getTrip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The trip
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description: The id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/images/{id}:
+    get:
+      tags:
+        - image-controller
+      summary: Get the bytes of an image
+      description: "Public, so `<img>` tags can use it."
+      operationId: getImage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: "The image, with its `Content-Type` and cache headers"
+          content:
+            image/*: {}
+        "400":
+          description: The id is not a valid UUID
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No image has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/auth/me:
     get:
       tags:
@@ -93,19 +246,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
-    LoginRequest:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-          minLength: 1
-        password:
-          type: string
-          minLength: 1
-      required:
-        - email
-        - password
     ErrorResponse:
       type: object
       properties:
@@ -121,6 +261,30 @@ components:
           type: string
         path:
           type: string
+    ImageDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        contentType:
+          type: string
+        size:
+          type: integer
+          format: int64
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - password
     UserDTO:
       type: object
       properties:
@@ -136,6 +300,24 @@ components:
           enum:
             - USER
             - ADMIN
+    PageDTOTripDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
     TripDTO:
       type: object
       properties:

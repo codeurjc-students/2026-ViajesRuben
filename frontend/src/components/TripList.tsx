@@ -1,27 +1,26 @@
-import { useEffect, useState } from 'react';
-import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
+import { usePagedList } from '../hooks/usePagedList';
 import { getTrips } from '../services/tripService';
-import type { Trip } from '../types';
+import LoadMoreButton from './LoadMoreButton';
 import TripCard from './TripCard';
 import './TripList.css';
 
 export default function TripList() {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const {
+    items: trips,
+    totalElements,
+    loaded,
+    loading,
+    last,
+    error,
+    loadMore,
+  } = usePagedList(getTrips);
 
-  useEffect(() => {
-    getTrips()
-      .then((result) => {
-        setTrips(result);
-        setLoaded(true);
-      })
-      .catch(() => setError(true));
-  }, []);
+  // Rethrown so the route's error page (inside the layout) is shown.
+  if (error) throw error;
 
   return (
     <Container as="main" className="app-main py-4">
@@ -33,7 +32,7 @@ export default function TripList() {
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M4 7h16v12H4ZM4 12h16" />
               </svg>
-              {trips.length === 1 ? '1 viaje' : `${trips.length} viajes`}
+              {totalElements === 1 ? '1 viaje' : `${totalElements} viajes`}
             </span>
           )}
         </div>
@@ -44,23 +43,19 @@ export default function TripList() {
           Crear nuevo viaje
         </Button>
       </div>
-      {error && (
-        <Alert variant="danger">
-          No se pudieron cargar los viajes. Recarga la página para intentarlo de nuevo.
-        </Alert>
-      )}
       {loaded && trips.length === 0 && (
         <p className="bg-white rounded p-3">Aún no tienes viajes. Crea el primero.</p>
       )}
-      {!error && trips.length > 0 && (
+      {trips.length > 0 && (
         <Row as="ul" id="trips" className="trip-list gy-4">
           {trips.map((trip) => (
-            <Col as="li" key={trip.id} xs={12} md={6}>
+            <Col as="li" key={trip.id} xs={12} lg={6}>
               <TripCard trip={trip} />
             </Col>
           ))}
         </Row>
       )}
+      {loaded && <LoadMoreButton last={last} loading={loading} onClick={loadMore} />}
     </Container>
   );
 }

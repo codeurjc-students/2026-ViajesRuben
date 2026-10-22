@@ -8,12 +8,12 @@
   },
   "item": [
     {
-      "name": "Get Trips",
+      "name": "Get Trips (paginated)",
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/trips",
+          "raw": "{{baseUrl}}/api/v1/trips?page=0&size=10",
           "host": [
             "{{baseUrl}}"
           ],
@@ -21,17 +21,30 @@
             "api",
             "v1",
             "trips"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number, starting at 0"
+            },
+            {
+              "key": "size",
+              "value": "10",
+              "description": "Items per page (default 10, maximum 50)"
+            }
           ]
-        }
+        },
+        "description": "Public. Returns one page of trips sorted by start date: `content`, `page`, `size`, `totalElements` and `last` (true on the last page)."
       },
       "response": [
         {
-          "name": "Get Trips",
+          "name": "First page",
           "originalRequest": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/trips",
+              "raw": "{{baseUrl}}/api/v1/trips?page=0&size=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -39,12 +52,24 @@
                 "api",
                 "v1",
                 "trips"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
               ]
             }
           },
           "status": "OK",
           "code": 200,
-          "_postman_previewlanguage": null,
+          "_postman_previewlanguage": "json",
           "header": [
             {
               "key": "Content-Type",
@@ -68,7 +93,89 @@
             }
           ],
           "cookie": [],
-          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Trip 1\",\n        \"destination\": \"Lisbon\",\n        \"startDate\": \"2027-05-01\",\n        \"endDate\": \"2027-05-05\"\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Trip 2\",\n        \"destination\": \"Rome\",\n        \"startDate\": \"2027-07-10\",\n        \"endDate\": \"2027-07-17\"\n    },\n    {\n        \"id\": 3,\n        \"name\": \"Trip 3\",\n        \"destination\": \"Tokyo\",\n        \"startDate\": \"2027-09-03\",\n        \"endDate\": \"2027-09-15\"\n    }\n]"
+          "body": "{\n    \"content\": [\n        {\n            \"id\": 1,\n            \"name\": \"Trip 1\",\n            \"destination\": \"Lisbon\",\n            \"startDate\": \"2027-05-01\",\n            \"endDate\": \"2027-05-05\"\n        },\n        {\n            \"id\": 2,\n            \"name\": \"Trip 2\",\n            \"destination\": \"Rome\",\n            \"startDate\": \"2027-07-10\",\n            \"endDate\": \"2027-07-17\"\n        },\n        {\n            \"id\": 3,\n            \"name\": \"Trip 3\",\n            \"destination\": \"Tokyo\",\n            \"startDate\": \"2027-09-03\",\n            \"endDate\": \"2027-09-15\"\n        },\n        {\n            \"id\": 4,\n            \"name\": \"Trip 4\",\n            \"destination\": \"Paris\",\n            \"startDate\": \"2027-10-08\",\n            \"endDate\": \"2027-10-12\"\n        },\n        {\n            \"id\": 5,\n            \"name\": \"Trip 5\",\n            \"destination\": \"Berlin\",\n            \"startDate\": \"2027-10-20\",\n            \"endDate\": \"2027-10-24\"\n        },\n        {\n            \"id\": 6,\n            \"name\": \"Trip 6\",\n            \"destination\": \"Prague\",\n            \"startDate\": \"2027-11-05\",\n            \"endDate\": \"2027-11-09\"\n        },\n        {\n            \"id\": 7,\n            \"name\": \"Trip 7\",\n            \"destination\": \"Vienna\",\n            \"startDate\": \"2027-11-18\",\n            \"endDate\": \"2027-11-21\"\n        },\n        {\n            \"id\": 8,\n            \"name\": \"Trip 8\",\n            \"destination\": \"Amsterdam\",\n            \"startDate\": \"2027-12-03\",\n            \"endDate\": \"2027-12-06\"\n        },\n        {\n            \"id\": 9,\n            \"name\": \"Trip 9\",\n            \"destination\": \"Madrid\",\n            \"startDate\": \"2027-12-20\",\n            \"endDate\": \"2027-12-27\"\n        },\n        {\n            \"id\": 10,\n            \"name\": \"Trip 10\",\n            \"destination\": \"Athens\",\n            \"startDate\": \"2028-03-14\",\n            \"endDate\": \"2028-03-20\"\n        }\n    ],\n    \"page\": 0,\n    \"size\": 10,\n    \"totalElements\": 12,\n    \"last\": false\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get trip by id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "1"
+          ]
+        },
+        "description": "Returns one trip. Requires being logged in (log in first)."
+      },
+      "response": [
+        {
+          "name": "Trip found",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "1"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 1,\n  \"name\": \"Trip 1\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\"\n}"
+        },
+        {
+          "name": "Trip not found",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "999999"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-22T16:30:00.000Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"Trip not found\",\n  \"path\": \"/api/v1/trips/999999\"\n}"
         }
       ]
     },
@@ -423,6 +530,248 @@
           ],
           "cookie": [],
           "body": "{\n  \"timestamp\": \"2026-10-22T12:00:00.000000Z\",\n  \"status\": 401,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Authentication is required\",\n  \"path\": \"/api/v1/auth/me\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Upload image",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/images",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "images"
+          ]
+        },
+        "description": "Requires being logged in. Send the picture in the `file` part: JPEG, PNG or WebP, up to 5 MB. The `Location` header has the URL to read it."
+      },
+      "response": [
+        {
+          "name": "Image stored",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "images"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Location",
+              "value": "/api/v1/images/3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"contentType\": \"image/png\",\n  \"size\": 20480\n}"
+        },
+        {
+          "name": "Not an image",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "images"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-22T17:00:00.000Z\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"Only JPEG, PNG and WebP images are accepted\",\n  \"path\": \"/api/v1/images\"\n}"
+        },
+        {
+          "name": "Not logged in",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "images"
+              ]
+            }
+          },
+          "status": "Unauthorized",
+          "code": 401,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-22T17:00:00.000Z\",\n  \"status\": 401,\n  \"error\": \"Unauthorized\",\n  \"message\": \"Authentication is required\",\n  \"path\": \"/api/v1/images\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get image",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/images/3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "images",
+            "3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47"
+          ]
+        },
+        "description": "Public. Returns the bytes with the stored `Content-Type` and cache headers."
+      },
+      "response": [
+        {
+          "name": "Image bytes",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/images/3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "images",
+                "3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "raw",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "image/png"
+            },
+            {
+              "key": "Content-Length",
+              "value": "20480"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "max-age=31536000, public, immutable"
+            }
+          ],
+          "cookie": [],
+          "body": "(binary image data)"
+        },
+        {
+          "name": "Image not found",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/images/3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "images",
+                "3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-22T17:00:00.000Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"Image not found\",\n  \"path\": \"/api/v1/images/3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\"\n}"
         }
       ]
     }
