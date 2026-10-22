@@ -32,7 +32,7 @@ class TripUiE2ETest {
 
   @Test
   void homePageShowsSampleTrips() {
-    driver.get(baseUrl);
+    driver.get(baseUrl + "/trips");
     new WebDriverWait(driver, Duration.ofSeconds(10))
         .until(
             ExpectedConditions.textToBePresentInElementLocated(By.id("trips"), "Viaje a Lisbon"));

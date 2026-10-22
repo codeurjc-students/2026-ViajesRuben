@@ -1,0 +1,22 @@
+.status-panel {
+  max-width: 40rem;
+  padding: 2rem;
+  border: 1px solid var(--tm-via-border);
+  border-radius: var(--tm-radius);
+  background: var(--tm-blanco);
+}
+
+/* Two stops of the line with a cut between them (--tm-corte). */
+.error-page__line {
+  display: flex;
+  gap: 0.75rem;
+  width: 7rem;
+  margin-bottom: 1.5rem;
+  background: var(--tm-corte);
+}
+
+.error-page__line span {
+  flex: 1;
+  height: var(--tm-line-width);
+  background: var(--tm-linea);
+}

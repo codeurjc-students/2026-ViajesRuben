@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
@@ -12,7 +11,7 @@ import './TripList.css';
 export default function TripList() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     getTrips()
@@ -20,8 +19,11 @@ export default function TripList() {
         setTrips(result);
         setLoaded(true);
       })
-      .catch(() => setError(true));
+      .catch(setError);
   }, []);
+
+  // Rethrown so the route's error page (inside the layout) is shown.
+  if (error) throw error;
 
   return (
     <Container as="main" className="app-main py-4">
@@ -44,15 +46,10 @@ export default function TripList() {
           Crear nuevo viaje
         </Button>
       </div>
-      {error && (
-        <Alert variant="danger">
-          No se pudieron cargar los viajes. Recarga la página para intentarlo de nuevo.
-        </Alert>
-      )}
       {loaded && trips.length === 0 && (
         <p className="bg-white rounded p-3">Aún no tienes viajes. Crea el primero.</p>
       )}
-      {!error && trips.length > 0 && (
+      {trips.length > 0 && (
         <Row as="ul" id="trips" className="trip-list gy-4">
           {trips.map((trip) => (
             <Col as="li" key={trip.id} xs={12} md={6}>

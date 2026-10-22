@@ -12,6 +12,7 @@ This guide describes the current technical state of TripMate: how it is built, h
 - [Architecture](#architecture)
   - [Deployment](#deployment)
   - [REST API](#rest-api)
+  - [Frontend routing and error page](#frontend-routing-and-error-page)
 - [Quality control](#quality-control)
   - [Automated tests](#automated-tests)
   - [Static code analysis](#static-code-analysis)
@@ -212,6 +213,14 @@ Every error has the same JSON body (`ErrorResponse`): `timestamp`, `status`, `er
 | 500    | Any other exception: logged with its stack trace, but the response only says `Unexpected error`                   |
 
 To report a new error from a service, throw `ResourceNotFoundException` or `ConflictException` with a message that is safe to show.
+
+### Frontend routing and error page
+
+The frontend uses React Router. `src/routes.tsx` lists one route per screen of [the analysis](analysis.md#screens-and-navigation); only `/trips` (My Trips) is built so far, and the rest show `PlaceholderPage`. Every route renders inside `AppLayout` (header, page, footer).
+
+- **Unknown URLs** match the `*` route and show `ErrorPage` with the 404 message.
+- **Failures while loading data**: services use `request()` (`src/services/apiError.ts`), which throws `ApiError` (non-2xx answer, with the status) or `NetworkError` (no answer). A component that cannot load its data rethrows the error and the route's `errorElement` shows `ErrorPage` inside the same layout, with a message for 404, 5xx or no connection and a button back to the home page.
+- **Texts**: Spanish UI texts are written in the component that shows them, as in the rest of the frontend.
 
 ## Quality control
 

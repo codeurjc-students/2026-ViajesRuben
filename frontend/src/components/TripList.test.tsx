@@ -1,4 +1,6 @@
 import { render, screen } from '@testing-library/react';
+import { createMemoryRouter } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
 import { vi, test, expect } from 'vitest';
 import TripList from './TripList';
 import { getTrips } from '../services/tripService';
@@ -38,14 +40,15 @@ test('shows an invitation to create a trip when there are none', async () => {
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 
-test('shows an error message when trips cannot be loaded', async () => {
+test('hands a loading failure to the route error page', async () => {
   vi.mocked(getTrips).mockRejectedValue(new Error('Network error'));
+  const router = createMemoryRouter([
+    { path: '/', element: <TripList />, errorElement: <p>Página de error</p> },
+  ]);
 
-  render(<TripList />);
+  render(<RouterProvider router={router} />);
 
-  expect(await screen.findByRole('alert')).toHaveTextContent(
-    'No se pudieron cargar los viajes. Recarga la página para intentarlo de nuevo.',
-  );
+  expect(await screen.findByText('Página de error')).toBeInTheDocument();
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 

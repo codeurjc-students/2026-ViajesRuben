@@ -17,10 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTTPS on port 443 with a self-signed development keystore; port, keystore and token settings are configurable with environment variables.
 - Tests for the security base: backend unit, integration and REST API system tests.
 - `ResourceNotFoundException` (404) and `ConflictException` (409), and `GET /api/v1/trips/{id}` (404 JSON error for an unknown trip).
+- Shared error page (same layout) for unknown routes (404), server errors (5xx) and no connection, with a button back to the home page.
 - Error handling for malformed JSON and wrong parameter types (400), unsupported methods (405), unknown URLs (404) and unexpected errors (500, logged, without details in the response).
 
 ### Changed
 
+- Frontend routing with React Router: one route per screen of the analysis (placeholders except `/trips`), the header and footer are now a shared layout, and the trip list moved from `/` to `/trips`.
 - Frontend migrated from JavaScript to TypeScript (strict mode), with API types in `frontend/src/types/`.
 - The backend now serves HTTPS instead of HTTP on port 8080: the Vite proxy, the client – server integration tests, the OpenAPI documentation and the Postman collection use `https://localhost`.
 - The full quality workflow starts the backend on HTTPS port 8443, since the GitHub Actions runner cannot use port 443.
