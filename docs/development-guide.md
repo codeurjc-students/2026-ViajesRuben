@@ -192,9 +192,26 @@ Current operations:
 | Method | URL                   | Access    | Description                                                     |
 | ------ | --------------------- | --------- | --------------------------------------------------------------- |
 | GET    | `/api/v1/trips`       | Public    | Returns the list of trips                                       |
+| GET    | `/api/v1/trips/{id}`  | Logged-in | Returns one trip (404 if it does not exist)                     |
 | POST   | `/api/v1/auth/login`  | Public    | Logs in with email and password and sets the `AuthToken` cookie |
 | POST   | `/api/v1/auth/logout` | Public    | Clears the `AuthToken` cookie                                   |
 | GET    | `/api/v1/auth/me`     | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`)      |
+
+#### Errors
+
+Every error has the same JSON body (`ErrorResponse`): `timestamp`, `status`, `error`, `message` and `path`. `GlobalExceptionHandler` maps exceptions to status codes, and the security filters write the same body through `ErrorResponseWriter`.
+
+| Status | When                                                                                                              |
+| ------ | ----------------------------------------------------------------------------------------------------------------- |
+| 400    | Invalid body (`message` lists `field: problem` sorted by field), malformed JSON, or a parameter of the wrong type |
+| 401    | Not logged in, or wrong email or password                                                                         |
+| 403    | Access denied (role or ownership), or a blocked account                                                           |
+| 404    | `ResourceNotFoundException` (a trip, an image...), or an unknown URL                                              |
+| 405    | HTTP method not supported by the URL (the `Allow` header lists the valid ones)                                    |
+| 409    | `ConflictException`                                                                                               |
+| 500    | Any other exception: logged with its stack trace, but the response only says `Unexpected error`                   |
+
+To report a new error from a service, throw `ResourceNotFoundException` or `ConflictException` with a message that is safe to show.
 
 ## Quality control
 

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Common JSON error body (`timestamp`, `status`, `error`, `message`, `path`) for validation and security errors.
 - HTTPS on port 443 with a self-signed development keystore; port, keystore and token settings are configurable with environment variables.
 - Tests for the security base: backend unit, integration and REST API system tests.
+- `ResourceNotFoundException` (404) and `ConflictException` (409), and `GET /api/v1/trips/{id}` (404 JSON error for an unknown trip).
+- Error handling for malformed JSON and wrong parameter types (400), unsupported methods (405), unknown URLs (404) and unexpected errors (500, logged, without details in the response).
 
 ### Changed
 

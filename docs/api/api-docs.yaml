@@ -60,16 +60,55 @@ paths:
     get:
       tags:
         - trip-controller
+      summary: List trips
       operationId: getTrips
       responses:
         "200":
-          description: OK
+          description: The trips
           content:
             "*/*":
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/TripDTO"
+  /api/v1/trips/{id}:
+    get:
+      tags:
+        - trip-controller
+      summary: Get a trip by id
+      operationId: getTrip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The trip
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description: The id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/auth/me:
     get:
       tags:

@@ -1,14 +1,17 @@
 package com.ruben.backend.trip.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,5 +36,27 @@ class TripServiceUnitTest {
 
     assertThat(trips).extracting(TripDTO::name).containsExactly("Trip 1", "Trip 2");
     verify(tripRepository).findAll();
+  }
+
+  @Test
+  void findByIdReturnsTheTrip() {
+    when(tripRepository.findById(1L))
+        .thenReturn(
+            Optional.of(
+                new Trip("Trip 1", "Lisbon", LocalDate.of(2027, 5, 1), LocalDate.of(2027, 5, 5))));
+
+    TripDTO trip = tripService.findById(1L);
+
+    assertThat(trip.name()).isEqualTo("Trip 1");
+    assertThat(trip.destination()).isEqualTo("Lisbon");
+  }
+
+  @Test
+  void findByIdThrowsWhenTheTripDoesNotExist() {
+    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> tripService.findById(99L))
+        .isInstanceOf(ResourceNotFoundException.class)
+        .hasMessage("Trip not found");
   }
 }
