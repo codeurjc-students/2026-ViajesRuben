@@ -61,16 +61,53 @@ paths:
       tags:
         - trip-controller
       summary: List trips
+      description:
+        "Paginated: `?page=0&size=10` (10 per page by default, 50 at most).\
+        \ Sorted by start date."
       operationId: getTrips
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "startDate,ASC"
+              - "id,ASC"
+            items:
+              type: string
       responses:
         "200":
-          description: The trips
+          description: One page of trips
           content:
             "*/*":
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/TripDTO"
+                $ref: "#/components/schemas/PageDTOTripDTO"
+        "400":
+          description: "Invalid page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/trips/{id}:
     get:
       tags:
@@ -175,6 +212,24 @@ components:
           enum:
             - USER
             - ADMIN
+    PageDTOTripDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
     TripDTO:
       type: object
       properties:

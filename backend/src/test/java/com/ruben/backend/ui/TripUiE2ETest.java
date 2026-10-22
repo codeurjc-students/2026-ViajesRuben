@@ -7,7 +7,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -39,5 +41,23 @@ class TripUiE2ETest {
 
     String tripsText = driver.findElement(By.id("trips")).getText();
     assertThat(tripsText).contains("Viaje a Lisbon", "Viaje a Rome", "Viaje a Tokyo");
+  }
+
+  @Test
+  void moreResultsAppendsTheNextPageAndDisappearsOnTheLastOne() {
+    driver.get(baseUrl + "/trips");
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    By cards = By.cssSelector("#trips > li");
+    By moreResults = By.xpath("//button[normalize-space()='Más resultados']");
+    wait.until(ExpectedConditions.numberOfElementsToBe(cards, 10));
+
+    WebElement button = driver.findElement(moreResults);
+    ((JavascriptExecutor) driver)
+        .executeScript(
+            "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", button);
+    wait.until(ExpectedConditions.elementToBeClickable(button)).click();
+
+    wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(cards, 10));
+    wait.until(ExpectedConditions.invisibilityOfElementLocated(moreResults));
   }
 }

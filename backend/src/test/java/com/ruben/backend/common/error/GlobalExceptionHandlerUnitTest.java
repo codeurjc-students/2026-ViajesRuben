@@ -6,6 +6,8 @@ import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.data.core.PropertyReferenceException;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -130,6 +132,17 @@ class GlobalExceptionHandlerUnitTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat(response.getBody().message()).isEqualTo("Invalid value for parameter 'id'");
+  }
+
+  @Test
+  void sortingByAnUnknownPropertyIsAnswered400NamingIt() {
+    PropertyReferenceException exception =
+        new PropertyReferenceException("bogus", TypeInformation.of(Object.class), List.of());
+
+    ResponseEntity<ErrorResponse> response = handler.handleUnknownSortProperty(exception, request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody().message()).isEqualTo("Cannot sort by 'bogus'");
   }
 
   @Test

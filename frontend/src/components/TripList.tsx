@@ -1,26 +1,23 @@
-import { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
+import { usePagedList } from '../hooks/usePagedList';
 import { getTrips } from '../services/tripService';
-import type { Trip } from '../types';
+import LoadMoreButton from './LoadMoreButton';
 import TripCard from './TripCard';
 import './TripList.css';
 
 export default function TripList() {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-
-  useEffect(() => {
-    getTrips()
-      .then((result) => {
-        setTrips(result);
-        setLoaded(true);
-      })
-      .catch(setError);
-  }, []);
+  const {
+    items: trips,
+    totalElements,
+    loaded,
+    loading,
+    last,
+    error,
+    loadMore,
+  } = usePagedList(getTrips);
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
@@ -35,7 +32,7 @@ export default function TripList() {
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M4 7h16v12H4ZM4 12h16" />
               </svg>
-              {trips.length === 1 ? '1 viaje' : `${trips.length} viajes`}
+              {totalElements === 1 ? '1 viaje' : `${totalElements} viajes`}
             </span>
           )}
         </div>
@@ -58,6 +55,7 @@ export default function TripList() {
           ))}
         </Row>
       )}
+      {loaded && <LoadMoreButton last={last} loading={loading} onClick={loadMore} />}
     </Container>
   );
 }

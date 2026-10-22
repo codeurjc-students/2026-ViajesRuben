@@ -1,8 +1,9 @@
 package com.ruben.backend.trip.controller;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasSize;
 
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.security.AdminProperties;
@@ -13,6 +14,8 @@ import com.ruben.backend.user.service.AdminAccountInitializer;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,15 +48,95 @@ class TripApiE2ETest {
     RestAssured.reset();
   }
 
+  private void seedTrips(int count) {
+    tripRepository.deleteAll();
+    List<Trip> trips = new ArrayList<>();
+    for (int i = 1; i <= count; i++) {
+      trips.add(
+          new Trip(
+              "Trip " + i,
+              "City " + i,
+              LocalDate.of(2027, 1, 1).plusDays(i),
+              LocalDate.of(2027, 1, 3).plusDays(i)));
+    }
+    tripRepository.saveAll(trips);
+  }
+
   @Test
-  void getTripsReturnsSampleTrips() {
+  void getTripsReturnsTheFirstTenTripsByDefault() {
+    seedTrips(12);
+
     given()
-        .when()
         .get("/api/v1/trips")
         .then()
         .statusCode(200)
-        .body("name", hasItems("Trip 1", "Trip 2", "Trip 3"))
-        .body("destination", hasItems("Lisbon", "Rome", "Tokyo"));
+        .body("content", hasSize(10))
+        .body("content[0].name", equalTo("Trip 1"))
+        .body("content[9].name", equalTo("Trip 10"))
+        .body("page", equalTo(0))
+        .body("size", equalTo(10))
+        .body("totalElements", equalTo(12))
+        .body("last", equalTo(false));
+  }
+
+  @Test
+  void getTripsReturnsTheRestOnTheSecondPage() {
+    seedTrips(12);
+
+    given()
+        .queryParam("page", 1)
+        .get("/api/v1/trips")
+        .then()
+        .statusCode(200)
+        .body("content.name", contains("Trip 11", "Trip 12"))
+        .body("page", equalTo(1))
+        .body("last", equalTo(true));
+  }
+
+  @Test
+  void getTripsHonoursTheSizeParameterUpToTheMaximum() {
+    seedTrips(12);
+
+    given()
+        .queryParam("size", 5)
+        .get("/api/v1/trips")
+        .then()
+        .statusCode(200)
+        .body("content", hasSize(5))
+        .body("size", equalTo(5));
+    given()
+        .queryParam("size", 1000)
+        .get("/api/v1/trips")
+        .then()
+        .statusCode(200)
+        .body("size", equalTo(50))
+        .body("content", hasSize(12));
+  }
+
+  @Test
+  void getTripsWithAPageBeyondTheEndReturnsAnEmptyLastPage() {
+    seedTrips(3);
+
+    given()
+        .queryParam("page", 5)
+        .get("/api/v1/trips")
+        .then()
+        .statusCode(200)
+        .body("content", hasSize(0))
+        .body("totalElements", equalTo(3))
+        .body("last", equalTo(true));
+  }
+
+  @Test
+  void getTripsSortingByAnUnknownPropertyReturns400() {
+    seedTrips(1);
+
+    given()
+        .queryParam("sort", "bogus")
+        .get("/api/v1/trips")
+        .then()
+        .statusCode(400)
+        .body("message", equalTo("Cannot sort by 'bogus'"));
   }
 
   @Test

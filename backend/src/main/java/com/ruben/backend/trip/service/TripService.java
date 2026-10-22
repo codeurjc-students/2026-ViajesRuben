@@ -1,9 +1,10 @@
 package com.ruben.backend.trip.service;
 
+import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.repository.TripRepository;
-import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,8 +16,8 @@ public class TripService {
     this.tripRepository = tripRepository;
   }
 
-  public List<TripDTO> findAll() {
-    return tripRepository.findAll().stream().map(TripDTO::from).toList();
+  public PageDTO<TripDTO> findPage(Pageable pageable) {
+    return PageDTO.from(tripRepository.findAll(pageable).map(TripDTO::from));
   }
 
   public TripDTO findById(Long id) {

@@ -6,6 +6,7 @@ import App from './App';
 import { routes } from './routes';
 import { getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
+import { pageOf } from './testHelpers';
 
 vi.mock('./services/tripService', () => ({ getTrips: vi.fn() }));
 
@@ -22,15 +23,17 @@ test('the app opens on the home page inside the layout', () => {
 });
 
 test('renders the trip list at /trips with the header and footer', async () => {
-  vi.mocked(getTrips).mockResolvedValue([
-    {
-      id: 1,
-      name: 'Trip 1',
-      destination: 'Lisbon',
-      startDate: '2027-05-01',
-      endDate: '2027-05-05',
-    },
-  ]);
+  vi.mocked(getTrips).mockResolvedValue(
+    pageOf([
+      {
+        id: 1,
+        name: 'Trip 1',
+        destination: 'Lisbon',
+        startDate: '2027-05-01',
+        endDate: '2027-05-05',
+      },
+    ]),
+  );
 
   renderAt('/trips');
 

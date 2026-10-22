@@ -8,12 +8,12 @@
   },
   "item": [
     {
-      "name": "Get Trips",
+      "name": "Get Trips (paginated)",
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/trips",
+          "raw": "{{baseUrl}}/api/v1/trips?page=0&size=10",
           "host": [
             "{{baseUrl}}"
           ],
@@ -21,17 +21,30 @@
             "api",
             "v1",
             "trips"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number, starting at 0"
+            },
+            {
+              "key": "size",
+              "value": "10",
+              "description": "Items per page (default 10, maximum 50)"
+            }
           ]
-        }
+        },
+        "description": "Public. Returns one page of trips sorted by start date: `content`, `page`, `size`, `totalElements` and `last` (true on the last page)."
       },
       "response": [
         {
-          "name": "Get Trips",
+          "name": "First page",
           "originalRequest": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/trips",
+              "raw": "{{baseUrl}}/api/v1/trips?page=0&size=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -39,12 +52,24 @@
                 "api",
                 "v1",
                 "trips"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
               ]
             }
           },
           "status": "OK",
           "code": 200,
-          "_postman_previewlanguage": null,
+          "_postman_previewlanguage": "json",
           "header": [
             {
               "key": "Content-Type",
@@ -68,7 +93,7 @@
             }
           ],
           "cookie": [],
-          "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Trip 1\",\n        \"destination\": \"Lisbon\",\n        \"startDate\": \"2027-05-01\",\n        \"endDate\": \"2027-05-05\"\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Trip 2\",\n        \"destination\": \"Rome\",\n        \"startDate\": \"2027-07-10\",\n        \"endDate\": \"2027-07-17\"\n    },\n    {\n        \"id\": 3,\n        \"name\": \"Trip 3\",\n        \"destination\": \"Tokyo\",\n        \"startDate\": \"2027-09-03\",\n        \"endDate\": \"2027-09-15\"\n    }\n]"
+          "body": "{\n    \"content\": [\n        {\n            \"id\": 1,\n            \"name\": \"Trip 1\",\n            \"destination\": \"Lisbon\",\n            \"startDate\": \"2027-05-01\",\n            \"endDate\": \"2027-05-05\"\n        },\n        {\n            \"id\": 2,\n            \"name\": \"Trip 2\",\n            \"destination\": \"Rome\",\n            \"startDate\": \"2027-07-10\",\n            \"endDate\": \"2027-07-17\"\n        },\n        {\n            \"id\": 3,\n            \"name\": \"Trip 3\",\n            \"destination\": \"Tokyo\",\n            \"startDate\": \"2027-09-03\",\n            \"endDate\": \"2027-09-15\"\n        },\n        {\n            \"id\": 4,\n            \"name\": \"Trip 4\",\n            \"destination\": \"Paris\",\n            \"startDate\": \"2027-10-08\",\n            \"endDate\": \"2027-10-12\"\n        },\n        {\n            \"id\": 5,\n            \"name\": \"Trip 5\",\n            \"destination\": \"Berlin\",\n            \"startDate\": \"2027-10-20\",\n            \"endDate\": \"2027-10-24\"\n        },\n        {\n            \"id\": 6,\n            \"name\": \"Trip 6\",\n            \"destination\": \"Prague\",\n            \"startDate\": \"2027-11-05\",\n            \"endDate\": \"2027-11-09\"\n        },\n        {\n            \"id\": 7,\n            \"name\": \"Trip 7\",\n            \"destination\": \"Vienna\",\n            \"startDate\": \"2027-11-18\",\n            \"endDate\": \"2027-11-21\"\n        },\n        {\n            \"id\": 8,\n            \"name\": \"Trip 8\",\n            \"destination\": \"Amsterdam\",\n            \"startDate\": \"2027-12-03\",\n            \"endDate\": \"2027-12-06\"\n        },\n        {\n            \"id\": 9,\n            \"name\": \"Trip 9\",\n            \"destination\": \"Madrid\",\n            \"startDate\": \"2027-12-20\",\n            \"endDate\": \"2027-12-27\"\n        },\n        {\n            \"id\": 10,\n            \"name\": \"Trip 10\",\n            \"destination\": \"Athens\",\n            \"startDate\": \"2028-03-14\",\n            \"endDate\": \"2028-03-20\"\n        }\n    ],\n    \"page\": 0,\n    \"size\": 10,\n    \"totalElements\": 12,\n    \"last\": false\n}"
         }
       ]
     },

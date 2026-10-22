@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -77,6 +78,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMessageNotReadableException.class)
   ResponseEntity<ErrorResponse> handleMalformedJson(HttpServletRequest request) {
     return build(HttpStatus.BAD_REQUEST, "Malformed JSON request", request);
+  }
+
+  /** An unknown property in `?sort=`. */
+  @ExceptionHandler(PropertyReferenceException.class)
+  ResponseEntity<ErrorResponse> handleUnknownSortProperty(
+      PropertyReferenceException e, HttpServletRequest request) {
+    return build(HttpStatus.BAD_REQUEST, "Cannot sort by '" + e.getPropertyName() + "'", request);
   }
 
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)

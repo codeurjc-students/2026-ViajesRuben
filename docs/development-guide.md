@@ -192,11 +192,21 @@ Current operations:
 
 | Method | URL                   | Access    | Description                                                     |
 | ------ | --------------------- | --------- | --------------------------------------------------------------- |
-| GET    | `/api/v1/trips`       | Public    | Returns the list of trips                                       |
+| GET    | `/api/v1/trips`       | Public    | Returns one page of trips (`?page=0&size=10`)                   |
 | GET    | `/api/v1/trips/{id}`  | Logged-in | Returns one trip (404 if it does not exist)                     |
 | POST   | `/api/v1/auth/login`  | Public    | Logs in with email and password and sets the `AuthToken` cookie |
 | POST   | `/api/v1/auth/logout` | Public    | Clears the `AuthToken` cookie                                   |
 | GET    | `/api/v1/auth/me`     | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`)      |
+
+#### Pagination
+
+Every list is paginated in the database query (Spring Data `Pageable`), never in Java. The client sends `?page=0&size=10` (page numbers start at 0; the default size is 10 and the maximum is 50, set with `spring.data.web.pageable.max-page-size`; `?sort=` is accepted and an unknown property is answered with 400). The answer is always a `PageDTO` (`common/dto`):
+
+```json
+{ "content": [], "page": 0, "size": 10, "totalElements": 12, "last": false }
+```
+
+In the frontend, `usePagedList` (`src/hooks`) loads one page at a time and appends the next one, and `LoadMoreButton` shows "Más resultados" until the server says `last: true`.
 
 #### Errors
 
@@ -393,6 +403,7 @@ cd 2026-ViajesRuben
    | `ADMIN_PASSWORD_HASH`   | BCrypt hash of the password `admin`           | BCrypt hash of the administrator password. The application does not start with anything else |
    | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                        |
    | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                   |
+   | `SAMPLE_DATA`           | `true`                                        | Loads the 12 sample trips that are missing at start-up (`false` to disable)                  |
 
    **In production, `ADMIN_PASSWORD_HASH`, `JWT_SECRET` and the keystore must be replaced** with private values. To create a hash for the administrator password (the `$` characters must not be expanded by the shell, so use single quotes):
 
