@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasItems;
 
 import com.ruben.backend.TestcontainersConfiguration;
 import io.restassured.RestAssured;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,7 +20,14 @@ class TripApiE2ETest {
 
   @BeforeEach
   void setUp() {
+    RestAssured.baseURI = "https://localhost";
     RestAssured.port = port;
+    RestAssured.useRelaxedHTTPSValidation();
+  }
+
+  @AfterEach
+  void tearDown() {
+    RestAssured.reset();
   }
 
   @Test
