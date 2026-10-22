@@ -20,6 +20,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -36,6 +38,30 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(NoResourceFoundException.class)
   ResponseEntity<ErrorResponse> handleNoResource(HttpServletRequest request) {
     return build(HttpStatus.NOT_FOUND, "Resource not found", request);
+  }
+
+  @ExceptionHandler(BadRequestException.class)
+  ResponseEntity<ErrorResponse> handleBadRequest(
+      BadRequestException e, HttpServletRequest request) {
+    return build(HttpStatus.BAD_REQUEST, e.getMessage(), request);
+  }
+
+  @ExceptionHandler(PayloadTooLargeException.class)
+  ResponseEntity<ErrorResponse> handleTooLarge(
+      PayloadTooLargeException e, HttpServletRequest request) {
+    return build(HttpStatus.CONTENT_TOO_LARGE, e.getMessage(), request);
+  }
+
+  /** The upload was rejected by the multipart limits before reaching a controller. */
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  ResponseEntity<ErrorResponse> handleUploadLimit(HttpServletRequest request) {
+    return build(HttpStatus.CONTENT_TOO_LARGE, "The uploaded file is too large", request);
+  }
+
+  @ExceptionHandler(MissingServletRequestPartException.class)
+  ResponseEntity<ErrorResponse> handleMissingPart(
+      MissingServletRequestPartException e, HttpServletRequest request) {
+    return build(HttpStatus.BAD_REQUEST, "Missing part '" + e.getRequestPartName() + "'", request);
   }
 
   @ExceptionHandler(ConflictException.class)

@@ -18,6 +18,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @Tag("B2")
 class GlobalExceptionHandlerUnitTest {
@@ -187,5 +188,41 @@ class GlobalExceptionHandlerUnitTest {
     assertThat(response.getBody().error()).isEqualTo("Internal Server Error");
     assertThat(response.getBody().message()).isEqualTo("Unexpected error");
     assertThat(response.getBody().toString()).doesNotContain("hunter2");
+  }
+
+  @Test
+  void aBadRequestIsAnswered400WithItsMessage() {
+    ResponseEntity<ErrorResponse> response =
+        handler.handleBadRequest(new BadRequestException("Not acceptable"), request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody().message()).isEqualTo("Not acceptable");
+  }
+
+  @Test
+  void aTooLargePayloadIsAnswered413WithItsMessage() {
+    ResponseEntity<ErrorResponse> response =
+        handler.handleTooLarge(new PayloadTooLargeException("Too big"), request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONTENT_TOO_LARGE);
+    assertThat(response.getBody().error()).isEqualTo("Content Too Large");
+    assertThat(response.getBody().message()).isEqualTo("Too big");
+  }
+
+  @Test
+  void anUploadOverTheMultipartLimitIsAnswered413() {
+    ResponseEntity<ErrorResponse> response = handler.handleUploadLimit(request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONTENT_TOO_LARGE);
+    assertThat(response.getBody().message()).isEqualTo("The uploaded file is too large");
+  }
+
+  @Test
+  void aMissingMultipartPartIsAnswered400NamingIt() {
+    ResponseEntity<ErrorResponse> response =
+        handler.handleMissingPart(new MissingServletRequestPartException("file"), request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getBody().message()).isEqualTo("Missing part 'file'");
   }
 }

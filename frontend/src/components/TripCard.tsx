@@ -2,6 +2,7 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import type { Trip } from '../types';
 import { tripDetails } from '../utils/sampleTripDetails';
+import StoredImage from './StoredImage';
 import './TripCard.css';
 
 const dateFormat = new Intl.DateTimeFormat('es-ES', {
@@ -21,19 +22,12 @@ interface TripCardProps {
 
 export default function TripCard({ trip }: TripCardProps) {
   const title = `Viaje a ${trip.destination}`;
-  const { participantCount, isCreator, coverImage } = tripDetails(trip);
+  const { participantCount, isCreator } = tripDetails(trip);
 
   return (
     <Card className="trip-card h-100">
       <div className="trip-card__image">
-        {coverImage ? (
-          <img src={coverImage} alt="" />
-        ) : (
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="trip-card__placeholder">
-            <path d="M3 19 9 9l4 6 3-4 5 8Z" />
-            <circle cx="16.5" cy="6.5" r="2" />
-          </svg>
-        )}
+        <StoredImage />
       </div>
       <div className="trip-card__info">
         <Card.Title as="h2" className="h4">

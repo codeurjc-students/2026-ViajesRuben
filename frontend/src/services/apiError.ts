@@ -17,7 +17,7 @@ export class NetworkError extends Error {
   }
 }
 
-const API_URL = import.meta.env.VITE_API_URL ?? '';
+export const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 /** Calls the REST API and returns the parsed JSON body; failures become ApiError or NetworkError. */
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {

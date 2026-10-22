@@ -23,19 +23,12 @@
   object-fit: cover;
 }
 
-.trip-card__placeholder,
 .trip-card__icon {
   fill: none;
   stroke: currentcolor;
   stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.trip-card__placeholder {
-  width: 3rem;
-  height: 3rem;
-  color: var(--tm-linea);
 }
 
 .trip-card__icon {

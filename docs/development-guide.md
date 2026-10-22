@@ -176,7 +176,7 @@ Authentication and authorization are implemented with Spring Security.
 
 - **Login:** `POST /api/v1/auth/login` checks the email and password (BCrypt) and returns the user. The response sets a signed JWT (HS256) in the `AuthToken` cookie, which is `HttpOnly` (JavaScript cannot read it), `Secure` (HTTPS only), `SameSite=Strict` and limited to the path `/api`. Because of this, the frontend asks `GET /api/v1/auth/me` to know who is logged in.
 - **Every request:** the token is read from the cookie and the user is loaded from the database, so the role always comes from the database (never from the token) and a user blocked or deleted after logging in is rejected immediately. A missing, invalid or expired token is answered with 401 and the cookie is cleared.
-- **Roles:** `USER` and `ADMIN`. The URLs under `/api/v1/admin/**` require `ADMIN`; the rest of `/api/**` requires being logged in, except login, logout and the public trip list (`GET /api/v1/trips`).
+- **Roles:** `USER` and `ADMIN`. The URLs under `/api/v1/admin/**` require `ADMIN`; the rest of `/api/**` requires being logged in, except login, logout, the public trip list (`GET /api/v1/trips`) and reading an image (`GET /api/v1/images/{id}`).
 - **Administrator:** there is a single administrator, defined in the configuration (`ADMIN_EMAIL`, `ADMIN_NAME` and `ADMIN_PASSWORD_HASH`, a BCrypt hash, never a plain password). On every start-up it is created or updated in the database and any other administrator is demoted to `USER`, so the role cannot be assigned through the API.
 - **Blocked users:** a user with status `BLOCKED` cannot log in (403 "Account is blocked"). The blocked check runs after the password check, so someone who does not know the password gets the generic 401 and cannot find out that the account exists.
 - **CSRF:** disabled, because the session is stateless and the only credential is a `SameSite=Strict` cookie that browsers do not send on cross-site requests.
@@ -194,6 +194,8 @@ Current operations:
 | ------ | --------------------- | --------- | --------------------------------------------------------------- |
 | GET    | `/api/v1/trips`       | Public    | Returns one page of trips (`?page=0&size=10`)                   |
 | GET    | `/api/v1/trips/{id}`  | Logged-in | Returns one trip (404 if it does not exist)                     |
+| POST   | `/api/v1/images`      | Logged-in | Uploads an image (multipart `file`); 201 with `Location`        |
+| GET    | `/api/v1/images/{id}` | Public    | Returns the bytes of an image with its `Content-Type`           |
 | POST   | `/api/v1/auth/login`  | Public    | Logs in with email and password and sets the `AuthToken` cookie |
 | POST   | `/api/v1/auth/logout` | Public    | Clears the `AuthToken` cookie                                   |
 | GET    | `/api/v1/auth/me`     | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`)      |
@@ -207,6 +209,14 @@ Every list is paginated in the database query (Spring Data `Pageable`), never in
 ```
 
 In the frontend, `usePagedList` (`src/hooks`) loads one page at a time and appends the next one, and `LoadMoreButton` shows "Más resultados" until the server says `last: true`.
+
+#### Images
+
+Images are stored in the database (`Image` entity: a `@Lob` byte array in a MEDIUMBLOB column, the content type and the creation time), as the project requires, and are identified by a random UUID so their URLs cannot be guessed or enumerated.
+
+- **Upload:** `POST /api/v1/images` (logged-in users) takes a multipart form with the picture in the `file` part and answers `201` with a `Location` header and the image data (`id`, `contentType`, `size`). The type must be JPEG, PNG or WebP **and** the first bytes of the file must match the declared type, so a text file renamed to `.png` is rejected with `400`. Images over `IMAGE_MAX_SIZE` get `413`; `spring.servlet.multipart` sets a hard cap of 10 MB above that.
+- **Read:** `GET /api/v1/images/{id}` is public so `<img>` tags work without credentials. It answers the bytes with the stored `Content-Type` and `Cache-Control: max-age=31536000, public, immutable`, because an image never changes (a new upload gets a new id).
+- **Frontend:** `ImageUpload` uploads the chosen file and `StoredImage` shows an image by id, falling back to `DEFAULT_TRIP_COVER` (`public/Default_trip_image.png`) when there is no id or it fails to load. Linking images to users, trips and activities is done by their own features.
 
 #### Errors
 
@@ -404,6 +414,7 @@ cd 2026-ViajesRuben
    | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                        |
    | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                   |
    | `SAMPLE_DATA`           | `true`                                        | Loads the 12 sample trips that are missing at start-up (`false` to disable)                  |
+   | `IMAGE_MAX_SIZE`        | `5MB`                                         | Largest image accepted by `POST /api/v1/images`                                              |
 
    **In production, `ADMIN_PASSWORD_HASH`, `JWT_SECRET` and the keystore must be replaced** with private values. To create a hash for the administrator password (the `$` characters must not be expanded by the shell, so use single quotes):
 
