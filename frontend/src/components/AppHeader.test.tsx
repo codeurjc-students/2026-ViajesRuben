@@ -14,7 +14,10 @@ function renderAt(path: string) {
 test('shows the brand, the navigation links and the user name', () => {
   renderAt('/trips');
 
-  expect(screen.getByText('TripMate')).toBeInTheDocument();
+  expect(screen.getByAltText('TripMate')).toHaveAttribute(
+    'src',
+    '/App_logo_without_background.png',
+  );
   expect(screen.getByText('Crear viaje')).toBeInTheDocument();
   expect(screen.getByText('Generador IA')).toBeInTheDocument();
   expect(screen.getByText('Carlos')).toBeInTheDocument();

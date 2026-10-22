@@ -15,7 +15,8 @@ All values live in `frontend/src/styles/theme.css`. Contrast is calculated with 
 | Token              | Hex       | Role                              | Contrast on `#F5F6F2` |
 | ------------------ | --------- | --------------------------------- | --------------------- |
 | `--tm-plano`       | `#F5F6F2` | Page background                   | n/a                   |
-| `--tm-blanco`      | `#FFFFFF` | Surfaces (cards, forms)           | n/a                   |
+| `--tm-blanco`      | `#FFFFFF` | Surfaces (forms, panels)          | n/a                   |
+| `--tm-tarjeta`     | `#F3F4F2` | Card background (a hint of grey)  | n/a                   |
 | `--tm-tinta`       | `#1D2521` | Text, primary buttons             | 14.5:1                |
 | `--tm-linea`       | `#1D5FA8` | The line, links, focus ring       | 5.9:1                 |
 | `--tm-corte`       | `#C0262D` | Conflicts and errors (a cut line) | 5.4:1                 |
@@ -33,7 +34,7 @@ All values live in `frontend/src/styles/theme.css`. Contrast is calculated with 
 ## Layout principles
 
 - Follow the wireframes in `docs/images/wireframes/`; this document only defines the look.
-- Bootstrap grid, one column at 375px and two from `md`. Content width is a `Container`.
+- Bootstrap grid, one column up to 991px and two from `lg` (992px). Content width is a `Container`.
 - No shadows. Cards have a 1px border and a 4px radius. Fully round shapes are only used for stops.
 - Primary actions are solid ink (`--tm-tinta`); the blue is reserved for the line, links and focus.
 

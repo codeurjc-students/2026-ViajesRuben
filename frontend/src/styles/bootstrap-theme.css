@@ -41,7 +41,7 @@ h3,
 }
 
 .card {
-  --bs-card-bg: var(--tm-blanco);
+  --bs-card-bg: var(--tm-tarjeta);
   --bs-card-border-color: var(--tm-tinta);
   --bs-card-border-radius: var(--tm-radius);
   --bs-card-inner-border-radius: var(--tm-radius);

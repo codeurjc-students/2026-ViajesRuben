@@ -49,7 +49,7 @@ export default function TripList() {
       {trips.length > 0 && (
         <Row as="ul" id="trips" className="trip-list gy-4">
           {trips.map((trip) => (
-            <Col as="li" key={trip.id} xs={12} md={6}>
+            <Col as="li" key={trip.id} xs={12} lg={6}>
               <TripCard trip={trip} />
             </Col>
           ))}

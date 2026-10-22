@@ -7,7 +7,7 @@
   list-style: none;
 }
 
-@media (width >= 768px) {
+@media (width >= 992px) {
   .trip-list {
     --bs-gutter-x: 3rem;
   }
@@ -41,6 +41,8 @@
   background: var(--tm-blanco);
   color: var(--tm-linea);
   font-weight: 600;
+  border: 1px solid #ddd;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
 .trip-list__count svg {

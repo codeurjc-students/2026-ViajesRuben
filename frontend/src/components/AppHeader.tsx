@@ -13,7 +13,13 @@ export default function AppHeader({ userName }: AppHeaderProps) {
     <Navbar expand="md" className="app-header">
       <Container>
         <Navbar.Brand as={Link} to="/">
-          TripMate
+          <img
+            src="/App_logo_without_background.png"
+            alt="TripMate"
+            width="1024"
+            height="254"
+            className="app-header__logo"
+          />
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="app-header-menu" aria-label="Abrir menú" />
         <Navbar.Collapse id="app-header-menu">
