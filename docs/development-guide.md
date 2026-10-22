@@ -159,15 +159,27 @@ During development, TripMate runs as three independent processes:
 
 ```mermaid
 flowchart LR
-  B["Browser<br/>React SPA<br/>(Vite dev server :5173)"] -- "HTTP / JSON<br/>REST API" --> S["Spring Boot server<br/>:8080"]
+  B["Browser<br/>React SPA<br/>(Vite dev server :5173)"] -- "HTTPS / JSON<br/>REST API" --> S["Spring Boot server<br/>:443"]
   S -- "JDBC" --> D[("MySQL<br/>Docker container<br/>:3307 → 3306")]
 ```
 
-- The **browser** loads the React application from the Vite development server and calls the REST API of the backend using HTTP with JSON payloads.
-- The **Spring Boot server** handles the requests, applies the business logic and accesses the database through JDBC (using Spring Data JPA).
+- The **browser** loads the React application from the Vite development server and calls the REST API using JSON payloads. During development, Vite proxies the `/api` requests to the backend, so the browser only talks to `http://localhost:5173`.
+- The **Spring Boot server** serves HTTPS on port 443, authenticates the requests (see [Security](#security)), handles them, applies the business logic and accesses the database through JDBC (using Spring Data JPA).
 - The **MySQL database** runs in a Docker container. The container's port 3306 is published on port 3307 of the host.
 
-From Phase 3, the frontend will be served as static resources by the Spring Boot server over HTTPS (port 443), and the whole application will be packaged with Docker and Docker Compose.
+From Phase 3, the frontend will be served as static resources by the Spring Boot server over HTTPS as well, and the whole application will be packaged with Docker and Docker Compose.
+
+### Security
+
+Authentication and authorization are implemented with Spring Security.
+
+- **Login:** `POST /api/v1/auth/login` checks the email and password (BCrypt) and returns the user. The response sets a signed JWT (HS256) in the `AuthToken` cookie, which is `HttpOnly` (JavaScript cannot read it), `Secure` (HTTPS only), `SameSite=Strict` and limited to the path `/api`. Because of this, the frontend asks `GET /api/v1/auth/me` to know who is logged in.
+- **Every request:** the token is read from the cookie and the user is loaded from the database, so the role always comes from the database (never from the token) and a user blocked or deleted after logging in is rejected immediately. A missing, invalid or expired token is answered with 401 and the cookie is cleared.
+- **Roles:** `USER` and `ADMIN`. The URLs under `/api/v1/admin/**` require `ADMIN`; the rest of `/api/**` requires being logged in, except login, logout and the public trip list (`GET /api/v1/trips`).
+- **Administrator:** there is a single administrator, defined in the configuration (`ADMIN_EMAIL`, `ADMIN_NAME` and `ADMIN_PASSWORD_HASH`, a BCrypt hash, never a plain password). On every start-up it is created or updated in the database and any other administrator is demoted to `USER`, so the role cannot be assigned through the API.
+- **Blocked users:** a user with status `BLOCKED` cannot log in (403 "Account is blocked"). The blocked check runs after the password check, so someone who does not know the password gets the generic 401 and cannot find out that the account exists.
+- **CSRF:** disabled, because the session is stateless and the only credential is a `SameSite=Strict` cookie that browsers do not send on cross-site requests.
+- **Errors:** security errors use the same JSON body as the rest of the API: `timestamp`, `status`, `error`, `message` and `path`.
 
 ### REST API
 
@@ -177,9 +189,12 @@ The REST API is documented with OpenAPI. The specification is stored in [`docs/a
 
 Current operations:
 
-| Method | URL             | Description               |
-| ------ | --------------- | ------------------------- |
-| GET    | `/api/v1/trips` | Returns the list of trips |
+| Method | URL                   | Access    | Description                                                     |
+| ------ | --------------------- | --------- | --------------------------------------------------------------- |
+| GET    | `/api/v1/trips`       | Public    | Returns the list of trips                                       |
+| POST   | `/api/v1/auth/login`  | Public    | Logs in with email and password and sets the `AuthToken` cookie |
+| POST   | `/api/v1/auth/logout` | Public    | Clears the `AuthToken` cookie                                   |
+| GET    | `/api/v1/auth/me`     | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`)      |
 
 ## Quality control
 
@@ -199,6 +214,19 @@ The application has automated tests at every level for both the backend and the 
 | `TripList.int.test.tsx`      | `frontend/src/components`         | Client – server integration              | Vitest, Testing Library                 | The component renders the trips obtained from the real REST API                              | MF            |
 
 Support classes (not tests): `TestcontainersConfiguration` defines the MySQL container shared by the backend integration and system tests, and `TestBackendApplication` starts the backend locally using that container as its database.
+
+**Security base** (login, roles, blocked users, configured administrator and HTTPS). These tests are tagged `B2`; the registration part of B2 is still pending.
+
+| Test                                                                                                                                       | Type                | What it verifies                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AuthServiceUnitTest`, `AuthControllerUnitTest`                                                                                            | Backend unit        | Login returns the user and a token, errors are propagated without issuing a token, and the controller sets and clears the cookie                                    |
+| `SecurityConfigUnitTest`                                                                                                                   | Backend unit        | BCrypt hashing, and that the blocked check runs after the password check (a blocked user with a wrong password gets the generic error)                              |
+| `ActiveUserJwtConverterUnitTest`, `TripMateUserDetailsServiceUnitTest`                                                                     | Backend unit        | The role comes from the stored user; blocked, deleted and malformed-subject tokens are rejected                                                                     |
+| `JwtServiceUnitTest`, `JwtConfigUnitTest`, `CookieBearerTokenResolverUnitTest`                                                             | Backend unit        | Token contents and expiry, forged and expired tokens, cookie attributes, key validation, and reading the token only from the cookie                                 |
+| `AdminPropertiesUnitTest`, `AdminAccountInitializerUnitTest`                                                                               | Backend unit        | A plain-text admin password is rejected at start-up; the administrator is created or updated and any other administrator is demoted                                 |
+| `GlobalExceptionHandlerUnitTest`, `ErrorResponseWriterUnitTest`, `RestAuthenticationEntryPointUnitTest`, `RestAccessDeniedHandlerUnitTest` | Backend unit        | The 400, 401 and 403 error bodies and the cookie clearing                                                                                                           |
+| `AdminAccountInitializerIntegrationTest`, `AuthServiceIntegrationTest`                                                                     | Backend integration | With a real MySQL database and real BCrypt: the administrator is stored from the configuration, logins succeed or fail as expected, and blocked users cannot log in |
+| `AuthApiE2ETest`                                                                                                                           | Backend system      | Over HTTPS: login, cookie flags, `/me`, logout, errors, a user blocked after logging in, invalid cookies, and access to the admin area by anonymous, user and admin |
 
 **Statistics** (19/10/2026):
 
@@ -327,14 +355,48 @@ cd 2026-ViajesRuben
 
    Tests use `create-drop` through `backend/src/test/resources/application.properties`.
 
-2. **Start the backend** (it loads the sample data on start-up):
+2. **Check the security configuration.** The backend serves HTTPS on port 443 with a self-signed development certificate that is already in the repository (`backend/src/main/resources/keystore.p12`, password `password`, only for development). It also reads the administrator and the token settings from environment variables, with development defaults:
+
+   | Variable                | Default                                       | Description                                                                                  |
+   | ----------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+   | `SERVER_PORT`           | `443`                                         | HTTPS port of the backend                                                                    |
+   | `SSL_KEYSTORE`          | `classpath:keystore.p12`                      | PKCS12 keystore with the certificate (`file:/path/to/keystore.p12` for an external one)      |
+   | `SSL_KEYSTORE_PASSWORD` | `password`                                    | Keystore password                                                                            |
+   | `ADMIN_EMAIL`           | `admin@tripmate.com`                          | Email of the only administrator                                                              |
+   | `ADMIN_NAME`            | `Administrator`                               | Name of the administrator                                                                    |
+   | `ADMIN_PASSWORD_HASH`   | BCrypt hash of the password `admin`           | BCrypt hash of the administrator password. The application does not start with anything else |
+   | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                        |
+   | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                   |
+
+   **In production, `ADMIN_PASSWORD_HASH`, `JWT_SECRET` and the keystore must be replaced** with private values. To create a hash for the administrator password (the `$` characters must not be expanded by the shell, so use single quotes):
+
+   ```bash
+   docker run --rm httpd:2 htpasswd -bnBC 10 "" 'my-admin-password' | tr -d ':\n'
+   export ADMIN_PASSWORD_HASH='<the hash printed above>'
+   ```
+
+   To generate a new `JWT_SECRET`: `openssl rand -base64 32`.
+
+   The development keystore was generated with the following command (run inside `backend/`); it is only needed to replace it, for example if it expires (validity: 10 years):
+
+   ```bash
+   keytool -genkeypair -alias tripmate -keyalg RSA -keysize 2048 -validity 3650 \
+     -storetype PKCS12 -keystore src/main/resources/keystore.p12 -storepass password \
+     -dname "CN=localhost, OU=TripMate, O=URJC, C=ES" -ext "SAN=dns:localhost,ip:127.0.0.1"
+   ```
+
+   The certificate is self-signed, so browsers and tools warn about it when they connect to the backend directly (for example `curl` needs `-k`). The frontend does not show the warning because Vite proxies the requests.
+
+3. **Start the backend** (it loads the sample data and creates the administrator on start-up):
 
    ```bash
    cd backend
    ./mvnw spring-boot:run        # Windows: .\mvnw.cmd spring-boot:run
    ```
 
-3. **Start the frontend** in another terminal:
+   On Linux a normal user cannot use ports below 1024: run the backend on another port (`SERVER_PORT=8443 ./mvnw spring-boot:run`) and give the same address to the frontend with `BACKEND_URL=https://localhost:8443`. The CI workflow does the same.
+
+4. **Start the frontend** in another terminal:
 
    ```bash
    cd frontend
@@ -342,22 +404,31 @@ cd 2026-ViajesRuben
    npm run dev
    ```
 
-4. **Open the application** at http://localhost:5173
+   The Vite proxy sends `/api` to `https://localhost` and accepts its self-signed certificate. If the backend uses another address, set `BACKEND_URL` before `npm run dev` (for example `BACKEND_URL=https://localhost:8443`).
 
-| Service         | URL                                   |
-| --------------- | ------------------------------------- |
-| Web application | http://localhost:5173                 |
-| REST API        | http://localhost:8080/api/v1/trips    |
-| Swagger UI      | http://localhost:8080/swagger-ui.html |
+5. **Open the application** at http://localhost:5173
+
+| Service         | URL                               |
+| --------------- | --------------------------------- |
+| Web application | http://localhost:5173             |
+| REST API        | https://localhost/api/v1/trips    |
+| Swagger UI      | https://localhost/swagger-ui.html |
+
+With the default configuration, you can log in as the administrator with `admin@tripmate.com` and the password `admin`. Quick check with `curl`:
+
+```bash
+curl -k -i -X POST https://localhost/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"admin@tripmate.com","password":"admin"}'
+```
 
 To stop everything, press `Ctrl + C` in the backend and frontend terminals and run `docker stop tripmate-mysql`.
 
 ### Using the tools
 
 - **Visual Studio Code:** open the repository root folder. The recommended extensions are Extension Pack for Java, ESLint and Prettier. Files are formatted automatically on save.
-- **Swagger UI:** with the backend running, open http://localhost:8080/swagger-ui.html to explore and try the REST API from the browser.
-- **Postman:** import the collection [`docs/api/tripmate.postman_collection.json`](api/tripmate.postman_collection.json) (_File → Import_). It contains example requests for every operation of the REST API. The collection variable `baseUrl` points to `http://localhost:8080`.
-- **Regenerating the API documentation:** with the backend running, the OpenAPI specification is available at http://localhost:8080/v3/api-docs.yaml. Save it to `docs/api/api-docs.yaml` and regenerate `docs/api/api-docs.html` from it.
+- **Swagger UI:** with the backend running, open https://localhost/swagger-ui.html (accept the self-signed certificate warning) to explore the REST API from the browser.
+- **Postman:** import the collection [`docs/api/tripmate.postman_collection.json`](api/tripmate.postman_collection.json) (_File → Import_). It contains example requests for every operation of the REST API. The collection variable `baseUrl` points to `https://localhost`. Because of the self-signed certificate, turn off _SSL certificate verification_ in the Postman settings. Run **Login** first: Postman stores the `AuthToken` cookie and sends it in the following requests.
+- **Regenerating the API documentation:** with the backend running, the OpenAPI specification is available at https://localhost/v3/api-docs.yaml (`curl -k`). Save it to `docs/api/api-docs.yaml` (the generated server URL should be `https://localhost`) and regenerate `docs/api/api-docs.html` from it with `npx @redocly/cli build-docs docs/api/api-docs.yaml -o docs/api/api-docs.html`.
 - **Code style:** before committing, format the code with:
 
   ```bash
@@ -376,7 +447,7 @@ cd backend
 ./mvnw test                                  # all the tests
 ./mvnw test -Dtest='*UnitTest'               # unit tests
 ./mvnw test -Dtest='*IntegrationTest'        # integration tests (service – database)
-./mvnw test -Dtest=TripApiE2ETest            # REST API system tests
+./mvnw test -Dtest='*ApiE2ETest'             # REST API system tests (over HTTPS, random port)
 ./mvnw test -Dtest=TripUiE2ETest             # UI system tests (Selenium)
 ```
 
@@ -396,10 +467,10 @@ Frontend:
 cd frontend
 npm test                                     # unit tests
 npm run test:coverage                        # unit tests with coverage
-npx vitest run src/components/TripList.int.test.tsx   # client – server integration tests
+npm run test:int                             # client – server integration tests
 ```
 
-The coverage report is generated in `frontend/coverage/index.html`. The client – server integration tests call the real REST API, so the database and the backend must be running (see [Running the application](#running-the-application)).
+The coverage report is generated in `frontend/coverage/index.html`. The client – server integration tests call the real REST API over HTTPS, so the database and the backend must be running (see [Running the application](#running-the-application)). They use `https://localhost` by default (or `BACKEND_URL`) and accept the self-signed certificate; Node prints a warning about it, which is expected.
 
 Code style checks (the same ones that run in CI):
 
@@ -416,21 +487,29 @@ Releases are created from GitHub (**Releases → Draft a new release**), with a 
 
 Relevant technical decisions taken during the development, with their reasons.
 
-| Date     | Decision                                                   | Alternatives considered                     | Reason                                                                                                                                                    |
-| -------- | ---------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sep 2026 | Telegram as the instant messaging platform                 | WhatsApp                                    | The Telegram Bot API is free and allows bots to manage groups (invite links, join request approval, removing members), which the trip group feature needs |
-| Sep 2026 | Modular monolith organized by domain                       | Classic layered monolith                    | Makes it easier to split the application into independent services in TFG2                                                                                |
-| Oct 2026 | Testcontainers with MySQL for integration and system tests | In-memory H2 database                       | Tests run against the same database engine used in production, avoiding SQL dialect differences                                                           |
-| Oct 2026 | Code style checks in CI (Spotless, ESLint, Prettier)       | Only formatting on save                     | Guarantees a consistent style regardless of the editor and makes style errors visible in every push                                                       |
-| Oct 2026 | `.gitattributes` forcing LF line endings                   | Relying on each machine's Git configuration | The project is developed on Windows and CI runs on Linux; the checks must behave the same in both                                                         |
-| Oct 2026 | MySQL container published on host port 3307                | Default port 3306                           | Avoids conflicts with a local MySQL installation using port 3306                                                                                          |
+| Date     | Decision                                                                                              | Alternatives considered                                                       | Reason                                                                                                                                                    |
+| -------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sep 2026 | Telegram as the instant messaging platform                                                            | WhatsApp                                                                      | The Telegram Bot API is free and allows bots to manage groups (invite links, join request approval, removing members), which the trip group feature needs |
+| Sep 2026 | Modular monolith organized by domain                                                                  | Classic layered monolith                                                      | Makes it easier to split the application into independent services in TFG2                                                                                |
+| Oct 2026 | Testcontainers with MySQL for integration and system tests                                            | In-memory H2 database                                                         | Tests run against the same database engine used in production, avoiding SQL dialect differences                                                           |
+| Oct 2026 | Code style checks in CI (Spotless, ESLint, Prettier)                                                  | Only formatting on save                                                       | Guarantees a consistent style regardless of the editor and makes style errors visible in every push                                                       |
+| Oct 2026 | `.gitattributes` forcing LF line endings                                                              | Relying on each machine's Git configuration                                   | The project is developed on Windows and CI runs on Linux; the checks must behave the same in both                                                         |
+| Oct 2026 | MySQL container published on host port 3307                                                           | Default port 3306                                                             | Avoids conflicts with a local MySQL installation using port 3306                                                                                          |
+| Oct 2026 | JWT in an `HttpOnly` cookie, validated with Spring Security's own resource server (Nimbus)            | Token in `localStorage` sent as a `Bearer` header; a JWT library such as jjwt | JavaScript cannot read the cookie, which limits the damage of an XSS attack; no extra dependency is needed                                                |
+| Oct 2026 | The user is loaded from the database on every authenticated request                                   | Trusting the role stored in the token until it expires                        | A blocked user is rejected immediately and the role cannot become stale; the cost is one query by primary key per request                                 |
+| Oct 2026 | The administrator is defined in the configuration and synchronized into the `users` table on start-up | Keeping the administrator only in memory                                      | Other entities (for example the sample trips created by the administrator) can reference it, and it still cannot be created or assigned through the API   |
+| Oct 2026 | HTTPS on port 443 by default, with a self-signed development keystore committed to the repository     | HTTP in development and HTTPS only in production                              | Development behaves like production (`Secure` cookie) and CI needs no extra setup; the keystore holds nothing private of the real deployment              |
+| Oct 2026 | CI runs the backend on HTTPS port 8443 (`SERVER_PORT`)                                                | Port 443                                                                      | The GitHub Actions runner cannot bind ports below 1024                                                                                                    |
 
 ## Problems and solutions
 
 Technical problems found during the development and how they were solved.
 
-| Date         | Problem                                                                                                                | Solution                                                                                              |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Oct 14, 2026 | The backend integration and system tests failed locally with _"Previous attempts to find a Docker environment failed"_ | Testcontainers needs a running Docker engine. Docker Desktop must be started before running the tests |
-| Oct 14, 2026 | ESLint reported an unused `it` import in `TripList.test.tsx` after enabling linting                                    | Removed the unused import                                                                             |
-| Oct 14, 2026 | Git warned that CRLF line endings would be replaced by LF after adding `.gitattributes`                                | Expected behaviour: files are normalized to LF in the repository                                      |
+| Date         | Problem                                                                                                                           | Solution                                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Oct 14, 2026 | The backend integration and system tests failed locally with _"Previous attempts to find a Docker environment failed"_            | Testcontainers needs a running Docker engine. Docker Desktop must be started before running the tests                                   |
+| Oct 14, 2026 | ESLint reported an unused `it` import in `TripList.test.tsx` after enabling linting                                               | Removed the unused import                                                                                                               |
+| Oct 14, 2026 | Git warned that CRLF line endings would be replaced by LF after adding `.gitattributes`                                           | Expected behaviour: files are normalized to LF in the repository                                                                        |
+| Oct 22, 2026 | The client – server integration tests could not connect to the backend after enabling HTTPS (self-signed certificate)             | `NODE_TLS_REJECT_UNAUTHORIZED=0` is set only in `vitest.int.config.ts`, and the Vite proxy uses `secure: false`                         |
+| Oct 22, 2026 | The backend unit-test coverage fell to 58% after adding the security classes, below the 70% required                              | Added unit tests for the classes that were only covered by the slower system tests (error handlers, controller, security configuration) |
+| Oct 22, 2026 | A test with an expired token failed with _"expiresAt must be after issuedAt"_ when the token was created with a negative lifetime | Spring refuses to build such a token; the test now creates it directly with the encoder, issued two hours ago and expired one hour ago  |

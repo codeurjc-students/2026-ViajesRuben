@@ -43,6 +43,10 @@ jobs:
   frontend-integration-and-system-tests:
     name: Frontend integration and system tests
     runs-on: ubuntu-latest
+    env:
+      # The runner cannot bind port 443, so the backend serves HTTPS on 8443 (self-signed development certificate).
+      SERVER_PORT: 8443
+      BACKEND_URL: https://localhost:8443
     services:
       mysql:
         image: mysql:9
@@ -68,7 +72,7 @@ jobs:
         run: |
           mvn -B package -DskipTests
           nohup java -jar target/*.jar > backend.log 2>&1 &
-          npx -y wait-on http://localhost:8080/api/v1/trips --timeout 120000
+          timeout 120 bash -c 'until curl -ksf https://localhost:8443/api/v1/trips > /dev/null; do sleep 2; done'
       - name: Start frontend
         working-directory: frontend
         run: |
