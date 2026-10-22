@@ -115,3 +115,21 @@ is fully responsible for the delivered work.
 - **Context files:** None.
 - **Spec-Driven Development files:** None.
 - **Human validation:** The student reviewed every record against what was actually done.
+
+### Phase 3: Basic functionality (B1–B8)
+
+#### Record 3.1 — Security base (login, roles, blocked users, configured administrator and HTTPS)
+
+- **Date:** 22/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Consult specific Spring Security 6 configurations and review minor technical details regarding JWT handling in cookies and SSL keystore setup during manual implementation. Also, helped with documentation of development-guide.md based on all the changes and contributions.
+- **Tool:** Claude Code (Anthropic CLI).
+- **Specific version:** Claude Sonnet 5.5.
+- **Tool configuration:** Terminal CLI used strictly for quick interactive Q&A sessions.
+- **How it was used:**
+  - **Syntax & Concept Queries:** Consulted the tool for quick syntax checks regarding Spring Security 6 filter chain configuration and JWT cookie extraction parameters.
+  - **Documentation Editing:** Used the assistant to review and refine the wording of manual changelog entries, OpenAPI endpoint descriptions and development-guide.md writing.
+- **Tool complements (plugins, skills, MCP servers, tools):** None. Standard interactive terminal interface.
+- **Context files:** None utilized.
+- **Spec-Driven Development files:** Personal technical notes maintained locally.
+- **Human validation:** The student reviewed and verified all AI responses and suggestions before manually integrating them into the project. The correct integration was subsequently validated through the execution of unit, integration, and REST system tests, as well as manual checks against the running application.
