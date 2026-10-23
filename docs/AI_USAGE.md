@@ -120,7 +120,7 @@ is fully responsible for the delivered work.
 
 #### Record 3.1 — Security base (login, roles, blocked users, configured administrator and HTTPS)
 
-- **Date:** 22/10/2026
+- **Date:** 20/10/2026
 - **Phase:** Phase 3 (Basic functionality, B1–B8)
 - **Goal:** Consult specific Spring Security 6 configurations and review minor technical details regarding JWT handling in cookies and SSL keystore setup during manual implementation. Also, helped with documentation of development-guide.md based on all the changes and contributions.
 - **Tool:** Claude Code (Anthropic CLI).
@@ -133,3 +133,62 @@ is fully responsible for the delivered work.
 - **Context files:** None utilized.
 - **Spec-Driven Development files:** Personal technical notes maintained locally.
 - **Human validation:** The student reviewed and verified all AI responses and suggestions before manually integrating them into the project. The correct integration was subsequently validated through the execution of unit, integration, and REST system tests, as well as manual checks against the running application.
+
+#### Record 3.2 — Package-by-domain refactor and API v1
+
+- **Date:** 21/10/2026
+- **Phase:** Phase 3 (Basic version)
+- **Goal:** Move the backend to `/api/v1` and reorganise it by domain (`trip`, `common`, …).
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code <version>; model Sonnet 5.5
+- **Tool Configuration:** VS Code extension on Windows; model alias `opusplan`
+- **How it was used:**
+  - The agent proposed the package structure (`com.ruben.backend.trip` with controller/dto/entity/repository/service, plus `common`) and moved the classes and tests.
+  - I chose package-by-domain over package-by-layer after comparing both options.
+- **Tool Complements (MCPs, Plugins, etc.):** review subagent
+- **Context Files:** private Claude Code configuration; README analysis
+- **Human Validation:** I ran the full test suite and checked that CI passed before merging. PR: <link>
+
+#### Record 3.3 — Frontend migration to TypeScript
+
+- **Date:** 22/10/2026
+- **Phase:** Phase 3 (Basic version)
+- **Goal:** Migrate the React frontend from JavaScript to TypeScript.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code <version>; models Opus 5.5 / Sonnet 5.5
+- **Tool Configuration:** VS Code extension on Windows; model alias `opusplan`
+- **How it was used:**
+  - The agent renamed the components and tests to `.tsx`, added types (`src/types`) and the TypeScript configuration, and updated the Vitest configs.
+- **Tool Complements (MCPs, Plugins, etc.):** custom skills
+- **Context Files:** private Claude Code configuration
+- **Human Validation:** I ran `npx tsc --noEmit`, lint, unit and integration tests, reviewed the code and checked the app in the browser. PR: <link>
+
+#### Record 3.4 — Configuration through environment variables
+
+- **Date:** 22/10/2026
+- **Phase:** Phase 3 (Basic version)
+- **Goal:** Make the database URL, credentials and sample data configurable through environment variables.
+- **Tool:** Claude Code (Anthropic) and chat
+- **Specific Version:** Claude Code <version>; model Opus 5.5
+- **Tool Configuration:** VS Code extension on Windows; `opusplan`
+- **How it was used:**
+  - The agent replaced fixed values with `${VAR:default}` placeholders (`DB_URL`, `SAMPLE_DATA`, …).
+  - The chat assistant pointed out an inconsistency between database names (`tripmate` vs `tripplanner`) and MySQL versions (9 vs 8.4); I decided to use `tripmate` and `mysql:9` everywhere (local, Testcontainers and CI).
+- **Tool Complements (MCPs, Plugins, etc.):** private configuration
+- **Context Files:** private Claude Code configuration
+- **Human Validation:** I recreated the local MySQL container and ran all tests. PR: <link>
+
+#### Record 3.5 — Docker image and Docker Compose deployment
+
+- **Date:** 23/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Package TripMate as a single Docker image served by Spring Boot over HTTPS and run it with Docker Compose and MySQL, following section 5.4 of the TFG guide.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.309; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; effort medium
+- **How it was used:**
+  - The AI proposed a plan in four stages, then generated the SPA forwarding in Spring (`SpaResourceResolver`, `SpaWebConfig`) with its unit and REST API system tests, the multi-stage `Dockerfile`, the `.dockerignore`, the two Compose files and the Docker section of the development guide, README and CHANGELOG. It also ran the builds, the tests and the Docker checks and reported their output.
+  - The student rejected the proposed port 8443 inside the container and required port 443, with the non-root user kept through a sysctl (root as fallback), and asked for that decision to be documented in "Design decisions".
+- **Tool Complements (MCPs, Plugins, etc.):** custom skills, review subagents
+- **Context Files:** private Claude Code configuration kept outside a spec-driven plan for `docker`
+- **Human Validation:** The student reviewed the plan before approving it and every stage before committing it. The result was validated with the unit and REST API system tests of the new classes, the full backend unit test suite, the image build, and manual checks of `docker-compose-dev.yml` (database healthy before the application, API, SPA routes, administrator login, empty database with `SAMPLE_DATA=false`, data kept after `down` and `up`, and removed with `down -v`).
