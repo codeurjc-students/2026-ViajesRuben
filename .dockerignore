@@ -1,0 +1,20 @@
+# Allowlist: nothing enters the build context unless it is listed below
+# (keeps .git, docs, tests, CI files and private files out).
+*
+
+!backend/pom.xml
+!backend/src/main
+
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig*.json
+!frontend/*.ts
+!frontend/index.html
+!frontend/public
+!frontend/src
+
+# Generated or installed locally
+**/node_modules
+**/dist
+**/target
+**/coverage
