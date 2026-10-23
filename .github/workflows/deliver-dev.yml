@@ -1,0 +1,24 @@
+name: Deliver dev
+
+# Every push to main publishes rubenruiz7/tripmate:dev and the Compose artifact rubenruiz7/tripmate-compose:dev.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deliver-dev
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish dev
+    uses: ./.github/workflows/publish-docker.yml
+    with:
+      tag: dev
+      compose-file: docker/docker-compose-dev.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

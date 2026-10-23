@@ -192,3 +192,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** custom skills, review subagents
 - **Context Files:** private Claude Code configuration kept outside a spec-driven plan for `docker`
 - **Human Validation:** The student reviewed the plan before approving it and every stage before committing it. The result was validated with the unit and REST API system tests of the new classes, the full backend unit test suite, the image build, and manual checks of `docker-compose-dev.yml` (database healthy before the application, API, SPA routes, administrator login, empty database with `SAMPLE_DATA=false`, data kept after `down` and `up`, and removed with `down -v`).
+
+#### Record 3.6 — Continuous delivery to DockerHub
+
+- **Date:** 23/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Publish the Docker image and the Compose file as an OCI artifact to DockerHub with GitHub Actions for `main`, releases and manual runs, and document continuous delivery and versioning.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.309; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; effort low.
+- **How it was used:**
+  - The AI proposed a plan in two stages and answered the questions asked in the request (how the artifact references the image tag, the Compose version, the release gate, the documentation). It then generated the reusable workflow and the three caller workflows, the sanitizing of the branch name, the release gate, and the "Continuous delivery" and "Versioning" sections of the development guide, the README instructions, the CHANGELOG entries and the Compose tag change.
+  - The student rejected the first plan and required changes: releases publish only `x.y.z` and `latest` (never `x.y`) with the full version in `docker/docker-compose.yml` and in the release steps; every `docker compose -f oci://…` command must be non-interactive; the release gate must wait for a running Basic quality run instead of failing; and the guide must state that the gate assumes branch protection on `main`.
+- **Tool Complements (MCPs, Plugins, etc.):** custom skills, review subagents; MCP none
+- **Context Files:** private Claude Code configuration kept outside the public repository (project instructions, path-scoped rules, skills, subagents, hooks); a spec-driven plan for `continuous-delivery`, also kept private
+- **Human Validation:** The student reviewed and changed the plan before approving it and reviewed each stage before committing it. The AI's checks were `actionlint` on all the workflows, the branch tag conversion with several branch names, the Compose rewrite for the release, dev and manual tags (only the image line changes), `docker compose publish` and reading the artifact back from a local registry, and `prettier --check` on the documentation. The workflows themselves can only run on GitHub once they are on `main`, so their first real runs (`dev` after the merge, a manual run, and the 0.1.0 release) are still to be verified by the student. PR: <link>

@@ -19,7 +19,7 @@ services:
       start_period: 30s
 
   app:
-    image: rubenruiz7/tripmate:0.1
+    image: rubenruiz7/tripmate:0.1.0
     ports:
       - "443:443"
     sysctls:

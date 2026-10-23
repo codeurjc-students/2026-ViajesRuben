@@ -19,15 +19,15 @@
 
 ## Running the application
 
-> Draft: the image `rubenruiz7/tripmate:0.1` will be available on DockerHub with the first release. Until then, build the image yourself (see the [development guide](docs/development-guide.md#docker-deployment)).
-
-The only requirement is [Docker](https://docs.docker.com/get-docker/), with port 443 free:
+The only requirement is [Docker](https://docs.docker.com/get-docker/) with Docker Compose 2.34.0 or later, and port 443 free. Nothing needs to be cloned: the Compose file is published on DockerHub as an OCI artifact, and it starts the application (image `rubenruiz7/tripmate`) and MySQL:
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes
 ```
 
-Open https://localhost/ (the browser warns about the self-signed certificate) and log in as `admin@tripmate.com` with the password `admin`. To stop the application, run `docker compose -f docker/docker-compose.yml down` (add `-v` to also delete the data). Without sample data: `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`. To run it from the source code, see [Running and editing the code](docs/development-guide.md#running-and-editing-the-code).
+Compose lists the variables of the file and asks for confirmation before running an application downloaded from a registry; `--yes` answers yes to that question. Remove it to review the variables first. The tag selects the version: `latest` is the last release, `0.1.0` (or any other release number) a fixed one, and `dev` the last version of `main`.
+
+Open https://localhost/ (the browser warns about the self-signed certificate) and log in as `admin@tripmate.com` with the password `admin`. To stop the application, run `docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest down` (add `-v` to also delete the data). Without sample data: `SAMPLE_DATA=false docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes`. From a clone of the repository, `docker compose -f docker/docker-compose.yml up -d` does the same with the file in `docker/`. To run it from the source code, see [Running and editing the code](docs/development-guide.md#running-and-editing-the-code).
 
 ## Documentation
 
