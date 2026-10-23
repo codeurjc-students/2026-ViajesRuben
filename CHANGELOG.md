@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sample data now has 12 trips and is enabled with `SAMPLE_DATA` (`app.sample-data.enabled`); trips that are missing are added on start-up.
 - Shared error page (same layout) for unknown routes (404), server errors (5xx) and no connection, with a button back to the home page.
 - Error handling for malformed JSON and wrong parameter types (400), unsupported methods (405), unknown URLs (404) and unexpected errors (500, logged, without details in the response).
+- The React application is served by Spring Boot over HTTPS: client routes such as `/trips` return `index.html` (also after a page refresh), unknown `/api/**` URLs keep returning the JSON 404 and missing files return 404.
+- Docker image (`docker/Dockerfile`, multi-stage: Node build of the frontend, Maven build of the jar, JRE 21 runtime with a non-root user listening on port 443) and `.dockerignore`.
+- Docker Compose files `docker/docker-compose.yml` (image `rubenruiz7/tripmate:0.1`) and `docker/docker-compose-dev.yml` (image `rubenruiz7/tripmate:dev`) with the application and MySQL, configured with environment variables that have defaults.
+- Docker deployment documentation in the development guide.
 
 ### Changed
 

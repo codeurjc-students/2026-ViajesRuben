@@ -1,0 +1,46 @@
+# TripMate development: uses the image built locally (docker build -f docker/Dockerfile -t rubenruiz7/tripmate:dev .).
+# Everything is configured with environment variables; the defaults make `docker compose up` work as it is.
+name: tripmate-dev
+
+services:
+  db:
+    image: mysql:9
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tripmate}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      # Over TCP, so it only succeeds once the real server is up and not during the initialization phase.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  app:
+    image: rubenruiz7/tripmate:dev
+    ports:
+      - "443:443"
+    sysctls:
+      # Lets the non-root user of the image listen on port 443 inside the container.
+      net.ipv4.ip_unprivileged_port_start: 0
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE:-tripmate}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-${MYSQL_ROOT_PASSWORD:-password}}
+      SAMPLE_DATA: ${SAMPLE_DATA:-true}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@tripmate.com}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+      # BCrypt hash of the development password "admin"; replace it outside development.
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-$$2a$$10$$opop/gseD0EqqQJ4WJcxSeasiIejoCJni6fpKYxNFfDSgyVxq6VMS}
+      # Development key only; replace it outside development.
+      JWT_SECRET: ${JWT_SECRET:-IqlIb/uwom5HUyTyHj+6CFj/Dj9htDhTQWs2vU3/4HA=}
+      SSL_KEYSTORE: ${SSL_KEYSTORE:-classpath:keystore.p12}
+      SSL_KEYSTORE_PASSWORD: ${SSL_KEYSTORE_PASSWORD:-password}
+
+volumes:
+  db-data:

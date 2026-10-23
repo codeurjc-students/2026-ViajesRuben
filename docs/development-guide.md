@@ -11,6 +11,7 @@ This guide describes the current technical state of TripMate: how it is built, h
 - [Tools](#tools)
 - [Architecture](#architecture)
   - [Deployment](#deployment)
+    - [Docker deployment](#docker-deployment)
   - [REST API](#rest-api)
   - [Frontend routing and error page](#frontend-routing-and-error-page)
 - [Quality control](#quality-control)
@@ -46,7 +47,7 @@ The application has three parts that run as independent processes:
 | **Technologies**        | Backend: Java 21, Spring Boot, Spring Data JPA, MySQL. Frontend: React, React Bootstrap, TypeScript, Vite                                                                                                                                                             |
 | **Tools**               | Visual Studio Code, Maven, npm, Docker, Postman, Git, GitHub                                                                                                                                                                                                          |
 | **Quality control**     | Unit, integration and system tests for backend and frontend (JUnit, Mockito, Testcontainers, Rest Assured, Selenium, Vitest, Testing Library); test coverage (JaCoCo, Vitest); static code analysis (SonarQube Cloud); code style checks (Spotless, ESLint, Prettier) |
-| **Deployment**          | Not available yet. The application will be packaged with Docker and Docker Compose in Phase 3 and deployed in Phase 4                                                                                                                                                 |
+| **Deployment**          | Docker image served by Spring Boot over HTTPS and Docker Compose with MySQL (see [Deployment](#deployment)). Deployment to a server will be done in Phase 4                                                                                                           |
 | **Development process** | Iterative and incremental; Git with GitHub Flow; continuous integration with GitHub Actions; tasks managed with GitHub Issues and GitHub Projects                                                                                                                     |
 
 ## Technologies
@@ -119,7 +120,7 @@ https://www.npmjs.com/
 
 ### Docker
 
-Container platform. During development it is used to run the MySQL database and, through Testcontainers, to start a real MySQL instance for the integration and system tests.
+Container platform. During development it runs the MySQL database and, through Testcontainers, a real MySQL instance for the integration and system tests. It also packages the application as an image, which Docker Compose runs together with MySQL.
 https://www.docker.com/
 
 ### Postman
@@ -168,7 +169,75 @@ flowchart LR
 - The **Spring Boot server** serves HTTPS on port 443, authenticates the requests (see [Security](#security)), handles them, applies the business logic and accesses the database through JDBC (using Spring Data JPA).
 - The **MySQL database** runs in a Docker container. The container's port 3306 is published on port 3307 of the host.
 
-From Phase 3, the frontend will be served as static resources by the Spring Boot server over HTTPS as well, and the whole application will be packaged with Docker and Docker Compose.
+#### Docker deployment
+
+The whole application is packaged as a single Docker image (`rubenruiz7/tripmate`) that contains the Spring Boot server and the built React application, which Spring serves as static resources. It runs with Docker Compose next to a standard MySQL container:
+
+```mermaid
+flowchart LR
+  B["Browser"] -- "HTTPS :443<br/>SPA + REST API" --> A["app container<br/>rubenruiz7/tripmate<br/>Spring Boot :443"]
+  A -- "JDBC<br/>(internal network)" --> D[("db container<br/>mysql:9<br/>volume db-data")]
+```
+
+- The **`app` container** serves the SPA and the REST API from the same origin, so the browser needs no proxy. Requests to a client route (for example `https://localhost/trips`, also after a page refresh) return `index.html` so that React Router renders the screen. Unknown `/api/**` URLs keep returning the JSON error and a missing file (for example `/missing.png`) returns 404.
+- The **`db` container** is not published on the host: only `app` reaches it, through the Compose network. Its data lives in the named volume `db-data`.
+
+**Image layers.** `docker/Dockerfile` has three stages and the build context is the repository root (`.dockerignore` is an allowlist, so only the sources needed by the build are sent to Docker):
+
+| Stage      | Base image                      | What it does                                                                                      |
+| ---------- | ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `frontend` | `node:24-alpine`                | `npm ci` and `npm run build` in `frontend/`                                                       |
+| `backend`  | `maven:3.9-eclipse-temurin-21`  | Copies the frontend build into Spring's static resources and packages the jar (`-DskipTests`)     |
+| runtime    | `eclipse-temurin:21-jre-alpine` | Only the jar, run by the non-root user `tripmate`; HTTPS on port 443 with the keystore in the jar |
+
+The tests are not run while building the image: they run in CI. The resulting image is about 415 MB (the JRE is 165 MB and the jar 68 MB).
+
+**Compose files.** Both files are self-contained (no `build` section, bind mounts or `env_file`), so they can be published as OCI artifacts. They only differ in the project name and the image tag:
+
+| File                            | Project        | `app` image               | Use                                                    |
+| ------------------------------- | -------------- | ------------------------- | ------------------------------------------------------ |
+| `docker/docker-compose.yml`     | `tripmate`     | `rubenruiz7/tripmate:0.1` | Released version, downloaded from DockerHub            |
+| `docker/docker-compose-dev.yml` | `tripmate-dev` | `rubenruiz7/tripmate:dev` | Image built locally, to test changes before publishing |
+
+`app` waits for `db` to be healthy (`mysqladmin ping`) before starting. All settings are environment variables with the `${VAR:-default}` syntax, so `docker compose up` works without any configuration:
+
+| Variable                                | Default                                  | Used by | Description                                                 |
+| --------------------------------------- | ---------------------------------------- | ------- | ----------------------------------------------------------- |
+| `MYSQL_ROOT_PASSWORD`                   | `password`                               | `db`    | Password of the MySQL `root` user                           |
+| `MYSQL_DATABASE`                        | `tripmate`                               | `db`    | Database created on the first start (also used in `DB_URL`) |
+| `DB_URL`                                | `jdbc:mysql://db:3306/${MYSQL_DATABASE}` | `app`   | Fixed by the Compose file, pointing to the `db` service     |
+| `DB_USERNAME`                           | `root`                                   | `app`   | Database user                                               |
+| `DB_PASSWORD`                           | `${MYSQL_ROOT_PASSWORD}`                 | `app`   | Database password                                           |
+| `SAMPLE_DATA`                           | `true`                                   | `app`   | Loads the 12 sample trips at start-up                       |
+| `ADMIN_EMAIL`, `ADMIN_NAME`             | `admin@tripmate.com`, `Administrator`    | `app`   | The administrator                                           |
+| `ADMIN_PASSWORD_HASH`                   | BCrypt hash of the password `admin`      | `app`   | BCrypt hash of the administrator password                   |
+| `JWT_SECRET`                            | development key                          | `app`   | Base64 key that signs the tokens (at least 32 bytes)        |
+| `SSL_KEYSTORE`, `SSL_KEYSTORE_PASSWORD` | `classpath:keystore.p12`, `password`     | `app`   | Keystore with the self-signed development certificate       |
+
+The defaults are for development only: **outside development, `ADMIN_PASSWORD_HASH`, `JWT_SECRET`, `MYSQL_ROOT_PASSWORD` and the keystore must be replaced** (see [Running the application](#running-the-application) to create them). To change a value, set the variable before the command, for example `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`.
+
+**Running with Docker Compose.** Requirements: Docker only, and port 443 free on the host (stop the local backend if it is running).
+
+```bash
+# Released version
+docker compose -f docker/docker-compose.yml up -d
+
+# Local image: build it, tag it as dev and run it
+docker build -f docker/Dockerfile -t rubenruiz7/tripmate:dev .
+docker compose -f docker/docker-compose-dev.yml up -d
+```
+
+The application is then available at https://localhost/ (the browser warns about the self-signed certificate) and the REST API at https://localhost/api/v1/trips. Log in as `admin@tripmate.com` with the password `admin`.
+
+| Goal                           | Command (use `docker/docker-compose-dev.yml` for the local image)                      |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| Start with the 12 sample trips | `docker compose -f docker/docker-compose.yml up -d`                                    |
+| Start with an empty database   | `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`                  |
+| See the logs                   | `docker compose -f docker/docker-compose.yml logs -f app`                              |
+| Stop, keeping the data         | `docker compose -f docker/docker-compose.yml down` (the next `up` finds the same data) |
+| Stop and delete all data       | `docker compose -f docker/docker-compose.yml down -v` (removes the `db-data` volume)   |
+
+`SAMPLE_DATA` is read when the application starts. Uploaded images are stored in the database, so they follow the same rules as the rest of the data: they survive `down` and `up` and disappear with `down -v`. To go from sample data to an empty database, reset the data first with `down -v`.
 
 ### Security
 
@@ -376,6 +445,8 @@ cd 2026-ViajesRuben
 
 ### Running the application
 
+This section runs the application from the source code. To run the packaged application with Docker only, see [Docker deployment](#docker-deployment).
+
 **Requirements:** Java 21, Node.js (LTS version) and Docker ([Docker Desktop](https://docs.docker.com/desktop/) on Windows and Mac).
 
 1. **Start the database.** The first time, create the MySQL container (the values must match `backend/src/main/resources/application.properties`):
@@ -529,25 +600,29 @@ cd frontend && npm run lint && npm run format:check
 
 ### Creating a release
 
-Releases are created from GitHub (**Releases → Draft a new release**), with a tag named after the version (for example, `0.1`), and with the notes of that version taken from [`CHANGELOG.md`](../CHANGELOG.md). The complete release process, including the publication of Docker images and the version updates in `pom.xml` and `package.json`, will be defined in Phase 3.
+Releases are created from GitHub (**Releases → Draft a new release**), with a tag named after the version (for example, `0.1`), and with the notes of that version taken from [`CHANGELOG.md`](../CHANGELOG.md). The complete release process, including the publication of the Docker image to DockerHub and the version updates in `pom.xml` and `package.json`, will be defined in Phase 3.
 
 ## Design decisions
 
 Relevant technical decisions taken during the development, with their reasons.
 
-| Date     | Decision                                                                                              | Alternatives considered                                                       | Reason                                                                                                                                                    |
-| -------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sep 2026 | Telegram as the instant messaging platform                                                            | WhatsApp                                                                      | The Telegram Bot API is free and allows bots to manage groups (invite links, join request approval, removing members), which the trip group feature needs |
-| Sep 2026 | Modular monolith organized by domain                                                                  | Classic layered monolith                                                      | Makes it easier to split the application into independent services in TFG2                                                                                |
-| Oct 2026 | Testcontainers with MySQL for integration and system tests                                            | In-memory H2 database                                                         | Tests run against the same database engine used in production, avoiding SQL dialect differences                                                           |
-| Oct 2026 | Code style checks in CI (Spotless, ESLint, Prettier)                                                  | Only formatting on save                                                       | Guarantees a consistent style regardless of the editor and makes style errors visible in every push                                                       |
-| Oct 2026 | `.gitattributes` forcing LF line endings                                                              | Relying on each machine's Git configuration                                   | The project is developed on Windows and CI runs on Linux; the checks must behave the same in both                                                         |
-| Oct 2026 | MySQL container published on host port 3307                                                           | Default port 3306                                                             | Avoids conflicts with a local MySQL installation using port 3306                                                                                          |
-| Oct 2026 | JWT in an `HttpOnly` cookie, validated with Spring Security's own resource server (Nimbus)            | Token in `localStorage` sent as a `Bearer` header; a JWT library such as jjwt | JavaScript cannot read the cookie, which limits the damage of an XSS attack; no extra dependency is needed                                                |
-| Oct 2026 | The user is loaded from the database on every authenticated request                                   | Trusting the role stored in the token until it expires                        | A blocked user is rejected immediately and the role cannot become stale; the cost is one query by primary key per request                                 |
-| Oct 2026 | The administrator is defined in the configuration and synchronized into the `users` table on start-up | Keeping the administrator only in memory                                      | Other entities (for example the sample trips created by the administrator) can reference it, and it still cannot be created or assigned through the API   |
-| Oct 2026 | HTTPS on port 443 by default, with a self-signed development keystore committed to the repository     | HTTP in development and HTTPS only in production                              | Development behaves like production (`Secure` cookie) and CI needs no extra setup; the keystore holds nothing private of the real deployment              |
-| Oct 2026 | CI runs the backend on HTTPS port 8443 (`SERVER_PORT`)                                                | Port 443                                                                      | The GitHub Actions runner cannot bind ports below 1024                                                                                                    |
+| Date     | Decision                                                                                                                                       | Alternatives considered                                                       | Reason                                                                                                                                                                                                                                                                                      |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sep 2026 | Telegram as the instant messaging platform                                                                                                     | WhatsApp                                                                      | The Telegram Bot API is free and allows bots to manage groups (invite links, join request approval, removing members), which the trip group feature needs                                                                                                                                   |
+| Sep 2026 | Modular monolith organized by domain                                                                                                           | Classic layered monolith                                                      | Makes it easier to split the application into independent services in TFG2                                                                                                                                                                                                                  |
+| Oct 2026 | Testcontainers with MySQL for integration and system tests                                                                                     | In-memory H2 database                                                         | Tests run against the same database engine used in production, avoiding SQL dialect differences                                                                                                                                                                                             |
+| Oct 2026 | Code style checks in CI (Spotless, ESLint, Prettier)                                                                                           | Only formatting on save                                                       | Guarantees a consistent style regardless of the editor and makes style errors visible in every push                                                                                                                                                                                         |
+| Oct 2026 | `.gitattributes` forcing LF line endings                                                                                                       | Relying on each machine's Git configuration                                   | The project is developed on Windows and CI runs on Linux; the checks must behave the same in both                                                                                                                                                                                           |
+| Oct 2026 | MySQL container published on host port 3307                                                                                                    | Default port 3306                                                             | Avoids conflicts with a local MySQL installation using port 3306                                                                                                                                                                                                                            |
+| Oct 2026 | JWT in an `HttpOnly` cookie, validated with Spring Security's own resource server (Nimbus)                                                     | Token in `localStorage` sent as a `Bearer` header; a JWT library such as jjwt | JavaScript cannot read the cookie, which limits the damage of an XSS attack; no extra dependency is needed                                                                                                                                                                                  |
+| Oct 2026 | The user is loaded from the database on every authenticated request                                                                            | Trusting the role stored in the token until it expires                        | A blocked user is rejected immediately and the role cannot become stale; the cost is one query by primary key per request                                                                                                                                                                   |
+| Oct 2026 | The administrator is defined in the configuration and synchronized into the `users` table on start-up                                          | Keeping the administrator only in memory                                      | Other entities (for example the sample trips created by the administrator) can reference it, and it still cannot be created or assigned through the API                                                                                                                                     |
+| Oct 2026 | HTTPS on port 443 by default, with a self-signed development keystore committed to the repository                                              | HTTP in development and HTTPS only in production                              | Development behaves like production (`Secure` cookie) and CI needs no extra setup; the keystore holds nothing private of the real deployment                                                                                                                                                |
+| Oct 2026 | CI runs the backend on HTTPS port 8443 (`SERVER_PORT`)                                                                                         | Port 443                                                                      | The GitHub Actions runner cannot bind ports below 1024                                                                                                                                                                                                                                      |
+| Oct 2026 | One Docker image with the Spring Boot server serving the built React application                                                               | A separate frontend container (for example nginx)                             | The SPA and the API share the same origin (no CORS or proxy), there is one HTTPS endpoint and a single artifact to publish, as the guide asks                                                                                                                                               |
+| Oct 2026 | The container listens on port 443 as the non-root user `tripmate`, with `sysctls: net.ipv4.ip_unprivileged_port_start: 0` in the Compose files | The container on 8443 published as `443:8443`; running the container as root  | The guide asks for HTTPS on port 443. The sysctl lets a non-root process bind port 443 inside the container's own network namespace, so the process does not run as root; it was verified on Docker Desktop. If a platform rejects the sysctl, the fallback is to run the container as root |
+| Oct 2026 | Two Compose files (`0.1` and `dev`) with different project names                                                                               | One file with the image tag as a variable                                     | The guide asks for a released and a development file, each publishable as an OCI artifact; different project names keep their volumes and containers separate                                                                                                                               |
+| Oct 2026 | `.dockerignore` as an allowlist                                                                                                                | A list of excluded folders                                                    | Nothing enters the build context unless the build needs it, so private files, `.git` and documentation cannot end up in an image                                                                                                                                                            |
 
 ## Problems and solutions
 
