@@ -17,6 +17,18 @@
 
 > **Project status:** Only the functional and technical objectives of the application have been defined. Development has started (repository, minimum functionality, automated tests and continuous integration), but the implementation is **not functional yet**.
 
+## Running the application
+
+> Draft: the image `rubenruiz7/tripmate:0.1` will be available on DockerHub with the first release. Until then, build the image yourself (see the [development guide](docs/development-guide.md#docker-deployment)).
+
+The only requirement is [Docker](https://docs.docker.com/get-docker/), with port 443 free:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+```
+
+Open https://localhost/ (the browser warns about the self-signed certificate) and log in as `admin@tripmate.com` with the password `admin`. To stop the application, run `docker compose -f docker/docker-compose.yml down` (add `-v` to also delete the data). Without sample data: `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`. To run it from the source code, see [Running and editing the code](docs/development-guide.md#running-and-editing-the-code).
+
 ## Documentation
 
 - [Objectives](docs/objectives.md)
