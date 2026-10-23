@@ -26,8 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error handling for malformed JSON and wrong parameter types (400), unsupported methods (405), unknown URLs (404) and unexpected errors (500, logged, without details in the response).
 - The React application is served by Spring Boot over HTTPS: client routes such as `/trips` return `index.html` (also after a page refresh), unknown `/api/**` URLs keep returning the JSON 404 and missing files return 404.
 - Docker image (`docker/Dockerfile`, multi-stage: Node build of the frontend, Maven build of the jar, JRE 21 runtime with a non-root user listening on port 443) and `.dockerignore`.
-- Docker Compose files `docker/docker-compose.yml` (image `rubenruiz7/tripmate:0.1`) and `docker/docker-compose-dev.yml` (image `rubenruiz7/tripmate:dev`) with the application and MySQL, configured with environment variables that have defaults.
+- Docker Compose files `docker/docker-compose.yml` (image `rubenruiz7/tripmate:0.1.0`) and `docker/docker-compose-dev.yml` (image `rubenruiz7/tripmate:dev`) with the application and MySQL, configured with environment variables that have defaults.
 - Docker deployment documentation in the development guide.
+- Continuous delivery with GitHub Actions: a reusable workflow builds and pushes the image `rubenruiz7/tripmate:<tag>` and publishes the Compose file as the OCI artifact `rubenruiz7/tripmate-compose:<tag>` to DockerHub. A push to `main` publishes `dev`, a published release `x.y.z` publishes `x.y.z` and `latest` (after checking that the commit is on `main` and passed Basic quality), and a manual run publishes `<branch>-<date>-<commit>`.
+- Documentation of continuous delivery and versioning in the development guide, and instructions in the README to run the application from the OCI artifact.
 
 ### Changed
 
