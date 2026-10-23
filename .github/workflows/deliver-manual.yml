@@ -1,0 +1,38 @@
+name: Deliver manual
+
+# Run from the Actions tab on any branch: publishes rubenruiz7/tripmate:<branch>-<YYYYMMDD>-<short commit> and the
+# Compose artifact with the same tag.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tag:
+    name: Compute the tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # Docker tags allow only [A-Za-z0-9_.-] (128 characters, not starting with "." or "-"): feature/x -> feature-x
+          branch=$(echo "$REF_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]+/-/g; s/-+/-/g; s/^[.-]+//')
+          suffix="-$(date -u +%Y%m%d)-${GITHUB_SHA::7}"
+          tag="${branch:0:$((128 - ${#suffix}))}$suffix"
+          echo "Tag: $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish
+    needs: tag
+    uses: ./.github/workflows/publish-docker.yml
+    with:
+      tag: ${{ needs.tag.outputs.tag }}
+      compose-file: docker/docker-compose-dev.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

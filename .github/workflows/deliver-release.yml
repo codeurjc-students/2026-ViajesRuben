@@ -1,0 +1,85 @@
+name: Deliver release
+
+# Publishing a GitHub release x.y.z publishes rubenruiz7/tripmate:x.y.z and :latest, and the Compose artifact
+# rubenruiz7/tripmate-compose:x.y.z and :latest (both pointing to the image x.y.z). A pre-release does not move
+# latest. The release must be on main and its commit must have passed Basic quality.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Check version and quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      aliases: ${{ steps.version.outputs.aliases }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read the version from the release tag
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tag '$RELEASE_TAG' is not a version x.y.z"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$PRERELEASE" = "true" ]; then echo "aliases=" >> "$GITHUB_OUTPUT"; else echo "aliases=latest" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Check that the release commit is on main
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Commit $GITHUB_SHA is not on main"
+            exit 1
+          fi
+
+      - name: Wait for Basic quality on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # main only receives pull requests that passed the required checks (branch protection); this also
+          # waits for the Basic quality run of the push to main, up to 15 minutes.
+          deadline=$((SECONDS + 900))
+          while true; do
+            run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow basic-quality.yml --branch main \
+              --commit "$GITHUB_SHA" --limit 1 --json status,conclusion,url --jq '.[0] // empty')
+            status=$(echo "$run" | jq -r '.status // "missing"')
+            conclusion=$(echo "$run" | jq -r '.conclusion // ""')
+            echo "Basic quality: $status $conclusion $(echo "$run" | jq -r '.url // ""')"
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then exit 0; fi
+              echo "::error::Basic quality did not pass for $GITHUB_SHA ($conclusion)"
+              exit 1
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::Basic quality for $GITHUB_SHA did not finish in 15 minutes ($status)"
+              exit 1
+            fi
+            sleep 30
+          done
+
+  publish:
+    name: Publish release
+    needs: verify
+    uses: ./.github/workflows/publish-docker.yml
+    with:
+      tag: ${{ needs.verify.outputs.version }}
+      aliases: ${{ needs.verify.outputs.aliases }}
+      compose-file: docker/docker-compose.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

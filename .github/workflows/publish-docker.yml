@@ -1,0 +1,139 @@
+name: Publish Docker image and Compose artifact
+
+# Reusable workflow: builds docker/Dockerfile, pushes rubenruiz7/tripmate:<tag> and publishes the Compose file as
+# the OCI artifact rubenruiz7/tripmate-compose:<tag>. The published Compose file is a copy of the committed one
+# where only the app image is changed to rubenruiz7/tripmate:<tag>; the aliases (for example "latest") are extra
+# tags of the same image and artifact, so the artifact always points to the immutable <tag>.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Image and artifact tag written in the published Compose file
+        required: true
+        type: string
+      aliases:
+        description: Extra tags for the same image and artifact, separated by spaces
+        required: false
+        type: string
+        default: ""
+      compose-file:
+        description: Compose file to publish, relative to the repository root
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_REPO: rubenruiz7/tripmate
+  COMPOSE_REPO: rubenruiz7/tripmate-compose
+  # docker compose publish is a regular command since Compose 2.34.0; the version is pinned so the runner
+  # image cannot change it.
+  COMPOSE_VERSION: v5.6.0
+
+jobs:
+  publish:
+    name: Build, push and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ inputs.tag }}
+      ALIASES: ${{ inputs.aliases }}
+      COMPOSE_FILE_PATH: ${{ inputs.compose-file }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate tags
+        id: tags
+        run: |
+          for t in $TAG $ALIASES; do
+            if ! [[ "$t" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+              echo "::error::'$t' is not a valid Docker tag"
+              exit 1
+            fi
+          done
+          {
+            echo "image<<EOF"
+            for t in $TAG $ALIASES; do echo "$IMAGE_REPO:$t"; done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v2
+        with:
+          version: ${{ env.COMPOSE_VERSION }}
+
+      - name: Check Docker Compose version
+        run: |
+          docker compose version
+          test "v$(docker compose version --short)" = "$COMPOSE_VERSION"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.image }}
+          labels: |
+            org.opencontainers.image.title=TripMate
+            org.opencontainers.image.version=${{ inputs.tag }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Point the Compose file to the image tag
+        run: |
+          mkdir -p "$RUNNER_TEMP/compose"
+          published="$RUNNER_TEMP/compose/docker-compose.yml"
+          cp "$COMPOSE_FILE_PATH" "$published"
+          sed -i -E "s#^(    image: )$IMAGE_REPO:.*#\1$IMAGE_REPO:$TAG#" "$published"
+          diff "$COMPOSE_FILE_PATH" "$published" || true
+          # Exactly one line must change, and the app must use the new tag.
+          test "$(diff "$COMPOSE_FILE_PATH" "$published" | grep -c '^>')" -le 1
+          images=$(docker compose -f "$published" config --images)
+          echo "$images"
+          grep -qx "$IMAGE_REPO:$TAG" <<< "$images"
+
+      - name: Publish the Compose artifact
+        timeout-minutes: 5
+        run: |
+          # --yes: publish asks for confirmation because the development defaults look like secrets.
+          for t in $TAG $ALIASES; do
+            docker compose -f "$RUNNER_TEMP/compose/docker-compose.yml" publish --yes "$COMPOSE_REPO:$t" < /dev/null
+          done
+
+      - name: Check the published artifact
+        timeout-minutes: 5
+        run: |
+          # config never asks for confirmation; stdin is closed so nothing can wait for input.
+          for t in $TAG $ALIASES; do
+            images=$(docker compose -f "oci://docker.io/$COMPOSE_REPO:$t" config --images < /dev/null)
+            echo "$COMPOSE_REPO:$t -> $images"
+            grep -qx "$IMAGE_REPO:$TAG" <<< "$images"
+          done
+
+      - name: Summary
+        run: |
+          {
+            echo "### Published"
+            echo "| Image | Compose artifact |"
+            echo "| --- | --- |"
+            for t in $TAG $ALIASES; do echo "| \`$IMAGE_REPO:$t\` | \`oci://docker.io/$COMPOSE_REPO:$t\` |"; done
+            echo
+            echo "Every Compose artifact runs \`$IMAGE_REPO:$TAG\`."
+          } >> "$GITHUB_STEP_SUMMARY"
