@@ -86,6 +86,7 @@ public class UserService {
    *     from the configuration
    * @throws ConflictException the new email belongs to another account or to the administrator
    */
+  @Transactional
   public UserDTO updateProfile(Long id, UpdateProfileRequest request) {
     User user = findOwnUser(id);
     ensureNotAdministrator(user);
@@ -104,6 +105,7 @@ public class UserService {
    * @throws BadRequestException the current password is wrong
    * @throws ForbiddenException another user's profile, or the administrator
    */
+  @Transactional
   public void changePassword(Long id, ChangePasswordRequest request) {
     User user = findOwnUser(id);
     ensureNotAdministrator(user);

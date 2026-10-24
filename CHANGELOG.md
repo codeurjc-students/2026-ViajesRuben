@@ -34,9 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B2: `/login` and `/register` pages with client-side validation and inline error messages, an authentication context (`/api/v1/auth/me` on load, login, logout, register), a header that shows the login and register links or the user name and "Cerrar sesión", and automatic login after registering.
 - B2: private routes redirect anonymous visitors to `/login` and return them to the page they asked for after logging in.
 - B2 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (register, log out, log in).
+- B3: own profile in the API, only for the user themselves (`GET` and `PUT /api/v1/users/{id}`: 403 for another user, 404, 409 for a taken email or the administrator email). Changing the email does not log the user out, because the token identifies the user by id.
+- B3: password change (`PUT /api/v1/users/{id}/password`), which requires the current password (400 if it is wrong) and follows the 8–72 character rule.
+- B3: avatar stored in the database (`PUT`, `GET` and `DELETE /api/v1/users/{id}/avatar`), validated like any other image; replacing or deleting it deletes the previous image. Users without avatar show the initial of their name.
+- B3: `/profile` page with view and edit mode for the name and email, a separate form to change the password, and the avatar with upload, replace and delete. The header shows the avatar and name, links to `/profile` and is updated without reloading.
+- B3: the administrator's profile is read-only except for the avatar, because its details come from the configuration.
+- B3 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (register, edit the name, change the avatar and the password, log out, log in with the new password).
 
 ### Changed
 
+- The user returned by login, `GET /api/v1/auth/me` and the profile endpoints now includes `avatarId` and `registrationDate`.
+- `ImageService` exposes `save` (returns the stored image for other domains to link) and `delete`; `ImageUpload` accepts an `upload` function and `StoredImage` a `fallback`.
+- `TripCard` and `TripList` take their border and shadow from the `--tm-card-border` and `--tm-card-shadow` tokens (no visual change).
 - Trip cards show the default cover image; the sample city photos were removed and will be served from the database.
 - `GET /api/v1/trips` is paginated and returns a `PageDTO` instead of an array; the trip list loads 10 trips and a "Más resultados" button loads the rest.
 - Frontend routing with React Router: one route per screen of the analysis (placeholders except `/trips`), the header and footer are now a shared layout, and the trip list moved from `/` to `/trips`.

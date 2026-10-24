@@ -272,16 +272,22 @@ The REST API is documented with OpenAPI. The specification is stored in [`docs/a
 
 Current operations:
 
-| Method | URL                   | Access    | Description                                                                                            |
-| ------ | --------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/v1/trips`       | Public    | Returns one page of trips (`?page=0&size=10`)                                                          |
-| GET    | `/api/v1/trips/{id}`  | Logged-in | Returns one trip (404 if it does not exist)                                                            |
-| POST   | `/api/v1/images`      | Logged-in | Uploads an image (multipart `file`); 201 with `Location`                                               |
-| GET    | `/api/v1/images/{id}` | Public    | Returns the bytes of an image with its `Content-Type`                                                  |
-| POST   | `/api/v1/users`       | Public    | Registers a regular user (`name`, `email`, `password`); 201 with `Location`, 409 if the email is taken |
-| POST   | `/api/v1/auth/login`  | Public    | Logs in with email and password and sets the `AuthToken` cookie                                        |
-| POST   | `/api/v1/auth/logout` | Public    | Clears the `AuthToken` cookie                                                                          |
-| GET    | `/api/v1/auth/me`     | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`)                                             |
+| Method | URL                           | Access    | Description                                                                                            |
+| ------ | ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/v1/trips`               | Public    | Returns one page of trips (`?page=0&size=10`)                                                          |
+| GET    | `/api/v1/trips/{id}`          | Logged-in | Returns one trip (404 if it does not exist)                                                            |
+| POST   | `/api/v1/images`              | Logged-in | Uploads an image (multipart `file`); 201 with `Location`                                               |
+| GET    | `/api/v1/images/{id}`         | Public    | Returns the bytes of an image with its `Content-Type`                                                  |
+| POST   | `/api/v1/users`               | Public    | Registers a regular user (`name`, `email`, `password`); 201 with `Location`, 409 if the email is taken |
+| POST   | `/api/v1/auth/login`          | Public    | Logs in with email and password and sets the `AuthToken` cookie                                        |
+| POST   | `/api/v1/auth/logout`         | Public    | Clears the `AuthToken` cookie                                                                          |
+| GET    | `/api/v1/auth/me`             | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`, `avatarId`, `registrationDate`)             |
+| GET    | `/api/v1/users/{id}`          | Own user  | Returns one's own profile (403 for another user, 404 if it does not exist)                             |
+| PUT    | `/api/v1/users/{id}`          | Own user  | Edits the name and email (409 if the email is taken); the session stays open                           |
+| PUT    | `/api/v1/users/{id}/password` | Own user  | Changes the password (`currentPassword`, `newPassword`); 400 if the current one is wrong               |
+| PUT    | `/api/v1/users/{id}/avatar`   | Own user  | Uploads or replaces the avatar (multipart `file`); 201 with `Location` the first time, 200 after       |
+| GET    | `/api/v1/users/{id}/avatar`   | Logged-in | Returns the bytes of a user's avatar (`no-cache`); 404 if there is none                                |
+| DELETE | `/api/v1/users/{id}/avatar`   | Own user  | Deletes the avatar (204, also when there was none)                                                     |
 
 #### Pagination
 
@@ -299,7 +305,7 @@ Images are stored in the database (`Image` entity: a `@Lob` byte array in a MEDI
 
 - **Upload:** `POST /api/v1/images` (logged-in users) takes a multipart form with the picture in the `file` part and answers `201` with a `Location` header and the image data (`id`, `contentType`, `size`). The type must be JPEG, PNG or WebP **and** the first bytes of the file must match the declared type, so a text file renamed to `.png` is rejected with `400`. Images over `IMAGE_MAX_SIZE` get `413`; `spring.servlet.multipart` sets a hard cap of 10 MB above that.
 - **Read:** `GET /api/v1/images/{id}` is public so `<img>` tags work without credentials. It answers the bytes with the stored `Content-Type` and `Cache-Control: max-age=31536000, public, immutable`, because an image never changes (a new upload gets a new id).
-- **Frontend:** `ImageUpload` uploads the chosen file and `StoredImage` shows an image by id, falling back to `DEFAULT_TRIP_COVER` (`public/Default_trip_image.png`) when there is no id or it fails to load. Linking images to users, trips and activities is done by their own features.
+- **Frontend:** `ImageUpload` uploads the chosen file and `StoredImage` shows an image by id, falling back to `DEFAULT_TRIP_COVER` (`public/Default_trip_image.png`) when there is no id or it fails to load. The avatar of a user is the first image linked to an entity (`User.avatar`, `PUT /api/v1/users/{id}/avatar`): `ImageUpload` takes an `upload` function and `UserAvatar` shows the picture or the initial of the name. Linking images to trips and activities is done by their own features.
 
 #### Errors
 
@@ -368,6 +374,18 @@ Support classes (not tests): `TestcontainersConfiguration` defines the MySQL con
 | `LoginPage.test.tsx`, `RegisterPage.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx`                             | Frontend unit (component)   | Client validation, inline backend errors, disabled button while sending, return to the previous page, and the header for anonymous and logged-in users    |
 | `authService.int.test.tsx`                                                                                      | Client – server integration | Against the real API: register, duplicate (409), invalid data (400), wrong password (401) and no session                                                  |
 | `AuthUiE2ETest`                                                                                                 | Frontend system (UI)        | Register, logged in, log out, log in; a private page redirects to `/login` and back; wrong password; duplicate email                                      |
+
+**Profile (B3).** A registered user reads and edits their own profile at `/api/v1/users/{id}`: only that user can (another user's id is a 403, a missing one a 404). The token identifies the user by id, not by email, so changing the email does not log the user out and no token refers to the old address. The new email follows the registration rules (lower case, 409 for a taken one or the administrator's). The password change is `PUT /api/v1/users/{id}/password`: it requires the current password (a wrong one is a 400, because 401 means "log in again" for the application and 403 means "not allowed on this profile") and the new one follows the 8–72 character rule. The avatar is an `Image` linked to the user (`PUT`, `GET` and `DELETE /api/v1/users/{id}/avatar`), validated by `ImageService` like any other image; replacing or deleting it deletes the previous image. The administrator can only change their avatar. Responses never contain the password hash.
+
+| Test                                                                                                                                                        | Type                        | What it verifies                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UserServiceUnitTest`, `UserControllerUnitTest`, `ImageServiceUnitTest`, `TripMateUserDetailsUnitTest`, `UserDTOUnitTest`, `GlobalExceptionHandlerUnitTest` | Backend unit                | Own profile only (403/404), email rules and lost race, administrator restrictions, wrong current password, first avatar (201) and replacement (200) deleting the old image, the mapping of the avatar id and the 403 body                                             |
+| `UserServiceIntegrationTest`                                                                                                                                | Backend integration         | With MySQL: a token issued before an email change still identifies the user, only the new email logs in, the new password is a BCrypt hash, the previous avatar row is deleted and the avatar id is readable without loading the image                                |
+| `UserProfileApiE2ETest`                                                                                                                                     | Backend system              | Over HTTPS, every endpoint: 401 anonymous, 403 for another user, 404, 409 (another account or the administrator), 400 (invalid data, wrong current password, not an image), 413, and the same session working after an email change                                   |
+| `userService.test.tsx`, `UserAvatar.test.tsx`, `profileForm.test.ts`, `StoredImage.test.tsx`, `ImageUpload.test.tsx`, `AuthProvider.test.tsx`               | Frontend unit               | The calls to the profile endpoints, the avatar (picture or initial), the validation and error texts, and the auth context update                                                                                                                                      |
+| `ProfilePage.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx`                                                                                                | Frontend unit (component)   | View and edit mode, inline errors by status (409, 400, 401, 403), disabled buttons while sending, avatar upload and delete, the administrator view, the header link to `/profile`, and the auth context updated after each change                                     |
+| `userService.int.test.tsx`                                                                                                                                  | Client – server integration | Against the real API: 401 without session, 403/404, email change keeping the session, 409/400, wrong and right password change, and the avatar upload, replacement and deletion                                                                                       |
+| `ProfileUiE2ETest`                                                                                                                                          | Frontend system (UI)        | Register, edit the name (the header follows), upload an avatar (the browser decodes it in the header and the page), change the password, log out and log in with the new one; wrong current password; duplicate email; delete the avatar; a file that is not an image |
 
 **Statistics** (19/10/2026):
 

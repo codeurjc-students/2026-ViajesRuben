@@ -567,6 +567,632 @@
       ]
     },
     {
+      "name": "Get own profile",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/7",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "7"
+          ]
+        },
+        "description": "Requires being logged in as that user. Answers 200 with the profile (never the password; `avatarId` is null without avatar), 401 if not logged in, 403 for another user's profile and 404 if the user does not exist. Replace 7 with the `id` returned by Login."
+      },
+      "response": [
+        {
+          "name": "Own profile",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 7,\n  \"name\": \"Ana\",\n  \"email\": \"ana@example.com\",\n  \"role\": \"USER\",\n  \"avatarId\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"registrationDate\": \"2026-10-24\"\n}"
+        },
+        {
+          "name": "Another user's profile",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7"
+              ]
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-24T10:15:30.123Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Only the user can access their own profile\",\n  \"path\": \"/api/v1/users/8\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Update own profile",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/7",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "7"
+          ]
+        },
+        "description": "Edits the name and email of one's own profile (same rules as registration; the email is stored in lower case). The session stays open after an email change. Answers 200 with the profile, 400 for invalid data, 401, 403 (another user, or the administrator, whose details come from the configuration), 404 and 409 if the email is already registered.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "Profile updated",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 7,\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\",\n  \"role\": \"USER\",\n  \"avatarId\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"registrationDate\": \"2026-10-24\"\n}"
+        },
+        {
+          "name": "Email already registered",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-24T10:15:30.123Z\",\n  \"status\": 409,\n  \"error\": \"Conflict\",\n  \"message\": \"Email is already registered\",\n  \"path\": \"/api/v1/users/7\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Change password",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/7/password",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "7",
+            "password"
+          ]
+        },
+        "description": "Changes one's own password. Requires the current password; the new one has 8 to 72 characters. Answers 204, 400 (invalid new password or incorrect current password), 401, 403 (another user, or the administrator) and 404. Sessions already open stay valid until their token expires.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"currentPassword\": \"secret-pass\",\n  \"newPassword\": \"brand-new-pass\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "Password changed",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"secret-pass\",\n  \"newPassword\": \"brand-new-pass\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "text",
+          "header": [],
+          "cookie": [],
+          "body": ""
+        },
+        {
+          "name": "Incorrect current password",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"secret-pass\",\n  \"newPassword\": \"brand-new-pass\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-24T10:15:30.123Z\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"Current password is incorrect\",\n  \"path\": \"/api/v1/users/7/password\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Upload avatar",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "7",
+            "avatar"
+          ]
+        },
+        "description": "Uploads the avatar of one's own profile in the `file` part: JPEG, PNG or WebP, up to 5 MB. Answers 201 with `Location` the first time and 200 when it replaces the previous avatar (which is deleted), 400 for a file that is not a valid image, 401, 403, 404 and 413 for a file that is too large. The administrator can also change their avatar.",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Avatar created",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "avatar"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Location",
+              "value": "/api/v1/users/7/avatar"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"contentType\": \"image/png\",\n  \"size\": 20480\n}"
+        },
+        {
+          "name": "Avatar replaced",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "avatar"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"contentType\": \"image/png\",\n  \"size\": 20480\n}"
+        },
+        {
+          "name": "Not an image",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "avatar"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-24T10:15:30.123Z\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"Only JPEG, PNG and WebP images are accepted\",\n  \"path\": \"/api/v1/users/7/avatar\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get avatar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "7",
+            "avatar"
+          ]
+        },
+        "description": "Returns the bytes of the user's avatar with its `Content-Type` and `Cache-Control: no-cache`. Any logged-in user can read it. Answers 404 if the user does not exist or has no avatar. The application shows avatars with `GET /api/v1/images/{avatarId}` instead, which can be cached."
+      },
+      "response": [
+        {
+          "name": "Avatar",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "avatar"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "text",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "image/png"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ],
+          "cookie": [],
+          "body": ""
+        },
+        {
+          "name": "No avatar",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "avatar"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-24T10:15:30.123Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"The user has no avatar\",\n  \"path\": \"/api/v1/users/7/avatar\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete avatar",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users",
+            "7",
+            "avatar"
+          ]
+        },
+        "description": "Deletes one's own avatar and its image. Answers 204 also when there was none, 401, 403 and 404."
+      },
+      "response": [
+        {
+          "name": "Avatar deleted",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/7/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "7",
+                "avatar"
+              ]
+            }
+          },
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "text",
+          "header": [],
+          "cookie": [],
+          "body": ""
+        }
+      ]
+    },
+    {
       "name": "Upload image",
       "request": {
         "method": "POST",
