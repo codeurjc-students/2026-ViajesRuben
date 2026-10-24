@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment documentation in the development guide.
 - Continuous delivery with GitHub Actions: a reusable workflow builds and pushes the image `rubenruiz7/tripmate:<tag>` and publishes the Compose file as the OCI artifact `rubenruiz7/tripmate-compose:<tag>` to DockerHub. A push to `main` publishes `dev`, a published release `x.y.z` publishes `x.y.z` and `latest` (after checking that the commit is on `main` and passed Basic quality), and a manual run publishes `<branch>-<date>-<commit>`.
 - Documentation of continuous delivery and versioning in the development guide, and instructions in the README to run the application from the OCI artifact.
+- B2: user registration (`POST /api/v1/users`: 201 with `Location`, 400 for invalid data, 409 for a taken email or the administrator email; the new user is always a regular user and the password is stored hashed).
+- B2: `/login` and `/register` pages with client-side validation and inline error messages, an authentication context (`/api/v1/auth/me` on load, login, logout, register), a header that shows the login and register links or the user name and "Cerrar sesión", and automatic login after registering.
+- B2: private routes redirect anonymous visitors to `/login` and return them to the page they asked for after logging in.
+- B2 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (register, log out, log in).
 
 ### Changed
 
@@ -39,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend migrated from JavaScript to TypeScript (strict mode), with API types in `frontend/src/types/`.
 - The backend now serves HTTPS instead of HTTP on port 8080: the Vite proxy, the client – server integration tests, the OpenAPI documentation and the Postman collection use `https://localhost`.
 - The full quality workflow starts the backend on HTTPS port 8443, since the GitHub Actions runner cannot use port 443.
+- Every screen except `/`, `/login`, `/register` and unknown URLs now requires a logged-in user in the frontend; the header no longer shows a placeholder user.
 - Fixes for the issues reported by SonarQube Cloud: `ImageContentDTO` compares and prints its bytes by content, the `Allow` header of a 405 reads the supported methods once, props are read-only in the components, and the exception tests isolate the call that throws. The reason for disabling CSRF protection is recorded in the development guide.
 
 ## [0.0.2] - 2026-10-19

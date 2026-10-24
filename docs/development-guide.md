@@ -271,15 +271,16 @@ The REST API is documented with OpenAPI. The specification is stored in [`docs/a
 
 Current operations:
 
-| Method | URL                   | Access    | Description                                                     |
-| ------ | --------------------- | --------- | --------------------------------------------------------------- |
-| GET    | `/api/v1/trips`       | Public    | Returns one page of trips (`?page=0&size=10`)                   |
-| GET    | `/api/v1/trips/{id}`  | Logged-in | Returns one trip (404 if it does not exist)                     |
-| POST   | `/api/v1/images`      | Logged-in | Uploads an image (multipart `file`); 201 with `Location`        |
-| GET    | `/api/v1/images/{id}` | Public    | Returns the bytes of an image with its `Content-Type`           |
-| POST   | `/api/v1/auth/login`  | Public    | Logs in with email and password and sets the `AuthToken` cookie |
-| POST   | `/api/v1/auth/logout` | Public    | Clears the `AuthToken` cookie                                   |
-| GET    | `/api/v1/auth/me`     | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`)      |
+| Method | URL                   | Access    | Description                                                                                            |
+| ------ | --------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/v1/trips`       | Public    | Returns one page of trips (`?page=0&size=10`)                                                          |
+| GET    | `/api/v1/trips/{id}`  | Logged-in | Returns one trip (404 if it does not exist)                                                            |
+| POST   | `/api/v1/images`      | Logged-in | Uploads an image (multipart `file`); 201 with `Location`                                               |
+| GET    | `/api/v1/images/{id}` | Public    | Returns the bytes of an image with its `Content-Type`                                                  |
+| POST   | `/api/v1/users`       | Public    | Registers a regular user (`name`, `email`, `password`); 201 with `Location`, 409 if the email is taken |
+| POST   | `/api/v1/auth/login`  | Public    | Logs in with email and password and sets the `AuthToken` cookie                                        |
+| POST   | `/api/v1/auth/logout` | Public    | Clears the `AuthToken` cookie                                                                          |
+| GET    | `/api/v1/auth/me`     | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`)                                             |
 
 #### Pagination
 
@@ -342,7 +343,7 @@ The application has automated tests at every level for both the backend and the 
 
 Support classes (not tests): `TestcontainersConfiguration` defines the MySQL container shared by the backend integration and system tests, and `TestBackendApplication` starts the backend locally using that container as its database.
 
-**Security base** (login, roles, blocked users, configured administrator and HTTPS). These tests are tagged `B2`; the registration part of B2 is still pending.
+**Security base** (login, roles, blocked users, configured administrator and HTTPS). These tests are tagged `B2`, like the registration tests below.
 
 | Test                                                                                                                                       | Type                | What it verifies                                                                                                                                                    |
 | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -354,6 +355,18 @@ Support classes (not tests): `TestcontainersConfiguration` defines the MySQL con
 | `GlobalExceptionHandlerUnitTest`, `ErrorResponseWriterUnitTest`, `RestAuthenticationEntryPointUnitTest`, `RestAccessDeniedHandlerUnitTest` | Backend unit        | The 400, 401 and 403 error bodies and the cookie clearing                                                                                                           |
 | `AdminAccountInitializerIntegrationTest`, `AuthServiceIntegrationTest`                                                                     | Backend integration | With a real MySQL database and real BCrypt: the administrator is stored from the configuration, logins succeed or fail as expected, and blocked users cannot log in |
 | `AuthApiE2ETest`                                                                                                                           | Backend system      | Over HTTPS: login, cookie flags, `/me`, logout, errors, a user blocked after logging in, invalid cookies, and access to the admin area by anonymous, user and admin |
+
+**Registration and login screens (B2).** Registration is `POST /api/v1/users`: the password is hashed with BCrypt, the new user always has the `USER` role (a `role` in the body is ignored), emails are stored in lower case and compared ignoring case, and the administrator email is refused with the same 409 as a taken one, because the administrator account is rewritten from the configuration on every start-up. The frontend logs the user in right after registering (it calls the login endpoint) and returns them to the page they came from.
+
+| Test                                                                                                            | Type                        | What it verifies                                                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UserServiceUnitTest`, `UserControllerUnitTest`                                                                 | Backend unit                | Normalised email, encoded password, role `USER`, 201 with `Location`, and a conflict for a taken email, the administrator email or a lost race            |
+| `UserServiceIntegrationTest`                                                                                    | Backend integration         | With MySQL and real BCrypt: the user is stored active with a hash that matches, can log in, and duplicates (any case) and the administrator email fail    |
+| `UserApiE2ETest`                                                                                                | Backend system              | Over HTTPS: 201, no password in the answer, role forced to `USER`, login and `/me` afterwards, 409, 400 (blank name, bad email, short password, bad JSON) |
+| `authService.test.tsx`, `AuthProvider.test.tsx`, `RequireAuth.test.tsx`, `useAuth.test.tsx`, `authForm.test.ts` | Frontend unit               | Session calls, `/me` on load, login, register then login, logout, redirect to `/login` for anonymous visitors, and the Spanish error texts                |
+| `LoginPage.test.tsx`, `RegisterPage.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx`                             | Frontend unit (component)   | Client validation, inline backend errors, disabled button while sending, return to the previous page, and the header for anonymous and logged-in users    |
+| `authService.int.test.tsx`                                                                                      | Client – server integration | Against the real API: register, duplicate (409), invalid data (400), wrong password (401) and no session                                                  |
+| `AuthUiE2ETest`                                                                                                 | Frontend system (UI)        | Register, logged in, log out, log in; a private page redirects to `/login` and back; wrong password; duplicate email                                      |
 
 **Statistics** (19/10/2026):
 
