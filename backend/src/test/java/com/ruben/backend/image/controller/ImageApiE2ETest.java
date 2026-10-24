@@ -47,8 +47,9 @@ class ImageApiE2ETest {
     RestAssured.port = port;
     RestAssured.useRelaxedHTTPSValidation();
 
-    imageRepository.deleteAll();
+    // Users first: an avatar is an image that a user points at.
     userRepository.deleteAll();
+    imageRepository.deleteAll();
     adminAccountInitializer.run(new DefaultApplicationArguments());
     token =
         given()
