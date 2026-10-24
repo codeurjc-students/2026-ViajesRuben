@@ -30,7 +30,7 @@ export function usePagedList<T>(fetchPage: (page: number) => Promise<Page<T>>): 
     if (fetching.current) return;
     fetching.current = true;
     setLoading(true);
-    fetchPage(nextPage.current)
+    void fetchPage(nextPage.current)
       .then((page) => {
         setItems((current) => [...current, ...page.content]);
         setTotalElements(page.totalElements);
