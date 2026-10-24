@@ -66,22 +66,25 @@ class ActiveUserJwtConverterUnitTest {
         new TripMateUserDetails(
             UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.BLOCKED));
     when(userDetailsService.loadUserById(7L)).thenReturn(blocked);
+    Jwt token = tokenFor("7");
 
-    assertThatThrownBy(() -> converter.convert(tokenFor("7"))).isInstanceOf(LockedException.class);
+    assertThatThrownBy(() -> converter.convert(token)).isInstanceOf(LockedException.class);
   }
 
   @Test
   void aTokenOfAUserThatNoLongerExistsIsRejected() {
-    when(userDetailsService.loadUserById(99L)).thenThrow(new UsernameNotFoundException("gone"));
+    UsernameNotFoundException gone = new UsernameNotFoundException("gone");
+    when(userDetailsService.loadUserById(99L)).thenThrow(gone);
+    Jwt token = tokenFor("99");
 
-    assertThatThrownBy(() -> converter.convert(tokenFor("99")))
-        .isInstanceOf(BadCredentialsException.class);
+    assertThatThrownBy(() -> converter.convert(token)).isInstanceOf(BadCredentialsException.class);
   }
 
   @Test
   void aNonNumericSubjectIsRejectedWithoutTouchingTheDatabase() {
-    assertThatThrownBy(() -> converter.convert(tokenFor("not-a-number")))
-        .isInstanceOf(BadCredentialsException.class);
+    Jwt token = tokenFor("not-a-number");
+
+    assertThatThrownBy(() -> converter.convert(token)).isInstanceOf(BadCredentialsException.class);
     verifyNoInteractions(userDetailsService);
   }
 }

@@ -9,7 +9,7 @@ interface LoadMoreButtonProps {
 }
 
 /** "Más resultados" button shared by every paginated list. */
-export default function LoadMoreButton({ last, loading, onClick }: LoadMoreButtonProps) {
+export default function LoadMoreButton({ last, loading, onClick }: Readonly<LoadMoreButtonProps>) {
   if (last) return null;
 
   return (

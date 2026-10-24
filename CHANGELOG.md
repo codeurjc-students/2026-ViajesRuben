@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frontend migrated from JavaScript to TypeScript (strict mode), with API types in `frontend/src/types/`.
 - The backend now serves HTTPS instead of HTTP on port 8080: the Vite proxy, the client – server integration tests, the OpenAPI documentation and the Postman collection use `https://localhost`.
 - The full quality workflow starts the backend on HTTPS port 8443, since the GitHub Actions runner cannot use port 443.
+- Fixes for the issues reported by SonarQube Cloud: `ImageContentDTO` compares and prints its bytes by content, the `Allow` header of a 405 reads the supported methods once, props are read-only in the components, and the exception tests isolate the call that throws. The reason for disabling CSRF protection is recorded in the development guide.
 
 ## [0.0.2] - 2026-10-19
 

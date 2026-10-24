@@ -28,7 +28,9 @@ class GlobalExceptionHandlerUnitTest {
       new MockHttpServletRequest("POST", "/api/v1/auth/login");
 
   @SuppressWarnings("unused")
-  private void bodyHandler(Object body) {}
+  private void bodyHandler(Object body) {
+    // Never called: it only gives MethodParameter a real method parameter to point at.
+  }
 
   @Test
   void badCredentialsAreAnswered401WithAGenericMessage() {

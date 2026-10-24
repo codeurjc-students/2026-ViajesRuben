@@ -8,7 +8,7 @@ interface AppHeaderProps {
   userName: string;
 }
 
-export default function AppHeader({ userName }: AppHeaderProps) {
+export default function AppHeader({ userName }: Readonly<AppHeaderProps>) {
   return (
     <Navbar expand="md" className="app-header">
       <Container>

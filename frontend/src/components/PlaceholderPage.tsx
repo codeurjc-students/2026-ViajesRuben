@@ -6,7 +6,7 @@ interface PlaceholderPageProps {
 }
 
 /** Stand-in for a screen that a later feature will build. */
-export default function PlaceholderPage({ title }: PlaceholderPageProps) {
+export default function PlaceholderPage({ title }: Readonly<PlaceholderPageProps>) {
   return (
     <Container as="main" className="app-main py-4">
       <div className="status-panel">

@@ -28,15 +28,18 @@ class JwtConfigUnitTest {
   @Test
   void rejectsAKeyShorterThan256Bits() {
     String shortSecret = Base64.getEncoder().encodeToString(new byte[16]);
+    JwtProperties properties = withSecret(shortSecret);
 
-    assertThatThrownBy(() -> config.jwtEncoder(withSecret(shortSecret)))
+    assertThatThrownBy(() -> config.jwtEncoder(properties))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("at least 32 bytes");
   }
 
   @Test
   void rejectsASecretThatIsNotBase64() {
-    assertThatThrownBy(() -> config.jwtDecoder(withSecret("***not base64***")))
+    JwtProperties properties = withSecret("***not base64***");
+
+    assertThatThrownBy(() -> config.jwtDecoder(properties))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Base64");
   }

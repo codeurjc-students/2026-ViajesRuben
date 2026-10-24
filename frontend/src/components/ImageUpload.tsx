@@ -28,22 +28,22 @@ interface ImageUploadProps {
 }
 
 /** File picker that uploads the chosen image and shows the stored result. */
-export default function ImageUpload({ label = 'Imagen', onUploaded }: ImageUploadProps) {
+export default function ImageUpload({ label = 'Imagen', onUploaded }: Readonly<ImageUploadProps>) {
   const inputId = useId();
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState<ImageInfo | null>(null);
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    setError(null);
+    setUploadError(null);
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      setError(WRONG_TYPE);
+      setUploadError(WRONG_TYPE);
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      setError(TOO_BIG);
+      setUploadError(TOO_BIG);
       return;
     }
     setUploading(true);
@@ -51,8 +51,8 @@ export default function ImageUpload({ label = 'Imagen', onUploaded }: ImageUploa
       const image = await uploadImage(file);
       setUploaded(image);
       onUploaded(image);
-    } catch (failure) {
-      setError(errorMessage(failure));
+    } catch (error) {
+      setUploadError(errorMessage(error));
     } finally {
       setUploading(false);
     }
@@ -68,9 +68,9 @@ export default function ImageUpload({ label = 'Imagen', onUploaded }: ImageUploa
         onChange={handleChange}
       />
       <Form.Text>{`JPEG, PNG o WebP, de hasta ${MAX_MB} MB.`}</Form.Text>
-      {error && (
+      {uploadError && (
         <Alert variant="danger" className="mt-2 mb-0">
-          {error}
+          {uploadError}
         </Alert>
       )}
       {uploaded && (

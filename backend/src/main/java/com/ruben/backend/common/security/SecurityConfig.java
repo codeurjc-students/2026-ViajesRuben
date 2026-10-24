@@ -51,8 +51,7 @@ public class SecurityConfig {
       CookieBearerTokenResolver tokenResolver,
       ActiveUserJwtConverter jwtConverter,
       RestAuthenticationEntryPoint authenticationEntryPoint,
-      RestAccessDeniedHandler accessDeniedHandler)
-      throws Exception {
+      RestAccessDeniedHandler accessDeniedHandler) {
     http
         // CSRF protection is off because the session is stateless and the only credential is a
         // SameSite=Strict HttpOnly cookie, which the browser never sends on cross-site requests.

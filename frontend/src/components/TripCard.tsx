@@ -20,7 +20,7 @@ interface TripCardProps {
   trip: Trip;
 }
 
-export default function TripCard({ trip }: TripCardProps) {
+export default function TripCard({ trip }: Readonly<TripCardProps>) {
   const title = `Viaje a ${trip.destination}`;
   const { participantCount, isCreator } = tripDetails(trip);
 

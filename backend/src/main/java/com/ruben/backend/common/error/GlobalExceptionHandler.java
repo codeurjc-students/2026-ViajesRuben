@@ -2,11 +2,13 @@ package com.ruben.backend.common.error;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Comparator;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -14,6 +16,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -95,7 +98,7 @@ public class GlobalExceptionHandler {
       MethodArgumentNotValidException e, HttpServletRequest request) {
     String message =
         e.getBindingResult().getFieldErrors().stream()
-            .sorted(Comparator.comparing(error -> error.getField()))
+            .sorted(Comparator.comparing(FieldError::getField))
             .map(error -> error.getField() + ": " + error.getDefaultMessage())
             .collect(Collectors.joining("; "));
     return build(HttpStatus.BAD_REQUEST, message, request);
@@ -132,9 +135,10 @@ public class GlobalExceptionHandler {
       HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
     HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
     ResponseEntity.BodyBuilder response = ResponseEntity.status(status);
-    if (e.getSupportedHttpMethods() != null) {
+    Set<HttpMethod> supportedMethods = e.getSupportedHttpMethods();
+    if (supportedMethods != null) {
       HttpHeaders headers = new HttpHeaders();
-      headers.setAllow(e.getSupportedHttpMethods());
+      headers.setAllow(supportedMethods);
       response.headers(headers);
     }
     return response.body(

@@ -207,3 +207,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** custom skills, review subagents; MCP none
 - **Context Files:** private Claude Code configuration kept outside the public repository (project instructions, path-scoped rules, skills, subagents, hooks); a spec-driven plan for `continuous-delivery`, also kept private
 - **Human Validation:** The student reviewed and changed the plan before approving it and reviewed each stage before committing it. The AI's checks were `actionlint` on all the workflows, the branch tag conversion with several branch names, the Compose rewrite for the release, dev and manual tags (only the image line changes), `docker compose publish` and reading the artifact back from a local registry, and `prettier --check` on the documentation. The workflows themselves can only run on GitHub once they are on `main`, so their first real runs (`dev` after the merge, a manual run, and the 0.1.0 release) are still to be verified by the student. PR: <link>
+
+#### Record 3.7 — Fixing the SonarQube Cloud issues
+
+- **Date:** 24/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Fix the open SonarQube Cloud issues of `main` (quality gate failing on reliability and security ratings) without changing the behaviour of the application.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code; models Opus 5.5
+- **Tool Configuration:** Terminal CLI; effort low.
+- **How it was used:**
+  - The AI was used to document the adjustments and fixes carried out, as well as to review the codebase and SonarQube analysis to detect whether any additional fixes remained to be done.
+  - The AI classified `java:S4502` (CSRF disabled) as a false positive and left it to the student to mark in SonarQube; it did not change the configuration. It left `java:S1135` (a `TODO` for B1/B4) unfixed for the same reason.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents
+- **Context Files:** A plan for the issue fixes, and a list of the issues reported
+- **Human Validation:** The student reviewed and changed the plan before approving it. The AI's checks were the backend unit tests (100 passed, coverage 91.2% of instructions), the integration and REST API system tests (62 passed), `TripUiE2ETest` against the backend and the frontend preview (2 passed), the frontend unit tests (75 passed), `spotless:check`, `eslint`, `tsc` and `prettier --check`.
