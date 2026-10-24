@@ -180,6 +180,39 @@
       ]
     },
     {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Ana\",\n  \"email\": \"ana@example.com\",\n  \"password\": \"secret-pass\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "users"
+          ]
+        },
+        "description": "Registers a regular user (public). Answers 201 with a Location header and the user without the password, 400 for invalid data and 409 if the email is already registered. It does not log in: call Login afterwards."
+      }
+    },
+    {
       "name": "Login",
       "request": {
         "method": "POST",

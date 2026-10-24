@@ -11,6 +11,8 @@
   --tm-via-border: #cfd5cf;
   --tm-velo: #747a81;
   --tm-linea-suave: #e3ecf6;
+  --tm-card-border: #ddd;
+  --tm-card-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
 
   --tm-font-sans: 'Overpass', sans-serif;
   --tm-font-mono: 'Overpass Mono', monospace;

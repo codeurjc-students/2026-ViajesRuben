@@ -61,7 +61,11 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             requests ->
                 requests
-                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/logout")
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/logout",
+                        "/api/v1/users")
                     .permitAll()
                     // TODO(B1/B4): review which trip reads stay public once trips have owners.
                     .requestMatchers(HttpMethod.GET, "/api/v1/trips")

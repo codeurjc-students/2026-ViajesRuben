@@ -222,3 +222,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents
 - **Context Files:** A plan for the issue fixes, and a list of the issues reported
 - **Human Validation:** The student reviewed and changed the plan before approving it. The AI's checks were the backend unit tests (100 passed, coverage 91.2% of instructions), the integration and REST API system tests (62 passed), `TripUiE2ETest` against the backend and the frontend preview (2 passed), the frontend unit tests (75 passed), `spotless:check`, `eslint`, `tsc` and `prettier --check`.
+
+#### Record 3.8 — User registration and login (B2)
+
+- **Date:** 24/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Implement feature B2: account registration and the login and register screens on top of the existing security base.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.310; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; effort medium; modes plan → manual approval of each step
+- **How it was used:**
+  - The AI wrote the plan, the registration endpoint (`POST /api/v1/users`), the login and register pages, the authentication context and route guard and the six test types. Two review subagents checked the tests and the diff against the project rules.
+  - The student changed the plan before approving it (a generic message for 400 errors, and `TripUiE2ETest` logging in as a regular user instead of the administrator) and decided the password length (8–72 characters), that the `TripCard`/`TripList` CSS cleanup is left for later, and that redirecting to `/login` when the API is down is acceptable.
+- **Tool Complements (MCPs, Plugins, etc.):** custom skills, review subagents and hooks (private configuration); MCP none
+- **Context Files:** Claude Code configuration; a spec-driven plan for `B2`.
+- **Human Validation:** The student reviewed and changed the plan before approving it and will review the diff before opening the PR. The AI's checks were the backend suite (180 passed, unit coverage 91.2%), the frontend tests (127 passed, coverage 99.6%), the client – server integration tests (10 passed) and the Selenium tests (7 passed) against the current code. PR: <link>

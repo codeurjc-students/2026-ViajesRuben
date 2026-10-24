@@ -11,6 +11,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
   Optional<User> findByEmail(String email);
 
+  boolean existsByEmailIgnoreCase(String email);
+
   /** Turns every administrator except the given one into a regular user and returns how many. */
   @Modifying(flushAutomatically = true)
   @Query(

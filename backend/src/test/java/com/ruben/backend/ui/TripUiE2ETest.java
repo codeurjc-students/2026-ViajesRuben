@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,8 +25,28 @@ class TripUiE2ETest {
   @BeforeEach
   void setUp() {
     ChromeOptions options = new ChromeOptions();
-    options.addArguments("--headless=new");
+    options.addArguments("--headless=new", "--window-size=1280,900");
     driver = new ChromeDriver(options);
+    registerAndStayLoggedIn();
+  }
+
+  /** The trip list needs a logged-in user, so each test starts with a freshly registered one. */
+  private void registerAndStayLoggedIn() {
+    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    driver.get(baseUrl + "/register");
+    wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("register-name")))
+        .sendKeys("Lucía");
+    driver
+        .findElement(By.id("register-email"))
+        .sendKeys("ui-" + UUID.randomUUID() + "@example.com");
+    driver.findElement(By.id("register-password")).sendKeys("secret-pass");
+    driver.findElement(By.id("register-confirmation")).sendKeys("secret-pass");
+    WebElement submit = driver.findElement(By.cssSelector("form button[type='submit']"));
+    ((JavascriptExecutor) driver)
+        .executeScript(
+            "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", submit);
+    wait.until(ExpectedConditions.elementToBeClickable(submit)).click();
+    wait.until(ExpectedConditions.urlContains("/trips"));
   }
 
   @AfterEach
