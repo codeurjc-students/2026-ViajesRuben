@@ -11,6 +11,7 @@ import {
   MIN_PASSWORD_LENGTH,
   destinationAfterLogin,
   emailError,
+  nameError,
   submitErrorMessage,
 } from '../utils/authForm';
 import './AuthPages.css';
@@ -22,13 +23,9 @@ interface FieldMessages {
   confirmation?: string;
 }
 
-const MAX_NAME_LENGTH = 100;
-
 function validate(name: string, email: string, password: string, confirmation: string) {
   const messages: FieldMessages = {};
-  if (!name.trim()) messages.name = 'Escribe tu nombre.';
-  else if (name.trim().length > MAX_NAME_LENGTH)
-    messages.name = `El nombre admite como máximo ${MAX_NAME_LENGTH} caracteres.`;
+  messages.name = nameError(name);
   messages.email = emailError(email);
   if (!password) messages.password = 'Escribe una contraseña.';
   else if (password.length < MIN_PASSWORD_LENGTH)

@@ -7,12 +7,14 @@ import { routes } from './routes';
 import { getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
 import { getCurrentUser } from './services/authService';
+import { getProfile } from './services/userService';
 import { AuthContext } from './context/AuthContext';
 import type { User } from './types';
 import { ANA, authValue, pageOf } from './testHelpers';
 
 vi.mock('./services/tripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
+vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
 
 function renderAt(path: string, user: User | null = ANA) {
   render(
@@ -61,7 +63,6 @@ test.each([
   ['/trips/7/activities/new', 'Añadir actividad'],
   ['/trips/7/activities/3/edit', 'Editar actividad'],
   ['/trips/7/ai-generator', 'Generador IA'],
-  ['/profile', 'Perfil'],
   ['/admin', 'Administración'],
   ['/admin/users/2/edit', 'Editar usuario'],
 ])('%s shows a placeholder page in the layout', (path, title) => {
@@ -114,4 +115,22 @@ test.each([
   renderAt(path, null);
 
   expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+});
+
+test('B3 /profile shows the profile page of the logged-in user in the layout', async () => {
+  vi.mocked(getProfile).mockResolvedValue(ANA);
+
+  renderAt('/profile');
+
+  expect(await screen.findByText('ana@example.com')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
+  expect(getProfile).toHaveBeenCalledWith(ANA.id);
+  expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+});
+
+test('B3 an anonymous visitor opening /profile is sent to /login', () => {
+  renderAt('/profile', null);
+
+  expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+  expect(getProfile).not.toHaveBeenCalled();
 });
