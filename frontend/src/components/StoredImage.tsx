@@ -10,7 +10,7 @@ interface StoredImageProps {
 }
 
 /** Shows a stored image by id, falling back to the default cover if it is missing or fails to load. */
-export default function StoredImage({ id, alt = '', className }: StoredImageProps) {
+export default function StoredImage({ id, alt = '', className }: Readonly<StoredImageProps>) {
   const [failedId, setFailedId] = useState<string>();
   const src = id && id !== failedId ? imageUrl(id) : DEFAULT_TRIP_COVER;
 

@@ -37,7 +37,7 @@ interface ErrorPageProps {
 }
 
 /** Shown inside the app layout for unknown routes and for failures while loading data. */
-export default function ErrorPage({ notFound = false }: ErrorPageProps) {
+export default function ErrorPage({ notFound = false }: Readonly<ErrorPageProps>) {
   const routeError = useRouteError();
   const { title, detail } = notFound ? NOT_FOUND : messageFor(routeError);
 

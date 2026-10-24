@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "users")
@@ -44,7 +45,7 @@ public class User {
     this.password = password;
     this.role = role;
     this.status = UserStatus.ACTIVE;
-    this.registrationDate = LocalDate.now();
+    this.registrationDate = LocalDate.now(ZoneId.systemDefault());
   }
 
   public Long getId() {
