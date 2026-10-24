@@ -6,17 +6,28 @@ import App from './App';
 import { routes } from './routes';
 import { getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
-import { pageOf } from './testHelpers';
+import { getCurrentUser } from './services/authService';
+import { AuthContext } from './context/AuthContext';
+import type { User } from './types';
+import { ANA, authValue, pageOf } from './testHelpers';
 
 vi.mock('./services/tripService', () => ({ getTrips: vi.fn() }));
+vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 
-function renderAt(path: string) {
-  render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: [path] })} />);
+function renderAt(path: string, user: User | null = ANA) {
+  render(
+    <AuthContext.Provider value={authValue(user)}>
+      <RouterProvider router={createMemoryRouter(routes, { initialEntries: [path] })} />
+    </AuthContext.Provider>,
+  );
 }
 
-test('the app opens on the home page inside the layout', () => {
+test('the app opens on the home page inside the layout', async () => {
+  vi.mocked(getCurrentUser).mockResolvedValue(null);
+
   render(<App />);
 
+  expect(await screen.findByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
   expect(screen.getByRole('navigation')).toBeInTheDocument();
   expect(screen.getByRole('contentinfo')).toBeInTheDocument();
@@ -44,8 +55,6 @@ test('renders the trip list at /trips with the header and footer', async () => {
 });
 
 test.each([
-  ['/login', 'Iniciar sesión'],
-  ['/register', 'Crear cuenta'],
   ['/trips/new', 'Crear viaje'],
   ['/trips/7', 'Detalle del viaje'],
   ['/trips/7/edit', 'Editar viaje'],
@@ -89,4 +98,20 @@ test('having no connection while loading trips shows the connection error', asyn
   expect(
     await screen.findByRole('heading', { name: 'No hay conexión con el servidor' }),
   ).toBeInTheDocument();
+});
+
+test('B2 an anonymous visitor opening a private screen is sent to /login', () => {
+  renderAt('/trips', null);
+
+  expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+  expect(screen.queryByText('Viaje a Lisbon')).not.toBeInTheDocument();
+});
+
+test.each([
+  ['/login', 'Iniciar sesión'],
+  ['/register', 'Crear cuenta'],
+])('B2 %s is public and shows its page', (path, title) => {
+  renderAt(path, null);
+
+  expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
 });
