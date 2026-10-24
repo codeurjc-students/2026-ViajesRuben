@@ -1,4 +1,23 @@
-import type { Page, Trip } from './types';
+import { vi } from 'vitest';
+import type { AuthContextValue } from './context/AuthContext';
+import type { Page, Trip, User } from './types';
+
+export const ANA: User = { id: 1, name: 'Ana', email: 'ana@example.com', role: 'USER' };
+
+/** Builds the value of the auth context for tests: logged in as `user` (or nobody) with spy actions. */
+export function authValue(
+  user: User | null = ANA,
+  overrides: Partial<AuthContextValue> = {},
+): AuthContextValue {
+  return {
+    user,
+    loading: false,
+    login: vi.fn().mockResolvedValue(undefined),
+    logout: vi.fn().mockResolvedValue(undefined),
+    register: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
 
 /** Builds a page of the API for tests. */
 export function pageOf<T>(content: T[], overrides: Partial<Page<T>> = {}): Page<T> {
