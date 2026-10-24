@@ -3,6 +3,7 @@ package com.ruben.backend.ui;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,11 @@ class TripUiE2ETest {
             "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});", button);
     wait.until(ExpectedConditions.elementToBeClickable(button)).click();
 
-    wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(cards, 10));
-    wait.until(ExpectedConditions.invisibilityOfElementLocated(moreResults));
+    List<WebElement> allCards =
+        wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(cards, 10));
+    Boolean buttonGone = wait.until(ExpectedConditions.invisibilityOfElementLocated(moreResults));
+
+    assertThat(allCards).hasSizeGreaterThan(10);
+    assertThat(buttonGone).isTrue();
   }
 }

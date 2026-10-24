@@ -78,27 +78,32 @@ class AuthServiceIntegrationTest {
 
   @Test
   void aWrongPasswordIsRejected() {
-    assertThatThrownBy(() -> authService.login(new LoginRequest("ana@example.com", "wrong")))
+    LoginRequest request = new LoginRequest("ana@example.com", "wrong");
+
+    assertThatThrownBy(() -> authService.login(request))
         .isInstanceOf(BadCredentialsException.class);
   }
 
   @Test
   void anUnknownEmailIsRejectedLikeAWrongPassword() {
-    assertThatThrownBy(
-            () -> authService.login(new LoginRequest("ghost@example.com", USER_PASSWORD)))
+    LoginRequest request = new LoginRequest("ghost@example.com", USER_PASSWORD);
+
+    assertThatThrownBy(() -> authService.login(request))
         .isInstanceOf(BadCredentialsException.class);
   }
 
   @Test
   void aBlockedUserCannotLogInEvenWithTheRightPassword() {
-    assertThatThrownBy(
-            () -> authService.login(new LoginRequest("blocked@example.com", USER_PASSWORD)))
-        .isInstanceOf(LockedException.class);
+    LoginRequest request = new LoginRequest("blocked@example.com", USER_PASSWORD);
+
+    assertThatThrownBy(() -> authService.login(request)).isInstanceOf(LockedException.class);
   }
 
   @Test
   void aBlockedUserWithTheWrongPasswordGetsNoHintThatTheAccountExists() {
-    assertThatThrownBy(() -> authService.login(new LoginRequest("blocked@example.com", "wrong")))
+    LoginRequest request = new LoginRequest("blocked@example.com", "wrong");
+
+    assertThatThrownBy(() -> authService.login(request))
         .isInstanceOf(BadCredentialsException.class);
   }
 
