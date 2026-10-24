@@ -237,3 +237,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** custom skills, review subagents and hooks (private configuration); MCP none
 - **Context Files:** Claude Code configuration; a spec-driven plan for `B2`.
 - **Human Validation:** The student reviewed and changed the plan before approving it and will review the diff before opening the PR. The AI's checks were the backend suite (180 passed, unit coverage 91.2%), the frontend tests (127 passed, coverage 99.6%), the client – server integration tests (10 passed) and the Selenium tests (7 passed) against the current code. PR: <link>
+
+#### Record 3.9 — Own profile, password and avatar (B3)
+
+- **Date:** 24/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Implement feature B3: view and edit one's own profile (name, email, password, avatar) on top of B2 and the existing image-in-database code.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code; models Opus 5.5 and Sonnet 5.5
+- **Tool Configuration:** Terminal CLI on Windows; plan mode first, then five stages, each with its tests, its output.
+- **How it was used:**
+  - The AI explored the code, wrote the plan, and implemented the profile, password and avatar endpoints, the `/profile` page, the avatar in the header and the six test types. It also regenerated the OpenAPI documentation, updated the Postman collection, the development guide and the changelog. Two review subagents checked the tests and the diff against the project rules.
+  - The student decided that the administrator's profile is read-only except the avatar, that a wrong current password is a 400, and asked for the design decisions and the known limitation (a password change does not close other sessions) to be written in the development guide before the implementation. The student made every commit.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents; MCP none
+- **Context Files:** Claude Code configuration; a spec-driven plan for `B3`.
+- **Human Validation:** The student reviewed and amended the plan before approving it and reviewed and committed each stage.

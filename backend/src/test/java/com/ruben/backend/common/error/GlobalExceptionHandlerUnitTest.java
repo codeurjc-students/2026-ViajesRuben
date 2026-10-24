@@ -103,6 +103,16 @@ class GlobalExceptionHandlerUnitTest {
   }
 
   @Test
+  void aForbiddenActionIsAnswered403WithItsMessage() {
+    ResponseEntity<ErrorResponse> response =
+        handler.handleForbidden(new ForbiddenException("Not your profile"), request);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(response.getBody().error()).isEqualTo("Forbidden");
+    assertThat(response.getBody().message()).isEqualTo("Not your profile");
+  }
+
+  @Test
   void accessDeniedByMethodSecurityIsAnswered403() {
     ResponseEntity<ErrorResponse> response = handler.handleAccessDenied(request);
 

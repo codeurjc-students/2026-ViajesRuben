@@ -10,6 +10,7 @@ import com.ruben.backend.user.dto.UserDTO;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.service.AuthService;
 import java.time.Duration;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +26,8 @@ import org.springframework.http.ResponseEntity;
 @ExtendWith(MockitoExtension.class)
 class AuthControllerUnitTest {
 
-  private static final UserDTO ANA = new UserDTO(7L, "Ana", "ana@example.com", Role.USER);
+  private static final UserDTO ANA =
+      new UserDTO(7L, "Ana", "ana@example.com", Role.USER, null, LocalDate.of(2026, 10, 1));
 
   @Mock private AuthService authService;
   @Mock private JwtService jwtService;

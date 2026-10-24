@@ -45,7 +45,7 @@ export default function AuthProvider({ children }: Readonly<{ children: ReactNod
   );
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, register }),
+    () => ({ user, loading, login, logout, register, updateUser: setUser }),
     [user, loading, login, logout, register],
   );
 

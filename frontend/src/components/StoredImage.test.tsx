@@ -45,3 +45,25 @@ test('is decorative by default', () => {
 
   expect(container.querySelector('img')).toHaveAttribute('alt', '');
 });
+
+test('B3 shows the fallback instead of the default cover when there is no id', () => {
+  render(<StoredImage alt="Foto" fallback={<span>A</span>} />);
+
+  expect(screen.getByText('A')).toBeInTheDocument();
+  expect(screen.queryByAltText('Foto')).not.toBeInTheDocument();
+});
+
+test('B3 shows the fallback when the image fails to load', () => {
+  render(<StoredImage id="gone" alt="Foto" fallback={<span>A</span>} />);
+
+  fireEvent.error(screen.getByAltText('Foto'));
+
+  expect(screen.getByText('A')).toBeInTheDocument();
+});
+
+test('B3 prefers the stored image over the fallback', () => {
+  render(<StoredImage id="abc-123" alt="Foto" fallback={<span>A</span>} />);
+
+  expect(screen.getByAltText('Foto')).toHaveAttribute('src', '/api/v1/images/abc-123');
+  expect(screen.queryByText('A')).not.toBeInTheDocument();
+});

@@ -18,16 +18,17 @@
   font-size: 1.1rem;
 }
 
-.app-header__avatar {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  aspect-ratio: 1;
-  line-height: 1;
-  border-radius: var(--tm-radius-pill);
-  background: var(--tm-linea);
-  color: var(--tm-blanco);
-  font-weight: 800;
+.app-header__profile {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-header__profile:hover span:last-child {
+  text-decoration: underline;
+  text-decoration-color: var(--tm-linea);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25rem;
 }

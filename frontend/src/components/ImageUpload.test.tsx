@@ -123,3 +123,36 @@ test('disables the input while the image is uploading', async () => {
   finish(stored);
   await waitFor(() => expect(screen.getByLabelText('Portada')).not.toBeDisabled());
 });
+
+test('B3 uses the given upload function instead of the default one', async () => {
+  const upload = vi.fn().mockResolvedValue(stored);
+  const onUploaded = vi.fn();
+  render(<ImageUpload label="Portada" onUploaded={onUploaded} upload={upload} />);
+  const file = png();
+
+  choose(file);
+
+  await waitFor(() => expect(onUploaded).toHaveBeenCalledWith(stored));
+  expect(upload).toHaveBeenCalledWith(file);
+  expect(uploadImage).not.toHaveBeenCalled();
+});
+
+test('B3 does not show the stored image when the preview is off', async () => {
+  vi.mocked(uploadImage).mockResolvedValue(stored);
+  const onUploaded = vi.fn();
+  render(<ImageUpload label="Portada" onUploaded={onUploaded} preview={false} />);
+
+  choose(png());
+
+  await waitFor(() => expect(onUploaded).toHaveBeenCalled());
+  expect(screen.queryByAltText('Imagen subida')).not.toBeInTheDocument();
+});
+
+test('B3 explains a 403 from the server', async () => {
+  vi.mocked(uploadImage).mockRejectedValue(new ApiError(403));
+  render(<ImageUpload label="Portada" onUploaded={vi.fn()} />);
+
+  choose(png());
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('No puedes cambiar esta imagen.');
+});

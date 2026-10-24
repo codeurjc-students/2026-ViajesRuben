@@ -3,6 +3,7 @@ import AppLayout from './components/AppLayout';
 import ErrorPage from './components/ErrorPage';
 import LoginPage from './components/LoginPage';
 import PlaceholderPage from './components/PlaceholderPage';
+import ProfilePage from './components/ProfilePage';
 import RegisterPage from './components/RegisterPage';
 import RequireAuth from './components/RequireAuth';
 import TripList from './components/TripList';
@@ -38,7 +39,7 @@ export const routes: RouteObject[] = [
                 path: '/trips/:tripId/ai-generator',
                 element: <PlaceholderPage title="Generador IA" />,
               },
-              { path: '/profile', element: <PlaceholderPage title="Perfil" /> },
+              { path: '/profile', element: <ProfilePage /> },
               { path: '/admin', element: <PlaceholderPage title="Administración" /> },
               {
                 path: '/admin/users/:userId/edit',

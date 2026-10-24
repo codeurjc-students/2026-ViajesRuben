@@ -82,3 +82,44 @@ describe('B2 header and the session', () => {
     expect(auth.logout).toHaveBeenCalledOnce();
   });
 });
+
+describe('B3 header and the profile', () => {
+  test('the name and avatar link to the profile page', () => {
+    renderAt('/trips');
+
+    const link = screen.getByRole('link', { name: 'Mi perfil' });
+    expect(link).toHaveAttribute('href', '/profile');
+    expect(link).toHaveTextContent('Ana');
+  });
+
+  test('shows the initial when the user has no avatar', () => {
+    renderAt('/trips');
+
+    expect(screen.getByRole('link', { name: 'Mi perfil' })).toHaveTextContent('A');
+    expect(screen.queryByRole('img', { name: '' })).not.toBeInTheDocument();
+  });
+
+  test('shows the avatar picture of the user', () => {
+    const { container } = render(
+      <AuthContext.Provider value={authValue({ ...ANA, avatarId: 'abc-123' })}>
+        <MemoryRouter>
+          <AppHeader />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+
+    expect(container.querySelector('.user-avatar img')).toHaveAttribute(
+      'src',
+      '/api/v1/images/abc-123',
+    );
+  });
+
+  test('logout still works next to the profile link', async () => {
+    const auth = authValue(ANA);
+    renderAt('/profile', auth);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+    await waitFor(() => expect(auth.logout).toHaveBeenCalledOnce());
+  });
+});

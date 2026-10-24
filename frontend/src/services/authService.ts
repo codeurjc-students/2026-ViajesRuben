@@ -1,12 +1,8 @@
 import type { Credentials, RegisterData, User } from '../types';
-import { ApiError, request } from './apiError';
+import { ApiError, request, sendJson } from './apiError';
 
 function postJson<T>(path: string, body: object): Promise<T> {
-  return request<T>(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  return sendJson<T>('POST', path, body);
 }
 
 /** The user of the session cookie, or null when nobody is logged in. */

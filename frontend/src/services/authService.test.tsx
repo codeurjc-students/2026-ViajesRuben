@@ -2,7 +2,14 @@ import { test, expect, vi, afterEach, describe } from 'vitest';
 import { getCurrentUser, login, logout, register } from './authService';
 import { ApiError } from './apiError';
 
-const ANA = { id: 1, name: 'Ana', email: 'ana@example.com', role: 'USER' };
+const ANA = {
+  id: 1,
+  name: 'Ana',
+  email: 'ana@example.com',
+  role: 'USER',
+  avatarId: null,
+  registrationDate: '2026-10-01',
+};
 
 function answer(status: number, body?: unknown) {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue({

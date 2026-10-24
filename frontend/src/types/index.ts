@@ -1,4 +1,4 @@
 export type { ImageInfo } from './image';
 export type { Page } from './page';
 export type { Trip } from './trip';
-export type { Credentials, RegisterData, User } from './user';
+export type { Credentials, PasswordChange, ProfileData, RegisterData, User } from './user';
