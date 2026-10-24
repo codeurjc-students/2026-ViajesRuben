@@ -14,6 +14,7 @@ const TOO_BIG = `La imagen supera los ${MAX_MB} MB. Elige una más pequeña.`;
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 401) return 'Inicia sesión para subir imágenes.';
+    if (error.status === 403) return 'No puedes cambiar esta imagen.';
     if (error.status === 400) return WRONG_TYPE;
     if (error.status === 413) return TOO_BIG;
   }
@@ -25,10 +26,19 @@ interface ImageUploadProps {
   label?: string;
   /** Called with the stored image once the server has accepted it. */
   onUploaded: (image: ImageInfo) => void;
+  /** How the file is sent; by default it is stored as a plain image (`POST /api/v1/images`). */
+  upload?: (file: File) => Promise<ImageInfo>;
+  /** Show the stored image under the picker; turn it off when the caller already shows it. */
+  preview?: boolean;
 }
 
 /** File picker that uploads the chosen image and shows the stored result. */
-export default function ImageUpload({ label = 'Imagen', onUploaded }: Readonly<ImageUploadProps>) {
+export default function ImageUpload({
+  label = 'Imagen',
+  onUploaded,
+  upload = uploadImage,
+  preview = true,
+}: Readonly<ImageUploadProps>) {
   const inputId = useId();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -48,7 +58,7 @@ export default function ImageUpload({ label = 'Imagen', onUploaded }: Readonly<I
     }
     setUploading(true);
     try {
-      const image = await uploadImage(file);
+      const image = await upload(file);
       setUploaded(image);
       onUploaded(image);
     } catch (error) {
@@ -73,7 +83,7 @@ export default function ImageUpload({ label = 'Imagen', onUploaded }: Readonly<I
           {uploadError}
         </Alert>
       )}
-      {uploaded && (
+      {preview && uploaded && (
         <StoredImage id={uploaded.id} alt="Imagen subida" className="mt-2 img-fluid rounded" />
       )}
     </Form.Group>

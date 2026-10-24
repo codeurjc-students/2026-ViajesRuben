@@ -10,6 +10,8 @@ export interface AuthContextValue {
   logout: () => Promise<void>;
   /** Creates the account and logs the new user in. */
   register: (data: RegisterData) => Promise<void>;
+  /** Replaces the logged-in user after the profile or the avatar changed, so the header follows. */
+  updateUser: (user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

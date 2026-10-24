@@ -5,6 +5,7 @@ import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import { Link, NavLink, useNavigate } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
+import UserAvatar from './UserAvatar';
 import './AppHeader.css';
 
 export default function AppHeader() {
@@ -48,10 +49,10 @@ export default function AppHeader() {
                 <Nav.Link href="#">Generador IA</Nav.Link>
               </Nav>
               <div className="app-header__user">
-                <span className="app-header__avatar" aria-hidden="true">
-                  {user.name.charAt(0).toUpperCase()}
-                </span>
-                <span>{user.name}</span>
+                <Link to="/profile" className="app-header__profile" aria-label="Mi perfil">
+                  <UserAvatar user={user} />
+                  <span>{user.name}</span>
+                </Link>
                 <Button
                   variant="outline-primary"
                   size="sm"

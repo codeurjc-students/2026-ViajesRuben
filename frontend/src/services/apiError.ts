@@ -35,3 +35,12 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   return response.json();
 }
+
+/** Sends `body` as JSON with the given method (POST, PUT...) through `request`. */
+export function sendJson<T>(method: string, path: string, body: object): Promise<T> {
+  return request<T>(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}

@@ -2,7 +2,14 @@ import { vi } from 'vitest';
 import type { AuthContextValue } from './context/AuthContext';
 import type { Page, Trip, User } from './types';
 
-export const ANA: User = { id: 1, name: 'Ana', email: 'ana@example.com', role: 'USER' };
+export const ANA: User = {
+  id: 1,
+  name: 'Ana',
+  email: 'ana@example.com',
+  role: 'USER',
+  avatarId: null,
+  registrationDate: '2026-10-01',
+};
 
 /** Builds the value of the auth context for tests: logged in as `user` (or nobody) with spy actions. */
 export function authValue(
@@ -15,6 +22,7 @@ export function authValue(
     login: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
     register: vi.fn().mockResolvedValue(undefined),
+    updateUser: vi.fn(),
     ...overrides,
   };
 }

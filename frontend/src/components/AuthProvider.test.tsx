@@ -127,4 +127,15 @@ describe('B2 AuthProvider', () => {
     await waitFor(() => expect(screen.getByText('nadie')).toBeInTheDocument());
     expect(authService.logout).toHaveBeenCalledOnce();
   });
+
+  test('B3 updateUser replaces the user without asking the API again', async () => {
+    vi.mocked(authService.getCurrentUser).mockResolvedValue(ANA);
+    renderProvider();
+    await screen.findByText('Ana');
+
+    act(() => currentAuth().updateUser({ ...ANA, name: 'Ana Ruiz' }));
+
+    expect(await screen.findByText('Ana Ruiz')).toBeInTheDocument();
+    expect(authService.getCurrentUser).toHaveBeenCalledOnce();
+  });
 });

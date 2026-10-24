@@ -2,8 +2,8 @@
   flex-direction: row;
   gap: 1.25rem;
   padding: 1.25rem;
-  border: 1px solid #ddd;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
 }
 
 .trip-card__image {
