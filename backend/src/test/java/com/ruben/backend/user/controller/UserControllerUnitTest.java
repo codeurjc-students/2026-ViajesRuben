@@ -7,6 +7,7 @@ import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UserDTO;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.service.UserService;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +27,8 @@ class UserControllerUnitTest {
   @Test
   void registerAnswers201WithTheLocationAndTheUser() {
     RegisterRequest request = new RegisterRequest("Ana", "ana@example.com", "secret-pass");
-    UserDTO created = new UserDTO(5L, "Ana", "ana@example.com", Role.USER);
+    UserDTO created =
+        new UserDTO(5L, "Ana", "ana@example.com", Role.USER, null, LocalDate.of(2026, 10, 1));
     when(userService.register(request)).thenReturn(created);
 
     ResponseEntity<UserDTO> response = controller.register(request);

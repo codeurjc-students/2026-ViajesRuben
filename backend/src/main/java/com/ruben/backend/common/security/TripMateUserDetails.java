@@ -3,8 +3,10 @@ package com.ruben.backend.common.security;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
 import com.ruben.backend.user.entity.UserStatus;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,6 +20,8 @@ public class TripMateUserDetails implements UserDetails {
   private final String password;
   private final Role role;
   private final UserStatus status;
+  private final UUID avatarId;
+  private final LocalDate registrationDate;
 
   public TripMateUserDetails(User user) {
     this.id = user.getId();
@@ -26,6 +30,9 @@ public class TripMateUserDetails implements UserDetails {
     this.password = user.getPassword();
     this.role = user.getRole();
     this.status = user.getStatus();
+    // Reading the id of the lazy avatar does not load the image.
+    this.avatarId = user.getAvatar() == null ? null : user.getAvatar().getId();
+    this.registrationDate = user.getRegistrationDate();
   }
 
   public Long getId() {
@@ -38,6 +45,14 @@ public class TripMateUserDetails implements UserDetails {
 
   public Role getRole() {
     return role;
+  }
+
+  public UUID getAvatarId() {
+    return avatarId;
+  }
+
+  public LocalDate getRegistrationDate() {
+    return registrationDate;
   }
 
   @Override

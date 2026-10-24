@@ -1,12 +1,16 @@
 package com.ruben.backend.user.entity;
 
+import com.ruben.backend.image.entity.Image;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -36,6 +40,11 @@ public class User {
   private UserStatus status;
 
   private LocalDate registrationDate;
+
+  /** Lazy, so loading a user never loads the bytes of the picture. */
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "avatar_id", unique = true)
+  private Image avatar;
 
   protected User() {}
 
@@ -94,5 +103,13 @@ public class User {
 
   public LocalDate getRegistrationDate() {
     return registrationDate;
+  }
+
+  public Image getAvatar() {
+    return avatar;
+  }
+
+  public void setAvatar(Image avatar) {
+    this.avatar = avatar;
   }
 }

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -33,6 +34,14 @@ public class ImageService {
    * the file must match it.
    */
   public ImageDTO store(MultipartFile file) {
+    return ImageDTO.from(save(file));
+  }
+
+  /**
+   * Same checks as {@link #store}, but returns the entity so other domains (a user's avatar) can
+   * link to it.
+   */
+  public Image save(MultipartFile file) {
     if (file.isEmpty()) {
       throw new BadRequestException("The image is empty");
     }
@@ -45,7 +54,13 @@ public class ImageService {
     if (contentType == null || !contentType.equals(detectType(data))) {
       throw new BadRequestException("Only JPEG, PNG and WebP images are accepted");
     }
-    return ImageDTO.from(imageRepository.save(new Image(data, contentType)));
+    return imageRepository.save(new Image(data, contentType));
+  }
+
+  /** Removes an image that nothing links to any more; an unknown id is ignored. */
+  @Transactional
+  public void delete(UUID id) {
+    imageRepository.deleteWithoutLoading(id);
   }
 
   public ImageContentDTO findContent(UUID id) {

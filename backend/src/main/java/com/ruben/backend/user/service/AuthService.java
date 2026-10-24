@@ -46,6 +46,12 @@ public class AuthService {
   }
 
   private static UserDTO toDto(TripMateUserDetails user) {
-    return new UserDTO(user.getId(), user.getName(), user.getUsername(), user.getRole());
+    return new UserDTO(
+        user.getId(),
+        user.getName(),
+        user.getUsername(),
+        user.getRole(),
+        user.getAvatarId(),
+        user.getRegistrationDate());
   }
 }

@@ -139,6 +139,34 @@ class ImageServiceUnitTest {
   }
 
   @Test
+  void saveReturnsTheStoredEntityForOtherDomainsToLink() {
+    stubSave();
+    byte[] data = ImageTestData.png(100);
+
+    Image image = imageService.save(file("image/png", data));
+
+    assertThat(image.getData()).isEqualTo(data);
+    assertThat(image.getContentType()).isEqualTo("image/png");
+  }
+
+  @Test
+  void saveAppliesTheSameChecksAsStore() {
+    assertThatThrownBy(() -> imageService.save(file("image/png", ImageTestData.text())))
+        .isInstanceOf(BadRequestException.class);
+    verify(imageRepository, never()).save(any());
+  }
+
+  @Test
+  void deleteRemovesTheImageWithoutLoadingIt() {
+    UUID id = UUID.randomUUID();
+
+    imageService.delete(id);
+
+    verify(imageRepository).deleteWithoutLoading(id);
+    verify(imageRepository, never()).findById(any());
+  }
+
+  @Test
   void findContentReturnsTheBytesAndTheType() {
     UUID id = UUID.randomUUID();
     byte[] data = ImageTestData.png(50);

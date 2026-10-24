@@ -15,6 +15,8 @@ import com.ruben.backend.user.dto.LoginResult;
 import com.ruben.backend.user.dto.UserDTO;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.UserStatus;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -62,7 +64,15 @@ class AuthServiceUnitTest {
     LoginResult result = authService.login(REQUEST);
 
     assertThat(result.token()).isEqualTo("signed-token");
-    assertThat(result.user()).isEqualTo(new UserDTO(7L, "Test USER", "ana@example.com", Role.USER));
+    assertThat(result.user())
+        .isEqualTo(
+            new UserDTO(
+                7L,
+                "Test USER",
+                "ana@example.com",
+                Role.USER,
+                null,
+                LocalDate.now(ZoneId.systemDefault())));
   }
 
   @Test
@@ -108,6 +118,13 @@ class AuthServiceUnitTest {
                 details, null, details.getAuthorities()));
 
     assertThat(authService.getCurrentUser())
-        .isEqualTo(new UserDTO(7L, "Test USER", "ana@example.com", Role.USER));
+        .isEqualTo(
+            new UserDTO(
+                7L,
+                "Test USER",
+                "ana@example.com",
+                Role.USER,
+                null,
+                LocalDate.now(ZoneId.systemDefault())));
   }
 }
