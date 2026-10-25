@@ -9,22 +9,21 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
  * Loads the sample users and their trips that are not in the database yet; enabled with
  * app.sample-data.enabled. The sample users are for development and demos: every one logs in with
- * the password documented in the README, so production must set SAMPLE_DATA=false.
+ * app.sample-data.password (SAMPLE_USERS_PASSWORD, documented in the README), which is encoded at
+ * start-up, so production must set SAMPLE_DATA=false.
  */
 @Component
 @ConditionalOnProperty(name = "app.sample-data.enabled", havingValue = "true")
 public class DataLoader implements CommandLineRunner {
-
-  /** BCrypt hash of the sample users' password, so the source holds no plain password. */
-  static final String SAMPLE_USERS_HASH =
-      "$2a$10$HaZS3CbIXPvVRWcZe.3ceeo32TvqmY.T1UgSGfCJ2mARRcWIh.eMu";
 
   record SampleTrip(String name, String destination, LocalDate startDate, LocalDate endDate) {}
 
@@ -64,14 +63,23 @@ public class DataLoader implements CommandLineRunner {
 
   private final UserRepository userRepository;
   private final TripRepository tripRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final String password;
 
-  public DataLoader(UserRepository userRepository, TripRepository tripRepository) {
+  public DataLoader(
+      UserRepository userRepository,
+      TripRepository tripRepository,
+      PasswordEncoder passwordEncoder,
+      @Value("${app.sample-data.password}") String password) {
     this.userRepository = userRepository;
     this.tripRepository = tripRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.password = password;
   }
 
   @Override
   public void run(String... args) {
+    String encodedPassword = passwordEncoder.encode(password);
     for (SampleUser sample : SAMPLE_USERS) {
       User user =
           userRepository
@@ -79,7 +87,7 @@ public class DataLoader implements CommandLineRunner {
               .orElseGet(
                   () ->
                       userRepository.save(
-                          new User(sample.name(), sample.email(), SAMPLE_USERS_HASH, Role.USER)));
+                          new User(sample.name(), sample.email(), encodedPassword, Role.USER)));
       Set<String> existing =
           tripRepository
               .findByCreatorIdAndNameIn(
