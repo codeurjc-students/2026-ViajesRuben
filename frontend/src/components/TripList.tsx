@@ -1,7 +1,7 @@
-import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
+import { Link } from 'react-router';
 import { usePagedList } from '../hooks/usePagedList';
 import { getTrips } from '../services/tripService';
 import LoadMoreButton from './LoadMoreButton';
@@ -17,6 +17,7 @@ export default function TripList() {
     last,
     error,
     loadMore,
+    reload,
   } = usePagedList(getTrips);
 
   // Rethrown so the route's error page (inside the layout) is shown.
@@ -36,12 +37,12 @@ export default function TripList() {
             </span>
           )}
         </div>
-        <Button variant="light" size="lg" className="trip-list__create fw-semibold">
+        <Link to="/trips/new" className="btn btn-light btn-lg trip-list__create fw-semibold">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Crear nuevo viaje
-        </Button>
+          Nuevo viaje
+        </Link>
       </div>
       {loaded && trips.length === 0 && (
         <p className="bg-white rounded p-3">Aún no tienes viajes. Crea el primero.</p>
@@ -50,7 +51,7 @@ export default function TripList() {
         <Row as="ul" id="trips" className="trip-list gy-4">
           {trips.map((trip) => (
             <Col as="li" key={trip.id} xs={12} lg={6}>
-              <TripCard trip={trip} />
+              <TripCard trip={trip} onDeleted={reload} />
             </Col>
           ))}
         </Row>

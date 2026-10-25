@@ -1,12 +1,16 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { newUser } from '../integrationHelpers';
+import { renderAsUser } from '../renderHelpers';
 import { createTrip } from '../services/tripService';
+import type { User } from '../types';
 import TripList from './TripList';
+
+let user: User;
 
 // A fresh user, so the test never depends on (or changes) the sample users.
 beforeAll(async () => {
-  await newUser();
+  user = (await newUser()).user;
   for (let i = 1; i <= 12; i++) {
     await createTrip({
       name: `Viaje ${i}`,
@@ -25,16 +29,16 @@ afterEach(() => {
 });
 
 test('B4 renders the first trips of the user fetched from the REST API', async () => {
-  render(<TripList />);
+  renderAsUser(<TripList />, user);
 
-  expect(await screen.findByText('Viaje a Destino 1', {}, { timeout: 5000 })).toBeInTheDocument();
-  expect(screen.getByText('Viaje a Destino 2')).toBeInTheDocument();
+  expect(await screen.findByText('Viaje 1', {}, { timeout: 5000 })).toBeInTheDocument();
+  expect(screen.getByText('Viaje 2')).toBeInTheDocument();
   expect(screen.getAllByRole('listitem')).toHaveLength(10);
 });
 
 test('B4 loads the next page from the REST API with "Más resultados"', async () => {
-  render(<TripList />);
-  await screen.findByText('Viaje a Destino 1', {}, { timeout: 5000 });
+  renderAsUser(<TripList />, user);
+  await screen.findByText('Viaje 1', {}, { timeout: 5000 });
 
   fireEvent.click(screen.getByRole('button', { name: 'Más resultados' }));
 
