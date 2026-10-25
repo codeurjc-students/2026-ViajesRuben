@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { MAX_IMAGE_BYTES } from '../constants/images';
 import { ApiError, NetworkError } from '../services/apiError';
 import { uploadImage } from '../services/imageService';
@@ -146,6 +146,64 @@ test('B3 does not show the stored image when the preview is off', async () => {
 
   await waitFor(() => expect(onUploaded).toHaveBeenCalled());
   expect(screen.queryByAltText('Imagen subida')).not.toBeInTheDocument();
+});
+
+describe('B4 choosing without uploading', () => {
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => 'blob:preview');
+    URL.revokeObjectURL = vi.fn();
+  });
+
+  test('hands the valid file over, previews it and does not upload', () => {
+    const onSelect = vi.fn();
+    const onUploaded = vi.fn();
+    render(<ImageUpload label="Portada" onUploaded={onUploaded} onSelect={onSelect} />);
+    const file = png();
+
+    choose(file);
+
+    expect(onSelect).toHaveBeenCalledWith(file);
+    expect(screen.getByAltText('Vista previa')).toHaveAttribute('src', 'blob:preview');
+    expect(uploadImage).not.toHaveBeenCalled();
+    expect(onUploaded).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Portada')).not.toBeDisabled();
+  });
+
+  test('still rejects a wrong type or size without selecting it', () => {
+    const onSelect = vi.fn();
+    render(<ImageUpload label="Portada" onUploaded={vi.fn()} onSelect={onSelect} />);
+
+    choose(new File(['hello'], 'a.txt', { type: 'text/plain' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Elige una imagen JPEG, PNG o WebP');
+    choose(png(MAX_IMAGE_BYTES + 1));
+    expect(screen.getByRole('alert')).toHaveTextContent('La imagen supera los 5 MB');
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.queryByAltText('Vista previa')).not.toBeInTheDocument();
+  });
+
+  test('releases the preview URL when it is replaced and when the component goes away', () => {
+    const urls = ['blob:one', 'blob:two'];
+    URL.createObjectURL = vi.fn(() => urls.shift() as string);
+    const { unmount } = render(
+      <ImageUpload label="Portada" onUploaded={vi.fn()} onSelect={vi.fn()} />,
+    );
+
+    choose(png());
+    choose(png());
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:one');
+    unmount();
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:two');
+  });
+
+  test('does not show the preview when it is turned off', () => {
+    render(<ImageUpload label="Portada" onUploaded={vi.fn()} onSelect={vi.fn()} preview={false} />);
+
+    choose(png());
+
+    expect(screen.queryByAltText('Vista previa')).not.toBeInTheDocument();
+  });
 });
 
 test('B3 explains a 403 from the server', async () => {
