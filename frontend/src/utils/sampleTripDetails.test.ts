@@ -1,7 +1,8 @@
 import { test, expect } from 'vitest';
+import { tripOf } from '../testHelpers';
 import { tripDetails } from './sampleTripDetails';
 
-const base = { id: 1, name: 'T', destination: 'D', startDate: '2027-05-01', endDate: '2027-05-02' };
+const base = tripOf({ id: 1, name: 'T', destination: 'D' });
 
 test('uses the values sent by the API when present', () => {
   expect(tripDetails({ ...base, participantCount: 3, isCreator: false })).toEqual({

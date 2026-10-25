@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { test, expect } from 'vitest';
 import { DEFAULT_TRIP_COVER } from '../constants/images';
+import { tripOf } from '../testHelpers';
 import TripCard from './TripCard';
 
-const trip = {
+const trip = tripOf({
   id: 1,
   name: 'Trip 2',
   destination: 'Rome',
@@ -11,7 +12,7 @@ const trip = {
   endDate: '2027-07-17',
   participantCount: 6,
   isCreator: true,
-};
+});
 
 test('shows the trip name, dates and participants', () => {
   render(<TripCard trip={trip} />);

@@ -60,3 +60,57 @@ test('exposes the error when a page cannot be loaded', async () => {
   expect(result.current.loaded).toBe(false);
   expect(result.current.loading).toBe(false);
 });
+
+test('B4 reload forgets the items and loads the first page again', async () => {
+  const fetchPage = vi
+    .fn()
+    .mockResolvedValueOnce(pageOf(['a', 'b'], { page: 0, totalElements: 3, last: false }))
+    .mockResolvedValueOnce(pageOf(['c'], { page: 1, totalElements: 3, last: true }))
+    .mockResolvedValueOnce(pageOf(['b', 'c'], { page: 0, totalElements: 2, last: true }));
+  const { result } = renderHook(() => usePagedList<string>(fetchPage));
+  await waitFor(() => expect(result.current.loaded).toBe(true));
+  act(() => result.current.loadMore());
+  await waitFor(() => expect(result.current.items).toEqual(['a', 'b', 'c']));
+
+  act(() => result.current.reload());
+
+  expect(result.current.items).toEqual([]);
+  await waitFor(() => expect(result.current.items).toEqual(['b', 'c']));
+  expect(fetchPage).toHaveBeenLastCalledWith(0);
+  expect(result.current.totalElements).toBe(2);
+  expect(result.current.last).toBe(true);
+});
+
+test('B4 an answer to a request made before a reload is ignored', async () => {
+  let resolveOld: (value: ReturnType<typeof pageOf<string>>) => void = () => {};
+  const fetchPage = vi
+    .fn()
+    .mockReturnValueOnce(
+      new Promise((r) => {
+        resolveOld = r;
+      }),
+    )
+    .mockResolvedValueOnce(pageOf(['new']));
+  const { result } = renderHook(() => usePagedList<string>(fetchPage));
+
+  act(() => result.current.reload());
+  await waitFor(() => expect(result.current.items).toEqual(['new']));
+  await act(async () => resolveOld(pageOf(['old'])));
+
+  expect(result.current.items).toEqual(['new']);
+  expect(result.current.loading).toBe(false);
+});
+
+test('B4 reload clears a previous error', async () => {
+  const fetchPage = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('boom'))
+    .mockResolvedValueOnce(pageOf(['a']));
+  const { result } = renderHook(() => usePagedList<string>(fetchPage));
+  await waitFor(() => expect(result.current.error).toBeInstanceOf(Error));
+
+  act(() => result.current.reload());
+
+  await waitFor(() => expect(result.current.items).toEqual(['a']));
+  expect(result.current.error).toBeNull();
+});

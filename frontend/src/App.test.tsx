@@ -10,7 +10,7 @@ import { getCurrentUser } from './services/authService';
 import { getProfile } from './services/userService';
 import { AuthContext } from './context/AuthContext';
 import type { User } from './types';
-import { ANA, authValue, pageOf } from './testHelpers';
+import { ANA, authValue, pageOf, tripOf } from './testHelpers';
 
 vi.mock('./services/tripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
@@ -38,13 +38,13 @@ test('the app opens on the home page inside the layout', async () => {
 test('renders the trip list at /trips with the header and footer', async () => {
   vi.mocked(getTrips).mockResolvedValue(
     pageOf([
-      {
+      tripOf({
         id: 1,
         name: 'Trip 1',
         destination: 'Lisbon',
         startDate: '2027-05-01',
         endDate: '2027-05-05',
-      },
+      }),
     ]),
   );
 

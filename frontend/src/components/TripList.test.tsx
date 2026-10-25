@@ -4,27 +4,27 @@ import { RouterProvider } from 'react-router/dom';
 import { vi, test, expect } from 'vitest';
 import TripList from './TripList';
 import { getTrips } from '../services/tripService';
-import { pageOf, tripsFrom } from '../testHelpers';
+import { pageOf, tripsFrom, tripOf } from '../testHelpers';
 
 vi.mock('../services/tripService', () => ({ getTrips: vi.fn() }));
 
 test('renders the list of trips', async () => {
   vi.mocked(getTrips).mockResolvedValue(
     pageOf([
-      {
+      tripOf({
         id: 1,
         name: 'Trip 1',
         destination: 'Lisbon',
         startDate: '2027-05-01',
         endDate: '2027-05-05',
-      },
-      {
+      }),
+      tripOf({
         id: 2,
         name: 'Trip 2',
         destination: 'Rome',
         startDate: '2027-07-10',
         endDate: '2027-07-17',
-      },
+      }),
     ]),
   );
 
@@ -66,13 +66,13 @@ test('offers a button to create a new trip', async () => {
 test('shows how many trips the user has', async () => {
   vi.mocked(getTrips).mockResolvedValue(
     pageOf([
-      {
+      tripOf({
         id: 1,
         name: 'Trip 1',
         destination: 'Lisbon',
         startDate: '2027-05-01',
         endDate: '2027-05-05',
-      },
+      }),
     ]),
   );
 

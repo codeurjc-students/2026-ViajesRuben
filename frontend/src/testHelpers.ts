@@ -39,13 +39,29 @@ export function pageOf<T>(content: T[], overrides: Partial<Page<T>> = {}): Page<
   };
 }
 
-/** Builds `count` trips whose ids start at `firstId`. */
-export function tripsFrom(firstId: number, count: number): Trip[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: firstId + i,
-    name: `Trip ${firstId + i}`,
-    destination: `City ${firstId + i}`,
+/** Builds a trip of the API for tests; Ana (id 1) is the creator unless overridden. */
+export function tripOf(overrides: Partial<Trip> = {}): Trip {
+  return {
+    id: 1,
+    creatorId: 1,
+    name: 'Escapada',
+    destination: 'Lisboa',
     startDate: '2027-05-01',
     endDate: '2027-05-05',
-  }));
+    budget: null,
+    description: null,
+    coverImageId: null,
+    ...overrides,
+  };
+}
+
+/** Builds `count` trips whose ids start at `firstId`. */
+export function tripsFrom(firstId: number, count: number): Trip[] {
+  return Array.from({ length: count }, (_, i) =>
+    tripOf({
+      id: firstId + i,
+      name: `Trip ${firstId + i}`,
+      destination: `City ${firstId + i}`,
+    }),
+  );
 }
