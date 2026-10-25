@@ -1,4 +1,4 @@
-import { useId, useState, type ChangeEvent } from 'react';
+import { useEffect, useId, useState, type ChangeEvent } from 'react';
 import Alert from 'react-bootstrap/Alert';
 import Form from 'react-bootstrap/Form';
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from '../constants/images';
@@ -25,11 +25,16 @@ function errorMessage(error: unknown): string {
 interface ImageUploadProps {
   label?: string;
   /** Called with the stored image once the server has accepted it. */
-  onUploaded: (image: ImageInfo) => void;
+  onUploaded?: (image: ImageInfo) => void;
   /** How the file is sent; by default it is stored as a plain image (`POST /api/v1/images`). */
   upload?: (file: File) => Promise<ImageInfo>;
   /** Show the stored image under the picker; turn it off when the caller already shows it. */
   preview?: boolean;
+  /**
+   * Choose without uploading: the valid file is handed over and previewed locally, and the caller
+   * sends it later (a form saves it together with the rest). `upload` and `onUploaded` are not used.
+   */
+  onSelect?: (file: File) => void;
 }
 
 /** File picker that uploads the chosen image and shows the stored result. */
@@ -38,11 +43,21 @@ export default function ImageUpload({
   onUploaded,
   upload = uploadImage,
   preview = true,
+  onSelect,
 }: Readonly<ImageUploadProps>) {
   const inputId = useId();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState<ImageInfo | null>(null);
+  const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
+
+  // The local preview holds the file in memory until its URL is released.
+  useEffect(
+    () => () => {
+      if (selectedUrl) URL.revokeObjectURL(selectedUrl);
+    },
+    [selectedUrl],
+  );
 
   async function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -56,11 +71,16 @@ export default function ImageUpload({
       setUploadError(TOO_BIG);
       return;
     }
+    if (onSelect) {
+      setSelectedUrl(URL.createObjectURL(file));
+      onSelect(file);
+      return;
+    }
     setUploading(true);
     try {
       const image = await upload(file);
       setUploaded(image);
-      onUploaded(image);
+      onUploaded?.(image);
     } catch (error) {
       setUploadError(errorMessage(error));
     } finally {
@@ -82,6 +102,9 @@ export default function ImageUpload({
         <Alert variant="danger" className="mt-2 mb-0">
           {uploadError}
         </Alert>
+      )}
+      {preview && selectedUrl && (
+        <img src={selectedUrl} alt="Vista previa" className="mt-2 img-fluid rounded" />
       )}
       {preview && uploaded && (
         <StoredImage id={uploaded.id} alt="Imagen subida" className="mt-2 img-fluid rounded" />

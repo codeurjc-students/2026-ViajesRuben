@@ -3,7 +3,7 @@ package com.ruben.backend.user.controller;
 import com.ruben.backend.common.error.ErrorResponse;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
-import com.ruben.backend.user.dto.AvatarResult;
+import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.user.dto.ChangePasswordRequest;
 import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UpdateProfileRequest;
@@ -180,7 +180,7 @@ public class UserController {
   @PutMapping(path = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<ImageDTO> replaceAvatar(
       @PathVariable Long id, @RequestPart("file") MultipartFile file) {
-    AvatarResult result = userService.replaceAvatar(id, file);
+    ImageResult result = userService.replaceAvatar(id, file);
     if (result.created()) {
       return ResponseEntity.created(URI.create("/api/v1/users/" + id + "/avatar"))
           .body(result.image());

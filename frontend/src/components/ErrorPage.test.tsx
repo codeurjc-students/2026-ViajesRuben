@@ -41,6 +41,20 @@ test('shows the 404 message for a 404 from the API', async () => {
   ).toBeInTheDocument();
 });
 
+test('B4 shows the no-access message for a 403 from the API', async () => {
+  renderWithRouteError(new ApiError(403));
+
+  expect(
+    await screen.findByRole('heading', { name: 'No tienes acceso a esta página' }),
+  ).toBeInTheDocument();
+});
+
+test('B4 shows the expired-session message for a 401 from the API', async () => {
+  renderWithRouteError(new ApiError(401));
+
+  expect(await screen.findByRole('heading', { name: 'Tu sesión ha caducado' })).toBeInTheDocument();
+});
+
 test('shows the server message for a 5xx', async () => {
   renderWithRouteError(new ApiError(503));
 

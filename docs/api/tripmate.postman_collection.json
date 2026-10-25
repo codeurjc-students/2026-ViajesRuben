@@ -35,7 +35,7 @@
             }
           ]
         },
-        "description": "Public. Returns one page of trips sorted by start date: `content`, `page`, `size`, `totalElements` and `last` (true on the last page)."
+        "description": "Requires login. Returns one page of the trips the logged-in user created, sorted by start date by default: `content`, `page`, `size`, `totalElements` and `last` (true on the last page). `sort` accepts `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt` (for example `sort=name,desc`); another property is a 400. 401 without a session."
       },
       "response": [
         {
@@ -74,26 +74,10 @@
             {
               "key": "Content-Type",
               "value": "application/json"
-            },
-            {
-              "key": "Content-Length",
-              "value": "286"
-            },
-            {
-              "key": "Date",
-              "value": "Sat, 17 Oct 2026 10:17:55 GMT"
-            },
-            {
-              "key": "Keep-Alive",
-              "value": "timeout=60"
-            },
-            {
-              "key": "Connection",
-              "value": "keep-alive"
             }
           ],
           "cookie": [],
-          "body": "{\n    \"content\": [\n        {\n            \"id\": 1,\n            \"name\": \"Trip 1\",\n            \"destination\": \"Lisbon\",\n            \"startDate\": \"2027-05-01\",\n            \"endDate\": \"2027-05-05\"\n        },\n        {\n            \"id\": 2,\n            \"name\": \"Trip 2\",\n            \"destination\": \"Rome\",\n            \"startDate\": \"2027-07-10\",\n            \"endDate\": \"2027-07-17\"\n        },\n        {\n            \"id\": 3,\n            \"name\": \"Trip 3\",\n            \"destination\": \"Tokyo\",\n            \"startDate\": \"2027-09-03\",\n            \"endDate\": \"2027-09-15\"\n        },\n        {\n            \"id\": 4,\n            \"name\": \"Trip 4\",\n            \"destination\": \"Paris\",\n            \"startDate\": \"2027-10-08\",\n            \"endDate\": \"2027-10-12\"\n        },\n        {\n            \"id\": 5,\n            \"name\": \"Trip 5\",\n            \"destination\": \"Berlin\",\n            \"startDate\": \"2027-10-20\",\n            \"endDate\": \"2027-10-24\"\n        },\n        {\n            \"id\": 6,\n            \"name\": \"Trip 6\",\n            \"destination\": \"Prague\",\n            \"startDate\": \"2027-11-05\",\n            \"endDate\": \"2027-11-09\"\n        },\n        {\n            \"id\": 7,\n            \"name\": \"Trip 7\",\n            \"destination\": \"Vienna\",\n            \"startDate\": \"2027-11-18\",\n            \"endDate\": \"2027-11-21\"\n        },\n        {\n            \"id\": 8,\n            \"name\": \"Trip 8\",\n            \"destination\": \"Amsterdam\",\n            \"startDate\": \"2027-12-03\",\n            \"endDate\": \"2027-12-06\"\n        },\n        {\n            \"id\": 9,\n            \"name\": \"Trip 9\",\n            \"destination\": \"Madrid\",\n            \"startDate\": \"2027-12-20\",\n            \"endDate\": \"2027-12-27\"\n        },\n        {\n            \"id\": 10,\n            \"name\": \"Trip 10\",\n            \"destination\": \"Athens\",\n            \"startDate\": \"2028-03-14\",\n            \"endDate\": \"2028-03-20\"\n        }\n    ],\n    \"page\": 0,\n    \"size\": 10,\n    \"totalElements\": 12,\n    \"last\": false\n}"
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 12,\n      \"creatorId\": 7,\n      \"name\": \"Lisbon getaway\",\n      \"destination\": \"Lisbon\",\n      \"startDate\": \"2027-05-01\",\n      \"endDate\": \"2027-05-05\",\n      \"budget\": 1200.5,\n      \"description\": \"Pasteis de nata and trams\",\n      \"coverImageId\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
         }
       ]
     },
@@ -103,7 +87,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/trips/1",
+          "raw": "{{baseUrl}}/api/v1/trips/12",
           "host": [
             "{{baseUrl}}"
           ],
@@ -111,19 +95,19 @@
             "api",
             "v1",
             "trips",
-            "1"
+            "12"
           ]
         },
-        "description": "Returns one trip. Requires being logged in (log in first)."
+        "description": "Only the creator. `coverImageId` is null without cover; otherwise the picture is at `GET /api/v1/images/{coverImageId}`. 400 for an id that is not a number, 401, 403 for another user's trip and 404 for a trip that does not exist."
       },
       "response": [
         {
-          "name": "Trip found",
+          "name": "Own trip",
           "originalRequest": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/trips/1",
+              "raw": "{{baseUrl}}/api/v1/trips/12",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -131,7 +115,7 @@
                 "api",
                 "v1",
                 "trips",
-                "1"
+                "12"
               ]
             }
           },
@@ -145,15 +129,15 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"id\": 1,\n  \"name\": \"Trip 1\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\"\n}"
+          "body": "{\n  \"id\": 12,\n  \"creatorId\": 7,\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\",\n  \"coverImageId\": null\n}"
         },
         {
-          "name": "Trip not found",
+          "name": "Another user's trip",
           "originalRequest": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/trips/999999",
+              "raw": "{{baseUrl}}/api/v1/trips/12",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -161,7 +145,37 @@
                 "api",
                 "v1",
                 "trips",
-                "999999"
+                "12"
+              ]
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-25T10:00:00Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Only the creator can access this trip\",\n  \"path\": \"/api/v1/trips/12\"\n}"
+        },
+        {
+          "name": "Unknown trip",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12"
               ]
             }
           },
@@ -175,7 +189,566 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"timestamp\": \"2026-10-22T16:30:00.000Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"Trip not found\",\n  \"path\": \"/api/v1/trips/999999\"\n}"
+          "body": "{\n  \"timestamp\": \"2026-10-25T10:00:00Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"Trip not found\",\n  \"path\": \"/api/v1/trips/999\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Create trip",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips"
+          ]
+        },
+        "description": "The logged-in user becomes the creator. Dates are `yyyy-MM-dd`; the end must not be before the start (the same day is a one-day trip). `name` and `destination` are required (up to 100 characters); `budget` (up to 2 decimals, not negative) and `description` (up to 2000 characters) are optional. Answers 201 with `Location`, 400 or 401. The cover is set afterwards with `PUT /api/v1/trips/{id}/cover`.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "Trip created",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Location",
+              "value": "/api/v1/trips/12"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 12,\n  \"creatorId\": 7,\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\",\n  \"coverImageId\": null\n}"
+        },
+        {
+          "name": "End before start",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-25T10:00:00Z\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"endDateNotBeforeStartDate: must not be before startDate\",\n  \"path\": \"/api/v1/trips\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Update trip",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12"
+          ]
+        },
+        "description": "Only the creator. Replaces every field of the request (not the cover). 200 with the trip, 400, 401, 403 or 404.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "Trip updated",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 12,\n  \"creatorId\": 7,\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\",\n  \"coverImageId\": null\n}"
+        },
+        {
+          "name": "Invalid data",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-25T10:00:00Z\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"name: must not be blank\",\n  \"path\": \"/api/v1/trips/12\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete trip",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12"
+          ]
+        },
+        "description": "Only the creator. Deletes the trip together with its cover image. 204, 400, 401, 403 or 404."
+      },
+      "response": [
+        {
+          "name": "Trip deleted",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12"
+              ]
+            }
+          },
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "text",
+          "header": [],
+          "cookie": [],
+          "body": ""
+        }
+      ]
+    },
+    {
+      "name": "Upload trip cover",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "cover"
+          ]
+        },
+        "description": "Only the creator. Uploads the cover in the `file` part: JPEG, PNG or WebP, up to 5 MB. Answers 201 with `Location` the first time and 200 when it replaces the previous cover (which is deleted), 400 for a file that is not a valid image, 401, 403, 404 and 413 for a file that is too large.",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Cover created",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "cover"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Location",
+              "value": "/api/v1/trips/12/cover"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"contentType\": \"image/png\",\n  \"size\": 20480\n}"
+        },
+        {
+          "name": "Cover replaced",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "cover"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"8a1d6e52-4c0b-4b7e-9f31-7d2a5c9b0e14\",\n  \"contentType\": \"image/jpeg\",\n  \"size\": 30211\n}"
+        },
+        {
+          "name": "Not an image",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "cover"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-25T10:00:00Z\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"Only JPEG, PNG and WebP images are accepted\",\n  \"path\": \"/api/v1/trips/12/cover\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get trip cover",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "cover"
+          ]
+        },
+        "description": "Only the creator. Returns the bytes of the cover with its `Content-Type` and `Cache-Control: no-cache`. 404 when the trip does not exist or has no cover (the web application then shows its default image). The web application reads covers through the public `GET /api/v1/images/{coverImageId}`."
+      },
+      "response": [
+        {
+          "name": "Trip without cover",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "cover"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-25T10:00:00Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"The trip has no cover\",\n  \"path\": \"/api/v1/trips/12/cover\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete trip cover",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "cover"
+          ]
+        },
+        "description": "Only the creator. Deletes the cover image. Also answers 204 when there was no cover. 401, 403 or 404."
+      },
+      "response": [
+        {
+          "name": "Cover deleted",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/cover",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "cover"
+              ]
+            }
+          },
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "text",
+          "header": [],
+          "cookie": [],
+          "body": ""
         }
       ]
     },

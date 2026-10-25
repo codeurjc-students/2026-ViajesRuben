@@ -291,6 +291,294 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{id}:
+    get:
+      tags:
+        - trip-controller
+      summary: Get a trip by id
+      description:
+        "Only the creator. `coverImageId` is null without cover; otherwise\
+        \ the picture is at `GET /api/v1/images/{coverImageId}`."
+      operationId: getTrip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The trip
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description: The id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - trip-controller
+      summary: Replace a trip's details
+      description: Only the creator. Every field is replaced; the cover is not changed.
+      operationId: updateTrip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripRequest"
+        required: true
+      responses:
+        "200":
+          description: The updated trip
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description:
+            "Missing or invalid fields, or the end date is before the start\
+            \ date"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - trip-controller
+      summary: Delete a trip
+      description: Only the creator. The cover image is deleted with the trip.
+      operationId: deleteTrip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: The trip was deleted
+        "400":
+          description: The id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{id}/cover:
+    get:
+      tags:
+        - trip-controller
+      summary: Get the bytes of a trip's cover
+      description:
+        "Only the creator. Not cached, because it changes when the cover\
+        \ is replaced; the SPA uses `GET /api/v1/images/{coverImageId}` instead."
+      operationId: getCover
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: "The cover, with its `Content-Type`"
+          content:
+            image/*: {}
+        "400":
+          description: The id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No trip has that id, or the trip has no cover"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - trip-controller
+      summary: Upload or replace a trip's cover
+      description:
+        "Only the creator. Multipart form with the picture in the `file`\
+        \ part: JPEG, PNG or WebP up to the configured size. The previous cover is\
+        \ deleted."
+      operationId: replaceCover
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "201":
+          description: The trip had no cover; `Location` is the cover URL
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ImageDTO"
+        "200":
+          description: The previous cover was replaced
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ImageDTO"
+        "400":
+          description: "Missing, empty or not a JPEG, PNG or WebP image"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: The image is too large
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - trip-controller
+      summary: Delete a trip's cover
+      description: Only the creator. Also answers 204 when there was no cover.
+      operationId: deleteCover
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: The trip has no cover now
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/users:
     post:
       tags:
@@ -322,6 +610,102 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: The email is already registered
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips:
+    get:
+      tags:
+        - trip-controller
+      summary: List one's own trips
+      description:
+        "Only the trips the logged-in user created. Paginated: `?page=0&size=10`\
+        \ (10 per page by default, 50 at most). Sorted by start date by default; `sort`\
+        \ accepts `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt`."
+      operationId: getTrips
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "startDate,ASC"
+              - "id,ASC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of trips
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOTripDTO"
+        "400":
+          description: "Invalid page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - trip-controller
+      summary: Create a trip
+      description:
+        "The logged-in user becomes the creator. Dates are `yyyy-MM-dd`\
+        \ and the end must not be before the start. `budget` and `description` are\
+        \ optional. The cover is set afterwards with `PUT /api/v1/trips/{id}/cover`.\
+        \ The `Location` header is the URL of the new trip."
+      operationId: createTrip
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripRequest"
+        required: true
+      responses:
+        "201":
+          description: The trip was created
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description:
+            "Missing or invalid fields, or the end date is before the start\
+            \ date"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
           content:
             "*/*":
               schema:
@@ -418,96 +802,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: Correct credentials but the account is blocked
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /api/v1/trips:
-    get:
-      tags:
-        - trip-controller
-      summary: List trips
-      description:
-        "Paginated: `?page=0&size=10` (10 per page by default, 50 at most).\
-        \ Sorted by start date."
-      operationId: getTrips
-      parameters:
-        - name: page
-          in: query
-          description: Zero-based page index (0..N)
-          required: false
-          schema:
-            type: integer
-            default: 0
-            minimum: 0
-        - name: size
-          in: query
-          description: The size of the page to be returned
-          required: false
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-        - name: sort
-          in: query
-          description:
-            "Sorting criteria in the format: property,(asc|desc). Default\
-            \ sort order is ascending. Multiple sort criteria are supported."
-          required: false
-          schema:
-            type: array
-            default:
-              - "startDate,ASC"
-              - "id,ASC"
-            items:
-              type: string
-      responses:
-        "200":
-          description: One page of trips
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/PageDTOTripDTO"
-        "400":
-          description: "Invalid page, size or sort parameter"
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-  /api/v1/trips/{id}:
-    get:
-      tags:
-        - trip-controller
-      summary: Get a trip by id
-      operationId: getTrip
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: The trip
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/TripDTO"
-        "400":
-          description: The id is not a number
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "401":
-          description: Not logged in
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: No trip has that id
           content:
             "*/*":
               schema:
@@ -641,6 +935,61 @@ components:
         size:
           type: integer
           format: int64
+    TripRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        destination:
+          type: string
+          maxLength: 100
+          minLength: 0
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        budget:
+          type: number
+          minimum: 0.00
+        description:
+          type: string
+          maxLength: 2000
+          minLength: 0
+      required:
+        - destination
+        - endDate
+        - name
+        - startDate
+    TripDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        creatorId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        destination:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        budget:
+          type: number
+        description:
+          type: string
+        coverImageId:
+          type: string
+          format: uuid
     RegisterRequest:
       type: object
       properties:
@@ -692,19 +1041,3 @@ components:
           format: int64
         last:
           type: boolean
-    TripDTO:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        destination:
-          type: string
-        startDate:
-          type: string
-          format: date
-        endDate:
-          type: string
-          format: date

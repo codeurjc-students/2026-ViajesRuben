@@ -67,9 +67,8 @@ public class SecurityConfig {
                         "/api/v1/auth/logout",
                         "/api/v1/users")
                     .permitAll()
-                    // TODO(B1/B4): review which trip reads stay public once trips have owners.
-                    .requestMatchers(HttpMethod.GET, "/api/v1/trips")
-                    .permitAll()
+                    // Trips belong to their creator and need a login. B1 adds the public example
+                    // trips here, as the exact path GET /api/v1/trips/examples.
                     .requestMatchers(HttpMethod.GET, "/api/v1/images/*")
                     .permitAll()
                     .requestMatchers("/api/v1/admin/**")

@@ -1,11 +1,27 @@
 /** Mirrors the backend TripDTO. Dates are ISO strings (yyyy-MM-dd). */
 export interface Trip {
   id: number;
+  creatorId: number;
   name: string;
   destination: string;
   startDate: string;
   endDate: string;
-  /** Not in the backend yet (B4, I3); the UI falls back to sample data when missing. */
-  participantCount?: number;
-  isCreator?: boolean;
+  /** Null when the trip has no budget. */
+  budget: number | null;
+  description: string | null;
+  /** Null without cover; the picture is at `/api/v1/images/{coverImageId}`. */
+  coverImageId: string | null;
 }
+
+/** Mirrors the backend TripRequest: what the form sends to create or replace a trip. */
+export interface TripData {
+  name: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  budget: number | null;
+  description: string | null;
+}
+
+/** What to do with the cover when a trip is saved. */
+export type CoverChange = { kind: 'keep' } | { kind: 'replace'; file: File } | { kind: 'remove' };

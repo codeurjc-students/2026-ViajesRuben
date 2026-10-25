@@ -3,6 +3,7 @@ package com.ruben.backend.image.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.error.BadRequestException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
@@ -10,7 +11,6 @@ import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
 import com.ruben.backend.image.repository.ImageRepository;
-import com.ruben.backend.user.repository.UserRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,15 +23,14 @@ import org.springframework.mock.web.MockMultipartFile;
 @Import(TestcontainersConfiguration.class)
 class ImageServiceIntegrationTest {
 
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private ImageService imageService;
   @Autowired private ImageRepository imageRepository;
-  @Autowired private UserRepository userRepository;
 
   @BeforeEach
   void setUp() {
     // Users first: another test may have left a user whose avatar is one of these images.
-    userRepository.deleteAll();
-    imageRepository.deleteAll();
+    databaseCleaner.clear();
   }
 
   @Test

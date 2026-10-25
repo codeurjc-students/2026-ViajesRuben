@@ -1,0 +1,69 @@
+.trip-detail__back {
+  color: var(--tm-blanco);
+}
+
+.trip-detail {
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+/* The cover is a square tile, like the one on the trip cards. */
+.trip-detail__cover {
+  flex: none;
+  align-self: flex-start;
+  width: min(100%, 16rem);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--tm-radius);
+  background: var(--tm-linea-suave);
+}
+
+.trip-detail__cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (width >= 768px) {
+  .trip-detail {
+    flex-direction: row;
+  }
+}
+
+.trip-detail__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-detail__title {
+  margin-bottom: 1rem;
+  font-size: clamp(1.75rem, 6vw, 2.2rem);
+  overflow-wrap: anywhere;
+}
+
+.trip-detail__facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.trip-detail__facts dt {
+  font-weight: 600;
+}
+
+.trip-detail__facts dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--tm-font-mono);
+}
+
+.trip-detail__description {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

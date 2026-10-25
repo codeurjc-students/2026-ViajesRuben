@@ -3,6 +3,7 @@ package com.ruben.backend.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.user.dto.LoginRequest;
@@ -33,6 +34,7 @@ class AuthServiceIntegrationTest {
 
   private static final String USER_PASSWORD = "User-pass-1";
 
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private AuthService authService;
   @Autowired private UserRepository userRepository;
   @Autowired private PasswordEncoder passwordEncoder;
@@ -44,7 +46,7 @@ class AuthServiceIntegrationTest {
 
   @BeforeEach
   void setUp() {
-    userRepository.deleteAll();
+    databaseCleaner.clear();
     adminAccountInitializer.run(new DefaultApplicationArguments());
     ana =
         userRepository.save(

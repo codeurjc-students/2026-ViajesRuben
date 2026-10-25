@@ -27,6 +27,7 @@ This guide describes the current technical state of TripMate: how it is built, h
 - [Running and editing the code](#running-and-editing-the-code)
   - [Cloning the repository](#cloning-the-repository)
   - [Running the application](#running-the-application)
+  - [Sample data](#sample-data)
   - [Using the tools](#using-the-tools)
   - [Running the tests](#running-the-tests)
   - [Creating a release](#creating-a-release)
@@ -212,7 +213,7 @@ The image tag in `docker/docker-compose.yml` is always the full version of the l
 | `DB_URL`                                | `jdbc:mysql://db:3306/${MYSQL_DATABASE}` | `app`   | Fixed by the Compose file, pointing to the `db` service     |
 | `DB_USERNAME`                           | `root`                                   | `app`   | Database user                                               |
 | `DB_PASSWORD`                           | `${MYSQL_ROOT_PASSWORD}`                 | `app`   | Database password                                           |
-| `SAMPLE_DATA`                           | `true`                                   | `app`   | Loads the 12 sample trips at start-up                       |
+| `SAMPLE_DATA`                           | `true`                                   | `app`   | Loads the 3 sample users and their 17 trips at start-up     |
 | `ADMIN_EMAIL`, `ADMIN_NAME`             | `admin@tripmate.com`, `Administrator`    | `app`   | The administrator                                           |
 | `ADMIN_PASSWORD_HASH`                   | BCrypt hash of the password `admin`      | `app`   | BCrypt hash of the administrator password                   |
 | `JWT_SECRET`                            | development key                          | `app`   | Base64 key that signs the tokens (at least 32 bytes)        |
@@ -231,7 +232,7 @@ docker build -f docker/Dockerfile -t rubenruiz7/tripmate:dev .
 docker compose -f docker/docker-compose-dev.yml up -d
 ```
 
-The application is then available at https://localhost/ (the browser warns about the self-signed certificate) and the REST API at https://localhost/api/v1/trips. Log in as `admin@tripmate.com` with the password `admin`.
+The application is then available at https://localhost/ (the browser warns about the self-signed certificate) and the REST API at https://localhost/api/v1/. Log in as `admin@tripmate.com` with the password `admin`, or as one of the [sample users](#sample-data).
 
 **Running from the OCI artifact.** Without cloning the repository, Compose (2.34.0 or later) can run the file published on DockerHub (see [Continuous delivery](#continuous-delivery)):
 
@@ -243,7 +244,7 @@ Before running a file downloaded from a registry, `up` shows its variables and a
 
 | Goal                           | Command (use `docker/docker-compose-dev.yml` for the local image)                      |
 | ------------------------------ | -------------------------------------------------------------------------------------- |
-| Start with the 12 sample trips | `docker compose -f docker/docker-compose.yml up -d`                                    |
+| Start with the sample users and trips | `docker compose -f docker/docker-compose.yml up -d`                                    |
 | Start with an empty database   | `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`                  |
 | See the logs                   | `docker compose -f docker/docker-compose.yml logs -f app`                              |
 | Stop, keeping the data         | `docker compose -f docker/docker-compose.yml down` (the next `up` finds the same data) |
@@ -257,12 +258,13 @@ Authentication and authorization are implemented with Spring Security.
 
 - **Login:** `POST /api/v1/auth/login` checks the email and password (BCrypt) and returns the user. The response sets a signed JWT (HS256) in the `AuthToken` cookie, which is `HttpOnly` (JavaScript cannot read it), `Secure` (HTTPS only), `SameSite=Strict` and limited to the path `/api`. Because of this, the frontend asks `GET /api/v1/auth/me` to know who is logged in.
 - **Every request:** the token is read from the cookie and the user is loaded from the database, so the role always comes from the database (never from the token) and a user blocked or deleted after logging in is rejected immediately. A missing, invalid or expired token is answered with 401 and the cookie is cleared.
-- **Roles:** `USER` and `ADMIN`. The URLs under `/api/v1/admin/**` require `ADMIN`; the rest of `/api/**` requires being logged in, except login, logout, the public trip list (`GET /api/v1/trips`) and reading an image (`GET /api/v1/images/{id}`).
+- **Roles:** `USER` and `ADMIN`. The URLs under `/api/v1/admin/**` require `ADMIN`; the rest of `/api/**` requires being logged in, except login, logout, registration and reading an image (`GET /api/v1/images/{id}`).
 - **Administrator:** there is a single administrator, defined in the configuration (`ADMIN_EMAIL`, `ADMIN_NAME` and `ADMIN_PASSWORD_HASH`, a BCrypt hash, never a plain password). On every start-up it is created or updated in the database and any other administrator is demoted to `USER`, so the role cannot be assigned through the API.
 - **Blocked users:** a user with status `BLOCKED` cannot log in (403 "Account is blocked"). The blocked check runs after the password check, so someone who does not know the password gets the generic 401 and cannot find out that the account exists.
 - **CSRF:** disabled, because the session is stateless and the only credential is a `SameSite=Strict` cookie that browsers do not send on cross-site requests.
 - **Errors:** security errors use the same JSON body as the rest of the API: `timestamp`, `status`, `error`, `message` and `path`.
 - **Known limitation:** changing the password does not invalidate the sessions already open on other devices. The JWT is stateless and is not tied to the password, so a token issued before the change stays valid until it expires (`JWT_EXPIRATION`, 24 hours by default).
+- **Known limitation:** database schema changes need Flyway migrations after 0.1.0. Until then the schema is created and extended by Hibernate (`ddl-auto=update`), which cannot add a `NOT NULL` column to a table that already has rows, nor tighten or change existing columns. B4 is the example: trips gained a mandatory creator, so a development database created before B4 must be recreated once (see [Sample data](#sample-data)).
 
 ### REST API
 
@@ -274,8 +276,14 @@ Current operations:
 
 | Method | URL                           | Access    | Description                                                                                            |
 | ------ | ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/v1/trips`               | Public    | Returns one page of trips (`?page=0&size=10`)                                                          |
-| GET    | `/api/v1/trips/{id}`          | Logged-in | Returns one trip (404 if it does not exist)                                                            |
+| GET    | `/api/v1/trips`               | Logged-in | Returns one page of the user's own trips (`?page=0&size=10&sort=startDate`)                            |
+| POST   | `/api/v1/trips`               | Logged-in | Creates a trip for the user; 201 with `Location`, 400 for invalid data or the end before the start     |
+| GET    | `/api/v1/trips/{id}`          | Creator   | Returns one trip (403 for another user's trip, 404 if it does not exist)                               |
+| PUT    | `/api/v1/trips/{id}`          | Creator   | Replaces the details of the trip (not the cover)                                                       |
+| DELETE | `/api/v1/trips/{id}`          | Creator   | Deletes the trip and its cover image; 204                                                              |
+| PUT    | `/api/v1/trips/{id}/cover`    | Creator   | Uploads or replaces the cover (multipart `file`); 201 with `Location` the first time, 200 after       |
+| GET    | `/api/v1/trips/{id}/cover`    | Creator   | Returns the bytes of the cover (`no-cache`); 404 if there is none                                      |
+| DELETE | `/api/v1/trips/{id}/cover`    | Creator   | Deletes the cover (204, also when there was none)                                                      |
 | POST   | `/api/v1/images`              | Logged-in | Uploads an image (multipart `file`); 201 with `Location`                                               |
 | GET    | `/api/v1/images/{id}`         | Public    | Returns the bytes of an image with its `Content-Type`                                                  |
 | POST   | `/api/v1/users`               | Public    | Registers a regular user (`name`, `email`, `password`); 201 with `Location`, 409 if the email is taken |
@@ -341,8 +349,8 @@ The application has automated tests at every level for both the backend and the 
 | ---------------------------- | --------------------------------- | ---------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- | ------------- |
 | `TripServiceUnitTest`        | `backend/src/test/.../service`    | Backend unit                             | JUnit, Mockito                          | The service returns the list of trips, with the repository mocked                            | MF            |
 | `TripServiceIntegrationTest` | `backend/src/test/.../service`    | Backend integration (service – database) | JUnit, Spring Boot Test, Testcontainers | The service returns the trips previously stored in a real MySQL database                     | MF            |
-| `TripApiE2ETest`             | `backend/src/test/.../controller` | Backend system (REST API)                | JUnit, Rest Assured, Testcontainers     | `GET /api/v1/trips` returns the sample trips                                                 | MF            |
-| `TripUiE2ETest`              | `backend/src/test/.../ui`         | Frontend system (UI)                     | JUnit, Selenium (headless Chrome)       | The home page of the running application shows the sample trips in the browser               | MF            |
+| `TripApiE2ETest`             | `backend/src/test/.../controller` | Backend system (REST API)                | JUnit, Rest Assured, Testcontainers     | The trips endpoints (see feature B4 below)                                                   | MF, B4        |
+| `TripUiE2ETest`              | `backend/src/test/.../ui`         | Frontend system (UI)                     | JUnit, Selenium (headless Chrome)       | The trip screens in the browser (see feature B4 below)                                       | MF, B4        |
 | `TripList.test.tsx`          | `frontend/src/components`         | Frontend unit (component)                | Vitest, Testing Library                 | The component renders the list of trips, with the service mocked and a virtual DOM           | MF            |
 | `tripService.test.tsx`       | `frontend/src/services`           | Frontend unit (service)                  | Vitest                                  | The service requests the trips from the REST API and returns them, with the HTTP call mocked | MF            |
 | `App.test.tsx`               | `frontend/src`                    | Frontend unit (component)                | Vitest, Testing Library                 | The main component renders the trip list                                                     | MF            |
@@ -386,6 +394,18 @@ Support classes (not tests): `TestcontainersConfiguration` defines the MySQL con
 | `ProfilePage.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx`                                                                                                | Frontend unit (component)   | View and edit mode, inline errors by status (409, 400, 401, 403), disabled buttons while sending, avatar upload and delete, the administrator view, the header link to `/profile`, and the auth context updated after each change                                     |
 | `userService.int.test.tsx`                                                                                                                                  | Client – server integration | Against the real API: 401 without session, 403/404, email change keeping the session, 409/400, wrong and right password change, and the avatar upload, replacement and deletion                                                                                       |
 | `ProfileUiE2ETest`                                                                                                                                          | Frontend system (UI)        | Register, edit the name (the header follows), upload an avatar (the browser decodes it in the header and the page), change the password, log out and log in with the new one; wrong current password; duplicate email; delete the avatar; a file that is not an image |
+
+**Trips (B4).** A registered user creates, reads, edits and deletes their own trips at `/api/v1/trips`. Every trip has a creator; only the creator can read, change or delete it, and the cover (`/api/v1/trips/{id}/cover`) follows the same rule (another user's trip is a 403, a missing one a 404, and 404 is checked before 403, so a missing trip is reported as missing to anyone). The administrator is a user like any other for their own trips and gets a 403 on other users' trips until trip moderation (B8) exists. The body is validated before the service runs (400): `name` and `destination` are required (up to 100 characters), the dates are required and the end must not be before the start (the same day is a one-day trip), `budget` is optional (up to 2 decimals, not negative) and `description` optional (up to 2000 characters). `GET /api/v1/trips` returns only the trips of the logged-in user, paginated and sorted in the query; `sort` accepts only `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt`. The cover is an `Image` linked to the trip, validated like any other image; a trip without cover has `coverImageId: null` and the application shows its default image (the API answers 404 to `GET /cover`). Replacing or deleting a cover, and deleting a trip, delete the image they stop using.
+
+| Test                                                                                                                      | Type                        | What it verifies                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TripServiceUnitTest`, `TripControllerUnitTest`, `TripRequestUnitTest`, `TripDTOUnitTest`, `DataLoaderUnitTest`            | Backend unit                | Creator rules (404 before 403, nothing written on 403), sort whitelist, trimming, delete order (trip, then cover), first cover (201) and replacement (200), every validation rule, the mapping, and the sample data and its password |
+| `TripServiceIntegrationTest`, `DataLoaderIntegrationTest`                                                                  | Backend integration         | With MySQL: only the user's trips, paginated and sorted; persisted budget scale; the image rows are deleted with the cover and the trip; the sample users log in with the documented password and loading twice adds nothing    |
+| `TripApiE2ETest`                                                                                                           | Backend system              | Over HTTPS, every endpoint: 401 anonymous, 403 for another user (and for the administrator), 404, 400 (invalid data, end before start, malformed JSON, bad sort), cover type and size (400, 413), 201/200/204 and `Location`       |
+| `tripService.test.tsx`, `usePagedList.test.tsx`, `useTrip.test.tsx`, `tripForm.test.ts`, `tripFormat.test.ts`              | Frontend unit               | The calls to the trip endpoints, list reload, loading one trip, the validation codes and the formatting of dates and budget                                                                                                       |
+| `TripForm.test.tsx`, `TripFormPage.test.tsx`, `TripDetailPage.test.tsx`, `TripList.test.tsx`, `TripCard.test.tsx`, `DeleteTripModal.test.tsx`, `ConfirmModal.test.tsx`, `ImageUpload.test.tsx`, `ErrorPage.test.tsx`, `App.test.tsx` | Frontend unit (component)   | Create and edit with one form, the Spanish messages, the cover (choose, discard, remove, partial failure), creator-only actions, the confirmation modal, the 403/401/404 pages, and that an anonymous visitor never asks for trips |
+| `tripService.int.test.tsx`, `TripList.int.test.tsx`                                                                        | Client – server integration | Against the real API: 401, 403 for another user, 404, 400, the cover upload, replacement and deletion deleting the old pictures, and the list paging only the user's trips                                                       |
+| `TripUiE2ETest`                                                                                                            | Frontend system (UI)        | As a sample user: create a trip with a cover, see it in the list, edit it, cancel and confirm the deletion; Ana's two pages; Laura sees only her trips; end before start; a bad or too large cover; another user's trip; an anonymous visit |
 
 **Statistics** (19/10/2026):
 
@@ -588,7 +608,7 @@ This section runs the application from the source code. To run the packaged appl
    | `ADMIN_PASSWORD_HASH`   | BCrypt hash of the password `admin`           | BCrypt hash of the administrator password. The application does not start with anything else |
    | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                        |
    | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                   |
-   | `SAMPLE_DATA`           | `true`                                        | Loads the 12 sample trips that are missing at start-up (`false` to disable)                  |
+   | `SAMPLE_DATA`           | `true`                                        | Loads the sample users and trips that are missing at start-up (`false` to disable)           |
    | `IMAGE_MAX_SIZE`        | `5MB`                                         | Largest image accepted by `POST /api/v1/images`                                              |
 
    **In production, `ADMIN_PASSWORD_HASH`, `JWT_SECRET` and the keystore must be replaced** with private values. To create a hash for the administrator password (the `$` characters must not be expanded by the shell, so use single quotes):
@@ -634,7 +654,7 @@ This section runs the application from the source code. To run the packaged appl
 | Service         | URL                               |
 | --------------- | --------------------------------- |
 | Web application | http://localhost:5173             |
-| REST API        | https://localhost/api/v1/trips    |
+| REST API        | https://localhost/api/v1/         |
 | Swagger UI      | https://localhost/swagger-ui.html |
 
 With the default configuration, you can log in as the administrator with `admin@tripmate.com` and the password `admin`. Quick check with `curl`:
@@ -645,6 +665,20 @@ curl -k -i -X POST https://localhost/api/v1/auth/login -H 'Content-Type: applica
 ```
 
 To stop everything, press `Ctrl + C` in the backend and frontend terminals and run `docker stop tripmate-mysql`.
+
+### Sample data
+
+With `SAMPLE_DATA=true` (the default) the application creates, at start-up, three regular users and their trips if they do not exist yet. The accounts are for development and demos and all use the same password, so **a deployment that must not have known accounts has to set `SAMPLE_DATA=false`**.
+
+| User         | Email                 | Password    | Trips                                                      |
+| ------------ | --------------------- | ----------- | ---------------------------------------------------------- |
+| Ana García   | `ana@tripmate.com`    | `Demo-2026` | 12 (a second page of "More results" on "My trips")          |
+| Carlos Ruiz  | `carlos@tripmate.com` | `Demo-2026` | 3                                                          |
+| Laura Pérez  | `laura@tripmate.com`  | `Demo-2026` | 2                                                          |
+
+The password is stored as a BCrypt hash in the source (`DataLoader`), and a test checks that it matches the one written here. The administrator is still `admin@tripmate.com` / `admin`.
+
+**Upgrading a development database from before B4.** Trips now have a mandatory creator, and Hibernate cannot add that column to a table that already has rows, so recreate the database once: `docker rm -f tripmate-mysql` and the `docker run` command of [Running the application](#running-the-application) again (or `docker compose -f docker/docker-compose.yml down -v` for the Compose database). Tests and CI always start from an empty database.
 
 ### Using the tools
 
@@ -735,6 +769,12 @@ Relevant technical decisions taken during the development, with their reasons.
 | Oct 2026 | `.dockerignore` as an allowlist                                                                                                                       | A list of excluded folders                                                         | Nothing enters the build context unless the build needs it, so private files, `.git` and documentation cannot end up in an image                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Oct 2026 | The administrator's own profile is read-only except the avatar (changing its name, email or password answers 403)                                     | Letting the administrator edit its profile like any other user                     | The administrator's name, email and password hash come from the configuration and are written to the database on every start-up: a name or password changed through the API would be lost on the next restart, and a changed email would make the next start-up create a second administrator account with the configured email and demote the edited one. The avatar is not in the configuration, so it can be changed                                                                                                              |
 | Oct 2026 | Avatars are shown through the public `GET /api/v1/images/{id}` (the `avatarId` of the user), while `GET /api/v1/users/{id}/avatar` requires login     | Serving avatars only from the user URL; making the user URL public                 | The image URL is a random UUID that cannot be guessed or enumerated (the same as the rest of the images), works in `<img>` tags and can be cached forever because a new upload gets a new id. The user URL is guessable (sequential ids), so it requires login, and its content changes when the avatar is replaced, so it is sent with `no-cache`. The trade-off is that anyone who obtains an avatar's UUID can see that picture without logging in; avatars are not sensitive data, and the UUID is only given to logged-in users |
+| Oct 2026 | A trip is readable and editable only by its creator; 404 is checked before 403, in the service (`findTripForRead` / `findTripForWrite`)                | Checking ownership in the controller; answering 404 for another user's trip         | The two methods are the only place to extend when participants (I3) and trip moderation by the administrator (B8) arrive; a missing trip is reported as missing to anyone |
+| Oct 2026 | The administrator gets 403 on other users' trips until trip moderation (B8) exists                                                                    | Letting the administrator read and delete any trip now                              | "User permissions" gives that power to the moderation feature, not to trip management |
+| Oct 2026 | Trip covers are shown through the public `GET /api/v1/images/{id}`, while `GET /api/v1/trips/{id}/cover` is restricted to the creator                | Serving covers only from the trip URL                                               | Same trade-off as avatars: the image URL is a random UUID that only someone who can read the trip is given, and `<img>` tags need a plain URL |
+| Oct 2026 | Deleting a trip deletes its children explicitly in the service, then the trip, then its images; there are no database cascades                         | `ON DELETE CASCADE`; JPA `cascade = REMOVE`                                         | Stored images must be deleted too, which cascades do not do, and the order stays visible in one method that each later feature extends |
+| Oct 2026 | One form component and one page create and edit a trip; the cover is chosen in the form and sent after the trip is saved                               | Separate create and edit pages; uploading the cover as soon as it is chosen         | The trip does not exist when a new trip's cover is chosen, and one button saves everything |
+| Oct 2026 | The sample users' password is a BCrypt hash in the source, with a test that it matches the documented one                                                | A plain password in the code or the configuration                                   | Avoids a hard-coded credential in the source while the README credentials cannot drift |
 
 ## Problems and solutions
 

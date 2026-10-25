@@ -40,9 +40,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B3: `/profile` page with view and edit mode for the name and email, a separate form to change the password, and the avatar with upload, replace and delete. The header shows the avatar and name, links to `/profile` and is updated without reloading.
 - B3: the administrator's profile is read-only except for the avatar, because its details come from the configuration.
 - B3 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (register, edit the name, change the avatar and the password, log out, log in with the new password).
+- B4: every trip has a creator. Own trips can be created, read, edited and deleted (`POST /api/v1/trips` 201 with `Location`, `GET`, `PUT` and `DELETE /api/v1/trips/{id}`), and only the creator can use them: 403 for another user's trip (also for the administrator until trip moderation, B8), 404 for a missing one, 400 for invalid data (required name, destination and dates; the end date cannot be before the start date; optional budget and description with limits).
+- B4: trip cover stored in the database (`PUT`, `GET` and `DELETE /api/v1/trips/{id}/cover`), validated like any other image; replacing or deleting it, or deleting the trip, deletes the previous image. Trips without cover show the default image.
+- B4: `GET /api/v1/trips` can be sorted only by `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt` (400 otherwise).
+- B4: sample data now has three users (`ana@tripmate.com` with 12 trips, `carlos@tripmate.com` with 3 and `laura@tripmate.com` with 2, all with the password `Demo-2026`), documented in the README and the development guide.
+- B4: `/trips` ("Mis viajes") with "Nuevo viaje", `/trips/new`, `/trips/:id` and `/trips/:id/edit`. One form creates and edits a trip, with the cover chosen and previewed before saving; the trip page shows the cover and details and offers "Editar" and "Eliminar" to the creator; deleting asks for confirmation in a dialog; the list reloads after a deletion.
+- B4: the confirmation dialog (`ConfirmModal`), the select-only mode of `ImageUpload`, the `useTrip` hook and `usePagedList.reload`; the error page explains 403 and 401.
+- B4 tests: backend unit, integration and REST API tests (a negative case for every endpoint), frontend unit and client – server integration tests, and a Selenium flow as a sample user (create a trip with a cover, see it in the list, edit it, delete it).
+- Known limitation documented: database schema changes need Flyway migrations after 0.1.0.
 
 ### Changed
 
+- B4: `GET /api/v1/trips` now returns only the logged-in user's trips (page, size and sort as before) and requires a login: it is no longer public. **A development database created before B4 must be recreated** (trips now have a mandatory creator, and `ddl-auto=update` cannot add it to existing rows); see the development guide.
+- B4: `TripDTO` now has `creatorId`, `budget`, `description` and `coverImageId`; trip cards show the trip name, the destination and the dates, and the provisional participant count was removed (it returns with participants, I3).
+- B4: the create trip button is now "Nuevo viaje", and `AvatarResult` became `ImageResult` (shared by the avatar and the cover).
+- B4: the CI readiness check of the backend calls `/api/v1/auth/me`, since `/api/v1/trips` needs a login.
 - The user returned by login, `GET /api/v1/auth/me` and the profile endpoints now includes `avatarId` and `registrationDate`.
 - `ImageService` exposes `save` (returns the stored image for other domains to link) and `delete`; `ImageUpload` accepts an `upload` function and `StoredImage` a `fallback`.
 - `TripCard` and `TripList` take their border and shadow from the `--tm-card-border` and `--tm-card-shadow` tokens (no visual change).

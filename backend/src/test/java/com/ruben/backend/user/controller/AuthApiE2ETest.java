@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.user.entity.Role;
@@ -15,6 +16,7 @@ import com.ruben.backend.user.service.AdminAccountInitializer;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -45,6 +47,7 @@ class AuthApiE2ETest {
 
   @LocalServerPort private int port;
 
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private UserRepository userRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private AdminAccountInitializer adminAccountInitializer;
@@ -56,7 +59,7 @@ class AuthApiE2ETest {
     RestAssured.port = port;
     RestAssured.useRelaxedHTTPSValidation();
 
-    userRepository.deleteAll();
+    databaseCleaner.clear();
     adminAccountInitializer.run(new DefaultApplicationArguments());
     userRepository.save(
         new User("Ana", USER_EMAIL, passwordEncoder.encode(USER_PASSWORD), Role.USER));
@@ -220,11 +223,13 @@ class AuthApiE2ETest {
 
   @Test
   void aBadCookieOnAPublicEndpointFailsOnceAndIsClearedSoThePageWorksOnTheNextRequest() {
-    Response rejected = given().cookie("AuthToken", "not-a-jwt").get("/api/v1/trips");
+    String image = "/api/v1/images/" + UUID.randomUUID();
+    Response rejected = given().cookie("AuthToken", "not-a-jwt").get(image);
 
     rejected.then().statusCode(401);
     assertCookieCleared(rejected);
-    given().get("/api/v1/trips").then().statusCode(200);
+    // Public again: the unknown image is a 404, no longer a 401.
+    given().get(image).then().statusCode(404);
   }
 
   @Test

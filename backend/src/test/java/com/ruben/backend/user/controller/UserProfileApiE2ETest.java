@@ -7,10 +7,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.image.ImageTestData;
-import com.ruben.backend.image.repository.ImageRepository;
-import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AdminAccountInitializer;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -41,8 +40,7 @@ class UserProfileApiE2ETest {
 
   @LocalServerPort private int port;
 
-  @Autowired private UserRepository userRepository;
-  @Autowired private ImageRepository imageRepository;
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private AdminAccountInitializer adminAccountInitializer;
 
   private long anaId;
@@ -56,8 +54,7 @@ class UserProfileApiE2ETest {
     RestAssured.port = port;
     RestAssured.useRelaxedHTTPSValidation();
 
-    userRepository.deleteAll();
-    imageRepository.deleteAll();
+    databaseCleaner.clear();
     adminAccountInitializer.run(new DefaultApplicationArguments());
     anaId = register("Ana", "ana@example.com");
     anaToken =

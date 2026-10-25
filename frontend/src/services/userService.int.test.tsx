@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Node's fetch needs Node's own FormData and File for the multipart upload, not the jsdom ones.
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { API_URL } from './apiError';
+import { newUser, PASSWORD, png, uniqueEmail } from '../integrationHelpers';
 import { getCurrentUser, login, register } from './authService';
 import { imageUrl } from './imageService';
 import {
@@ -11,47 +11,6 @@ import {
   updateProfile,
   uploadAvatar,
 } from './userService';
-
-const PASSWORD = 'secret-pass';
-const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-
-function uniqueEmail() {
-  return `ana-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
-}
-
-function png() {
-  return new File([new Uint8Array([...PNG_SIGNATURE, 1, 2, 3, 4])], 'a.png', {
-    type: 'image/png',
-  });
-}
-
-/** Logs in with plain fetch and returns the `AuthToken=...` pair of the Set-Cookie header. */
-async function sessionCookie(email: string, password = PASSWORD): Promise<string> {
-  const response = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  expect(response.status).toBe(200);
-  return response.headers.getSetCookie()[0].split(';')[0];
-}
-
-/** Node keeps no cookies, so every service call sends the given session cookie by hand. */
-function sendCookie(cookie: string) {
-  const realFetch = globalThis.fetch;
-  vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) =>
-    realFetch(input, { ...init, headers: { ...init?.headers, Cookie: cookie } }),
-  );
-}
-
-/** Registers a new user and starts sending its session cookie. */
-async function newUser() {
-  const email = uniqueEmail();
-  const user = await register({ name: 'Ana', email, password: PASSWORD });
-  const cookie = await sessionCookie(email);
-  sendCookie(cookie);
-  return { user, email, cookie };
-}
 
 afterEach(() => {
   vi.restoreAllMocks();
