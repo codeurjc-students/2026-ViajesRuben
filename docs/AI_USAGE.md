@@ -252,3 +252,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents; MCP none
 - **Context Files:** Claude Code configuration; a spec-driven plan for `B3`.
 - **Human Validation:** The student reviewed and amended the plan before approving it and reviewed and committed each stage.
+
+#### Record 3.10 — Trips: create, view, edit and delete (B4)
+
+- **Date:** 25/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Implement feature B4: create, view, edit and delete one's own trips, including a cover image, and set the patterns for B5–B8.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; effort high; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the initial plan for `B4`, assist with the code implementation across five stages (endpoints, UI components, tests), and update project documentation (OpenAPI, Postman, README, changelog).
+  - The student guided the development by defining architectural criteria (validation sequence, database recreation strategy, frontend text localization), setting strict plan requirements, requesting UI refinements, and reviewing and making every commit.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents, and hooks; MCP none.
+- **Context Files:** A spec-driven plan for `B4`.
+- **Human Validation:** Full human oversight throughout: the student reviewed and approved the plan, guided adjustments, and verified each stage before committing.
