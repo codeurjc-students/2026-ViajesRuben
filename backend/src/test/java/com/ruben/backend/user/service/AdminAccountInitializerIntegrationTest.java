@@ -2,6 +2,7 @@ package com.ruben.backend.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.user.entity.Role;
@@ -21,13 +22,14 @@ import org.springframework.context.annotation.Import;
 @Import(TestcontainersConfiguration.class)
 class AdminAccountInitializerIntegrationTest {
 
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private AdminAccountInitializer initializer;
   @Autowired private UserRepository userRepository;
   @Autowired private AdminProperties adminProperties;
 
   @BeforeEach
   void setUp() {
-    userRepository.deleteAll();
+    databaseCleaner.clear();
     initializer.run(new DefaultApplicationArguments());
   }
 

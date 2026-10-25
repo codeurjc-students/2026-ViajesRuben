@@ -6,11 +6,11 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.repository.ImageRepository;
-import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AdminAccountInitializer;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -34,8 +34,8 @@ class ImageApiE2ETest {
 
   @LocalServerPort private int port;
 
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private ImageRepository imageRepository;
-  @Autowired private UserRepository userRepository;
   @Autowired private AdminAccountInitializer adminAccountInitializer;
   @Autowired private AdminProperties adminProperties;
 
@@ -48,8 +48,7 @@ class ImageApiE2ETest {
     RestAssured.useRelaxedHTTPSValidation();
 
     // Users first: an avatar is an image that a user points at.
-    userRepository.deleteAll();
-    imageRepository.deleteAll();
+    databaseCleaner.clear();
     adminAccountInitializer.run(new DefaultApplicationArguments());
     token =
         given()

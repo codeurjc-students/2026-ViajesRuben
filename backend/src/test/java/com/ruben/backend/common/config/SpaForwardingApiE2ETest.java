@@ -5,9 +5,9 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.security.AdminProperties;
-import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AdminAccountInitializer;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -31,7 +31,7 @@ class SpaForwardingApiE2ETest {
 
   @LocalServerPort private int port;
 
-  @Autowired private UserRepository userRepository;
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private AdminAccountInitializer adminAccountInitializer;
   @Autowired private AdminProperties adminProperties;
 
@@ -41,7 +41,7 @@ class SpaForwardingApiE2ETest {
     RestAssured.port = port;
     RestAssured.useRelaxedHTTPSValidation();
 
-    userRepository.deleteAll();
+    databaseCleaner.clear();
     adminAccountInitializer.run(new DefaultApplicationArguments());
   }
 

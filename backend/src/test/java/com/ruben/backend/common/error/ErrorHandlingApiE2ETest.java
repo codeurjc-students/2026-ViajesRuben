@@ -6,9 +6,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.common.security.AdminProperties;
-import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AdminAccountInitializer;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -29,7 +29,7 @@ class ErrorHandlingApiE2ETest {
 
   @LocalServerPort private int port;
 
-  @Autowired private UserRepository userRepository;
+  @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private AdminAccountInitializer adminAccountInitializer;
   @Autowired private AdminProperties adminProperties;
 
@@ -39,7 +39,7 @@ class ErrorHandlingApiE2ETest {
     RestAssured.port = port;
     RestAssured.useRelaxedHTTPSValidation();
 
-    userRepository.deleteAll();
+    databaseCleaner.clear();
     adminAccountInitializer.run(new DefaultApplicationArguments());
   }
 
