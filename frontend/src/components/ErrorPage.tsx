@@ -14,6 +14,16 @@ const NOT_FOUND: ErrorMessage = {
     'Puede que la dirección esté mal escrita o que la página ya no exista. Vuelve al inicio para seguir.',
 };
 
+const FORBIDDEN: ErrorMessage = {
+  title: 'No tienes acceso a esta página',
+  detail: 'Este contenido pertenece a otro usuario. Vuelve al inicio para seguir.',
+};
+
+const SESSION_EXPIRED: ErrorMessage = {
+  title: 'Tu sesión ha caducado',
+  detail: 'Inicia sesión de nuevo para continuar.',
+};
+
 const NO_CONNECTION: ErrorMessage = {
   title: 'No hay conexión con el servidor',
   detail: 'Comprueba tu conexión a internet e inténtalo de nuevo en unos minutos.',
@@ -27,6 +37,8 @@ const SERVER_ERROR: ErrorMessage = {
 function messageFor(error: unknown): ErrorMessage {
   if (isRouteErrorResponse(error) && error.status === 404) return NOT_FOUND;
   if (error instanceof ApiError && error.status === 404) return NOT_FOUND;
+  if (error instanceof ApiError && error.status === 403) return FORBIDDEN;
+  if (error instanceof ApiError && error.status === 401) return SESSION_EXPIRED;
   if (error instanceof NetworkError) return NO_CONNECTION;
   return SERVER_ERROR;
 }
