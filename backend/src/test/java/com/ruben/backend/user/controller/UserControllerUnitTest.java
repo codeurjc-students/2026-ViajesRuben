@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
-import com.ruben.backend.user.dto.AvatarResult;
+import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.user.dto.ChangePasswordRequest;
 import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UpdateProfileRequest;
@@ -80,7 +80,7 @@ class UserControllerUnitTest {
 
   @Test
   void theFirstAvatarAnswers201WithItsLocation() {
-    when(userService.replaceAvatar(5L, PICTURE)).thenReturn(new AvatarResult(AVATAR, true));
+    when(userService.replaceAvatar(5L, PICTURE)).thenReturn(new ImageResult(AVATAR, true));
 
     ResponseEntity<ImageDTO> response = controller.replaceAvatar(5L, PICTURE);
 
@@ -91,7 +91,7 @@ class UserControllerUnitTest {
 
   @Test
   void aReplacedAvatarAnswers200WithoutLocation() {
-    when(userService.replaceAvatar(5L, PICTURE)).thenReturn(new AvatarResult(AVATAR, false));
+    when(userService.replaceAvatar(5L, PICTURE)).thenReturn(new ImageResult(AVATAR, false));
 
     ResponseEntity<ImageDTO> response = controller.replaceAvatar(5L, PICTURE);
 

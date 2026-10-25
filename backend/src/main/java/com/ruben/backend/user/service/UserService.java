@@ -7,9 +7,9 @@ import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
+import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
-import com.ruben.backend.user.dto.AvatarResult;
 import com.ruben.backend.user.dto.ChangePasswordRequest;
 import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UpdateProfileRequest;
@@ -122,7 +122,7 @@ public class UserService {
    * one, so no unused image is left behind.
    */
   @Transactional
-  public AvatarResult replaceAvatar(Long id, MultipartFile file) {
+  public ImageResult replaceAvatar(Long id, MultipartFile file) {
     User user = findOwnUser(id);
     Image previous = user.getAvatar();
     Image avatar = imageService.save(file);
@@ -132,7 +132,7 @@ public class UserService {
       imageService.delete(previous.getId());
     }
     log.info("User {} {} their avatar", user.getId(), previous == null ? "added" : "replaced");
-    return new AvatarResult(ImageDTO.from(avatar), previous == null);
+    return new ImageResult(ImageDTO.from(avatar), previous == null);
   }
 
   /** Removes the avatar; doing it when there is none changes nothing. */

@@ -15,10 +15,10 @@ import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageContentDTO;
+import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
 import com.ruben.backend.user.UserTestData;
-import com.ruben.backend.user.dto.AvatarResult;
 import com.ruben.backend.user.dto.ChangePasswordRequest;
 import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UpdateProfileRequest;
@@ -321,7 +321,7 @@ class UserServiceUnitTest {
     Image stored = image();
     when(imageService.save(PICTURE)).thenReturn(stored);
 
-    AvatarResult result = userService.replaceAvatar(7L, PICTURE);
+    ImageResult result = userService.replaceAvatar(7L, PICTURE);
 
     assertThat(result.created()).isTrue();
     assertThat(result.image().id()).isEqualTo(stored.getId());
@@ -338,7 +338,7 @@ class UserServiceUnitTest {
     Image stored = image();
     when(imageService.save(PICTURE)).thenReturn(stored);
 
-    AvatarResult result = userService.replaceAvatar(7L, PICTURE);
+    ImageResult result = userService.replaceAvatar(7L, PICTURE);
 
     assertThat(result.created()).isFalse();
     assertThat(ana.getAvatar()).isSameAs(stored);
