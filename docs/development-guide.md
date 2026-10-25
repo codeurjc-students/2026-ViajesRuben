@@ -214,6 +214,7 @@ The image tag in `docker/docker-compose.yml` is always the full version of the l
 | `DB_USERNAME`                           | `root`                                   | `app`   | Database user                                               |
 | `DB_PASSWORD`                           | `${MYSQL_ROOT_PASSWORD}`                 | `app`   | Database password                                           |
 | `SAMPLE_DATA`                           | `true`                                   | `app`   | Loads the 3 sample users and their 17 trips at start-up     |
+| `SAMPLE_USERS_PASSWORD`                 | `Demo-2026`                              | `app`   | Password of the sample users (development only)             |
 | `ADMIN_EMAIL`, `ADMIN_NAME`             | `admin@tripmate.com`, `Administrator`    | `app`   | The administrator                                           |
 | `ADMIN_PASSWORD_HASH`                   | BCrypt hash of the password `admin`      | `app`   | BCrypt hash of the administrator password                   |
 | `JWT_SECRET`                            | development key                          | `app`   | Base64 key that signs the tokens (at least 32 bytes)        |
@@ -609,6 +610,7 @@ This section runs the application from the source code. To run the packaged appl
    | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                        |
    | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                   |
    | `SAMPLE_DATA`           | `true`                                        | Loads the sample users and trips that are missing at start-up (`false` to disable)           |
+   | `SAMPLE_USERS_PASSWORD` | `Demo-2026`                                   | Password of the sample users, encoded when they are created (development only)               |
    | `IMAGE_MAX_SIZE`        | `5MB`                                         | Largest image accepted by `POST /api/v1/images`                                              |
 
    **In production, `ADMIN_PASSWORD_HASH`, `JWT_SECRET` and the keystore must be replaced** with private values. To create a hash for the administrator password (the `$` characters must not be expanded by the shell, so use single quotes):
@@ -676,7 +678,7 @@ With `SAMPLE_DATA=true` (the default) the application creates, at start-up, thre
 | Carlos Ruiz  | `carlos@tripmate.com` | `Demo-2026` | 3                                                          |
 | Laura Pérez  | `laura@tripmate.com`  | `Demo-2026` | 2                                                          |
 
-The password is stored as a BCrypt hash in the source (`DataLoader`), and a test checks that it matches the one written here. The administrator is still `admin@tripmate.com` / `admin`.
+The password comes from `app.sample-data.password` (the environment variable `SAMPLE_USERS_PASSWORD`, `Demo-2026` by default) and `DataLoader` encodes it with BCrypt when it creates the users, so the source holds no password or hash; a test checks that the default in `application.properties` is the one written in the README. Users that already exist keep the password they had, so recreate the database to change it. The administrator is still `admin@tripmate.com` / `admin`.
 
 **Upgrading a development database from before B4.** Trips now have a mandatory creator, and Hibernate cannot add that column to a table that already has rows, so recreate the database once: `docker rm -f tripmate-mysql` and the `docker run` command of [Running the application](#running-the-application) again (or `docker compose -f docker/docker-compose.yml down -v` for the Compose database). Tests and CI always start from an empty database.
 
@@ -774,7 +776,7 @@ Relevant technical decisions taken during the development, with their reasons.
 | Oct 2026 | Trip covers are shown through the public `GET /api/v1/images/{id}`, while `GET /api/v1/trips/{id}/cover` is restricted to the creator                | Serving covers only from the trip URL                                               | Same trade-off as avatars: the image URL is a random UUID that only someone who can read the trip is given, and `<img>` tags need a plain URL |
 | Oct 2026 | Deleting a trip deletes its children explicitly in the service, then the trip, then its images; there are no database cascades                         | `ON DELETE CASCADE`; JPA `cascade = REMOVE`                                         | Stored images must be deleted too, which cascades do not do, and the order stays visible in one method that each later feature extends |
 | Oct 2026 | One form component and one page create and edit a trip; the cover is chosen in the form and sent after the trip is saved                               | Separate create and edit pages; uploading the cover as soon as it is chosen         | The trip does not exist when a new trip's cover is chosen, and one button saves everything |
-| Oct 2026 | The sample users' password is a BCrypt hash in the source, with a test that it matches the documented one                                                | A plain password in the code or the configuration                                   | Avoids a hard-coded credential in the source while the README credentials cannot drift |
+| Oct 2026 | The sample users' password is a property (`SAMPLE_USERS_PASSWORD`), encoded with the `PasswordEncoder` at start-up, with a test that its default matches the README | A BCrypt hash constant in the source (SonarQube flags it as a secret)               | No credential or hash in the code, the README credentials cannot drift, and the password can be changed without rebuilding |
 
 ## Problems and solutions
 

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -17,18 +18,23 @@ import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
 import com.ruben.backend.user.entity.UserStatus;
 import com.ruben.backend.user.repository.UserRepository;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Tag("B4")
 @ExtendWith(MockitoExtension.class)
@@ -36,18 +42,50 @@ class DataLoaderUnitTest {
 
   @Mock private UserRepository userRepository;
   @Mock private TripRepository tripRepository;
-  @InjectMocks private DataLoader dataLoader;
+  @Mock private PasswordEncoder passwordEncoder;
+  private DataLoader dataLoader;
   @Captor private ArgumentCaptor<User> savedUser;
   @Captor private ArgumentCaptor<Iterable<Trip>> savedTrips;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
+    dataLoader = new DataLoader(userRepository, tripRepository, passwordEncoder, "Demo-2026");
+  }
 
   private static User withId(User user, long id) {
     return UserTestData.user(id, user.getEmail(), Role.USER, UserStatus.ACTIVE);
   }
 
   @Test
-  void theDocumentedPasswordMatchesTheStoredHash() {
-    assertThat(new BCryptPasswordEncoder().matches("Demo-2026", DataLoader.SAMPLE_USERS_HASH))
-        .isTrue();
+  void theDefaultPasswordOfTheConfigurationIsTheOneDocumentedInTheReadme() throws IOException {
+    String properties = Files.readString(Path.of("src/main/resources/application.properties"));
+    Matcher property =
+        Pattern.compile(
+                "^app\\.sample-data\\.password=\\$\\{SAMPLE_USERS_PASSWORD:(.+)}$",
+                Pattern.MULTILINE)
+            .matcher(properties);
+
+    assertThat(property.find()).isTrue();
+    String readme = Files.readString(Path.of("../README.md"));
+    assertThat(readme).contains("`" + property.group(1) + "`");
+  }
+
+  @Test
+  void encodesTheConfiguredPasswordOnceAndStoresOnlyTheEncodedValue() {
+    DataLoader other =
+        new DataLoader(userRepository, tripRepository, passwordEncoder, "Other-2026");
+    when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+    when(userRepository.save(savedUser.capture()))
+        .thenAnswer(invocation -> withId(invocation.getArgument(0), 5L));
+    when(tripRepository.findByCreatorIdAndNameIn(eq(5L), anyCollection())).thenReturn(List.of());
+
+    other.run();
+
+    verify(passwordEncoder, times(1)).encode("Other-2026");
+    assertThat(savedUser.getAllValues())
+        .extracting(User::getPassword)
+        .containsOnly("encoded-password");
   }
 
   @Test
@@ -67,7 +105,7 @@ class DataLoaderUnitTest {
             user -> {
               assertThat(user.getRole()).isEqualTo(Role.USER);
               assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
-              assertThat(user.getPassword()).isEqualTo(DataLoader.SAMPLE_USERS_HASH);
+              assertThat(user.getPassword()).isEqualTo("encoded-password");
             });
   }
 

@@ -1,6 +1,7 @@
 package com.ruben.backend.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
@@ -15,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 /** The sample data is off in the tests, so the loader is built by hand over the real database. */
 @Tag("B4")
@@ -25,6 +28,7 @@ class DataLoaderIntegrationTest {
   @Autowired private UserRepository userRepository;
   @Autowired private TripRepository tripRepository;
   @Autowired private AuthService authService;
+  @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private DatabaseCleaner databaseCleaner;
 
   private DataLoader dataLoader;
@@ -32,7 +36,7 @@ class DataLoaderIntegrationTest {
   @BeforeEach
   void setUp() {
     databaseCleaner.clear();
-    dataLoader = new DataLoader(userRepository, tripRepository);
+    dataLoader = new DataLoader(userRepository, tripRepository, passwordEncoder, "Demo-2026");
   }
 
   @Test
@@ -60,5 +64,15 @@ class DataLoaderIntegrationTest {
       assertThat(authService.login(new LoginRequest(email, "Demo-2026")).user().email())
           .isEqualTo(email);
     }
+  }
+
+  @Test
+  void aDifferentConfiguredPasswordIsTheOneTheSampleUsersLogInWith() {
+    new DataLoader(userRepository, tripRepository, passwordEncoder, "Other-2026").run();
+
+    assertThat(authService.login(new LoginRequest("ana@tripmate.com", "Other-2026")).user().email())
+        .isEqualTo("ana@tripmate.com");
+    assertThatThrownBy(() -> authService.login(new LoginRequest("ana@tripmate.com", "Demo-2026")))
+        .isInstanceOf(BadCredentialsException.class);
   }
 }
