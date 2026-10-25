@@ -25,7 +25,7 @@ function errorMessage(error: unknown): string {
 interface ImageUploadProps {
   label?: string;
   /** Called with the stored image once the server has accepted it. */
-  onUploaded: (image: ImageInfo) => void;
+  onUploaded?: (image: ImageInfo) => void;
   /** How the file is sent; by default it is stored as a plain image (`POST /api/v1/images`). */
   upload?: (file: File) => Promise<ImageInfo>;
   /** Show the stored image under the picker; turn it off when the caller already shows it. */
@@ -80,7 +80,7 @@ export default function ImageUpload({
     try {
       const image = await upload(file);
       setUploaded(image);
-      onUploaded(image);
+      onUploaded?.(image);
     } catch (error) {
       setUploadError(errorMessage(error));
     } finally {
