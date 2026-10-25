@@ -89,7 +89,7 @@ class DataLoaderUnitTest {
     List<Trip> anas = tripsOf(savedTrips.getAllValues().get(0));
     assertThat(anas).hasSize(12);
     assertThat(anas).extracting(trip -> trip.getCreator().getId()).containsOnly(1L);
-    assertThat(anas).extracting(Trip::getDestination).contains("Lisboa", "Roma", "Tokio");
+    assertThat(anas).extracting(Trip::getDestination).contains("Lisbon", "Rome", "Tokyo");
     assertThat(tripsOf(savedTrips.getAllValues().get(1))).hasSize(3);
     assertThat(tripsOf(savedTrips.getAllValues().get(2))).hasSize(2);
     assertThat(anas)
@@ -108,7 +108,7 @@ class DataLoaderUnitTest {
             List.of(
                 new Trip(
                     ana,
-                    "Escapada a Lisboa",
+                    "Lisbon getaway",
                     "Lisboa",
                     LocalDate.of(2027, 5, 1),
                     LocalDate.of(2027, 5, 5))));
@@ -122,7 +122,7 @@ class DataLoaderUnitTest {
     verify(tripRepository, times(3)).saveAll(savedTrips.capture());
     List<Trip> anas = tripsOf(savedTrips.getAllValues().get(0));
     assertThat(anas).hasSize(11);
-    assertThat(anas).extracting(Trip::getName).doesNotContain("Escapada a Lisboa");
+    assertThat(anas).extracting(Trip::getName).doesNotContain("Lisbon getaway");
   }
 
   @Test

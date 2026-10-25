@@ -36,31 +36,31 @@ public class DataLoader implements CommandLineRunner {
               "Ana García",
               "ana@tripmate.com",
               List.of(
-                  trip("Escapada a Lisboa", "Lisboa", 2027, 5, 1, 2027, 5, 5),
-                  trip("Verano en Roma", "Roma", 2027, 7, 10, 2027, 7, 17),
-                  trip("Viaje a Japón", "Tokio", 2027, 9, 3, 2027, 9, 15),
-                  trip("Puente en París", "París", 2027, 10, 8, 2027, 10, 12),
-                  trip("Fin de semana en Berlín", "Berlín", 2027, 10, 20, 2027, 10, 24),
-                  trip("Ruta por Praga", "Praga", 2027, 11, 5, 2027, 11, 9),
-                  trip("Navidad en Viena", "Viena", 2027, 11, 18, 2027, 11, 21),
-                  trip("Canales de Ámsterdam", "Ámsterdam", 2027, 12, 3, 2027, 12, 6),
-                  trip("Fiestas en Madrid", "Madrid", 2027, 12, 20, 2027, 12, 27),
-                  trip("Semana en Atenas", "Atenas", 2028, 3, 14, 2028, 3, 20),
-                  trip("Primavera en Estambul", "Estambul", 2028, 4, 2, 2028, 4, 9),
-                  trip("Auroras en Reikiavik", "Reikiavik", 2028, 6, 15, 2028, 6, 22))),
+                  trip("Lisbon getaway", "Lisbon", 2027, 5, 1, 2027, 5, 5),
+                  trip("Summer in Rome", "Rome", 2027, 7, 10, 2027, 7, 17),
+                  trip("Trip to Japan", "Tokyo", 2027, 9, 3, 2027, 9, 15),
+                  trip("Long weekend in Paris", "Paris", 2027, 10, 8, 2027, 10, 12),
+                  trip("Weekend in Berlin", "Berlin", 2027, 10, 20, 2027, 10, 24),
+                  trip("Prague route", "Prague", 2027, 11, 5, 2027, 11, 9),
+                  trip("Christmas in Vienna", "Vienna", 2027, 11, 18, 2027, 11, 21),
+                  trip("Amsterdam canals", "Amsterdam", 2027, 12, 3, 2027, 12, 6),
+                  trip("Madrid holidays", "Madrid", 2027, 12, 20, 2027, 12, 27),
+                  trip("Week in Athens", "Athens", 2028, 3, 14, 2028, 3, 20),
+                  trip("Spring in Istanbul", "Istanbul", 2028, 4, 2, 2028, 4, 9),
+                  trip("Northern lights in Reykjavik", "Reykjavik", 2028, 6, 15, 2028, 6, 22))),
           new SampleUser(
               "Carlos Ruiz",
               "carlos@tripmate.com",
               List.of(
-                  trip("Ruta por Andalucía", "Sevilla", 2027, 4, 5, 2027, 4, 11),
-                  trip("Semana en Nueva York", "Nueva York", 2027, 8, 2, 2027, 8, 9),
-                  trip("Verano en Croacia", "Split", 2027, 8, 20, 2027, 8, 30))),
+                  trip("Andalusia route", "Seville", 2027, 4, 5, 2027, 4, 11),
+                  trip("Week in New York", "New York", 2027, 8, 2, 2027, 8, 9),
+                  trip("Summer in Croatia", "Split", 2027, 8, 20, 2027, 8, 30))),
           new SampleUser(
               "Laura Pérez",
               "laura@tripmate.com",
               List.of(
-                  trip("Fin de semana en Oporto", "Oporto", 2027, 3, 12, 2027, 3, 14),
-                  trip("Alpes en invierno", "Innsbruck", 2028, 1, 8, 2028, 1, 15))));
+                  trip("Weekend in Porto", "Porto", 2027, 3, 12, 2027, 3, 14),
+                  trip("Alps in winter", "Innsbruck", 2028, 1, 8, 2028, 1, 15))));
 
   private final UserRepository userRepository;
   private final TripRepository tripRepository;

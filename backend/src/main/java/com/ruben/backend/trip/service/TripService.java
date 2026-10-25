@@ -107,7 +107,8 @@ public class TripService {
 
   /**
    * Deletes the trip and then its cover image, in this order because the trip points at the image.
-   * Children of the trip (activities, invitations...) are deleted explicitly before the trip.
+   * Features that add children of a trip (activities, invitations, participations) delete them here
+   * first, explicitly, before the trip.
    */
   @Transactional
   public void delete(Long id) {
