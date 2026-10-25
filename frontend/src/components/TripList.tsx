@@ -4,6 +4,7 @@ import Row from 'react-bootstrap/Row';
 import { Link } from 'react-router';
 import { usePagedList } from '../hooks/usePagedList';
 import { getTrips } from '../services/tripService';
+import EmptyTrips from './EmptyTrips';
 import LoadMoreButton from './LoadMoreButton';
 import TripCard from './TripCard';
 import './TripList.css';
@@ -44,9 +45,7 @@ export default function TripList() {
           Nuevo viaje
         </Link>
       </div>
-      {loaded && trips.length === 0 && (
-        <p className="bg-white rounded p-3">Aún no tienes viajes. Crea el primero.</p>
-      )}
+      {loaded && trips.length === 0 && <EmptyTrips />}
       {trips.length > 0 && (
         <Row as="ul" id="trips" className="trip-list gy-4">
           {trips.map((trip) => (

@@ -140,6 +140,29 @@ class TripUiE2ETest {
   }
 
   @Test
+  void aUserWithoutTripsSeesTheFirstTripInvitationThatOpensTheForm() {
+    driver.get(baseUrl + "/register");
+    wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("register-name")))
+        .sendKeys("Nuevo");
+    driver
+        .findElement(By.id("register-email"))
+        .sendKeys("ui-" + UUID.randomUUID() + "@example.com");
+    driver.findElement(By.id("register-password")).sendKeys("secret-pass");
+    driver.findElement(By.id("register-confirmation")).sendKeys("secret-pass");
+    click(By.cssSelector("form button[type='submit']"));
+    wait.until(ExpectedConditions.urlContains("/trips"));
+
+    wait.until(
+        ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//h2[normalize-space()='Tu primer viaje te está esperando']")));
+    assertThat(driver.findElements(By.cssSelector("#trips > li"))).isEmpty();
+    click(link("Añadir tu primer viaje"));
+
+    wait.until(ExpectedConditions.urlContains("/trips/new"));
+    wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("trip-name")));
+  }
+
+  @Test
   void aVisitorOpeningTheTripListIsSentToLogin() {
     driver.get(baseUrl + "/trips");
 

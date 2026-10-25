@@ -27,12 +27,15 @@ test('renders the trips of the user by name', async () => {
   expect(screen.getByText('Destino: Roma')).toBeInTheDocument();
 });
 
-test('shows an invitation to create a trip when there are none', async () => {
+test('shows the invitation to add the first trip when there are none', async () => {
   vi.mocked(getTrips).mockResolvedValue(pageOf([]));
 
   renderAsUser(<TripList />);
 
-  expect(await screen.findByText('Aún no tienes viajes. Crea el primero.')).toBeInTheDocument();
+  expect(await screen.findByRole('link', { name: 'Añadir tu primer viaje' })).toHaveAttribute(
+    'href',
+    '/trips/new',
+  );
   expect(screen.queryByRole('list')).not.toBeInTheDocument();
 });
 

@@ -1,0 +1,9 @@
+/* A sketch of a trip card: same layout as a real one, with a dashed outline and no shadow. */
+.trip-card.trip-empty {
+  border: 2px dashed var(--tm-via);
+  box-shadow: none;
+}
+
+.trip-card.trip-empty .trip-card__image {
+  box-shadow: none;
+}
