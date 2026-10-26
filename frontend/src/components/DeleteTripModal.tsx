@@ -64,7 +64,7 @@ export default function DeleteTripModal({
       onConfirm={confirm}
       onCancel={cancel}
     >
-      Se eliminará «{trip.name}» con su portada. Esta acción no se puede deshacer.
+      {`Se eliminará «${trip.name}» con su portada y sus actividades. Esta acción no se puede deshacer.`}
     </ConfirmModal>
   );
 }

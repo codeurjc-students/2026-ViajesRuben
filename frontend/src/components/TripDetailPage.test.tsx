@@ -1,12 +1,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
+import { getActivities } from '../services/activityService';
 import { ApiError } from '../services/apiError';
 import { deleteTrip, getTrip } from '../services/tripService';
-import { ANA, tripOf } from '../testHelpers';
+import { ANA, pageOf, tripOf } from '../testHelpers';
 import TripDetailPage from './TripDetailPage';
 
 vi.mock('../services/tripService', () => ({ deleteTrip: vi.fn(), getTrip: vi.fn() }));
+vi.mock('../services/activityService', () => ({ getActivities: vi.fn() }));
 
 const routes = [
   { path: '/trips', element: <p>Lista de viajes</p> },
@@ -28,6 +30,7 @@ const trip = tripOf({
 beforeEach(() => {
   vi.mocked(deleteTrip).mockReset();
   vi.mocked(getTrip).mockReset();
+  vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
 });
 
 describe('B4 TripDetailPage', () => {
@@ -123,6 +126,32 @@ describe('B4 TripDetailPage', () => {
     expect(await screen.findByRole('link', { name: 'Volver a Mis viajes' })).toHaveAttribute(
       'href',
       '/trips',
+    );
+  });
+
+  test('B5 shows the itinerary below the summary, starting on the first day', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Itinerario' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(8);
+    expect(
+      await screen.findByText('No hay actividades este día', { exact: false }),
+    ).toBeInTheDocument();
+    expect(getActivities).toHaveBeenCalledWith(5, '2027-07-10', 0);
+    expect(screen.getByRole('link', { name: 'Nueva actividad' })).toHaveAttribute(
+      'href',
+      '/trips/5/activities/new?day=2027-07-10',
+    );
+  });
+
+  test('B5 deleting the trip warns that its activities go with it', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5');
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar' }));
+
+    expect(screen.getByRole('dialog', { name: 'Eliminar viaje' })).toHaveTextContent(
+      'con su portada y sus actividades',
     );
   });
 });

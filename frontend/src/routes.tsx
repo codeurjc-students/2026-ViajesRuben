@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router';
+import ActivityFormPage from './components/ActivityFormPage';
 import AppLayout from './components/AppLayout';
 import ErrorPage from './components/ErrorPage';
 import LoginPage from './components/LoginPage';
@@ -29,13 +30,10 @@ export const routes: RouteObject[] = [
               { path: '/trips/new', element: <TripFormPage /> },
               { path: '/trips/:tripId', element: <TripDetailPage /> },
               { path: '/trips/:tripId/edit', element: <TripFormPage /> },
-              {
-                path: '/trips/:tripId/activities/new',
-                element: <PlaceholderPage title="Añadir actividad" />,
-              },
+              { path: '/trips/:tripId/activities/new', element: <ActivityFormPage /> },
               {
                 path: '/trips/:tripId/activities/:activityId/edit',
-                element: <PlaceholderPage title="Editar actividad" />,
+                element: <ActivityFormPage />,
               },
               {
                 path: '/trips/:tripId/ai-generator',
