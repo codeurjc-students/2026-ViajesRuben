@@ -9,6 +9,7 @@ import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.repository.ImageRepository;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Collection;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +62,14 @@ public class ImageService {
   @Transactional
   public void delete(UUID id) {
     imageRepository.deleteWithoutLoading(id);
+  }
+
+  /** Removes images that nothing links to any more, in one statement; no ids, nothing to do. */
+  @Transactional
+  public void deleteAll(Collection<UUID> ids) {
+    if (!ids.isEmpty()) {
+      imageRepository.deleteAllWithoutLoading(ids);
+    }
   }
 
   public ImageContentDTO findContent(UUID id) {

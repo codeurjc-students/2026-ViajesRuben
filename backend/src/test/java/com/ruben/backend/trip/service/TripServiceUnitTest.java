@@ -3,11 +3,13 @@ package com.ruben.backend.trip.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
 import com.ruben.backend.common.error.ForbiddenException;
@@ -31,7 +33,6 @@ import com.ruben.backend.user.service.AuthService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -67,6 +68,8 @@ class TripServiceUnitTest {
   @Mock private UserRepository userRepository;
   @Mock private AuthService authService;
   @Mock private ImageService imageService;
+  @Mock private TripAccessService tripAccessService;
+  @Mock private ActivityService activityService;
 
   private TripService tripService;
   private User ana;
@@ -74,7 +77,14 @@ class TripServiceUnitTest {
 
   @BeforeEach
   void setUp() {
-    tripService = new TripService(tripRepository, userRepository, authService, imageService);
+    tripService =
+        new TripService(
+            tripRepository,
+            userRepository,
+            authService,
+            imageService,
+            tripAccessService,
+            activityService);
     ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
     bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
   }
@@ -91,10 +101,21 @@ class TripServiceUnitTest {
     return trip;
   }
 
-  /** A trip of the given creator that the repository finds by id. */
+  /**
+   * A trip of the given creator, as {@link TripAccessService} would answer: the trip for Ana, who
+   * is the logged-in user, a refusal for anyone else. The rule itself is tested in
+   * `TripAccessServiceUnitTest`.
+   */
   private Trip tripOf(User creator, Long id) {
     Trip trip = newTrip(creator, id);
-    when(tripRepository.findById(id)).thenReturn(Optional.of(trip));
+    if (creator == ana) {
+      lenient().when(tripAccessService.findForRead(id)).thenReturn(trip);
+      lenient().when(tripAccessService.findForWrite(id)).thenReturn(trip);
+    } else {
+      ForbiddenException refusal = new ForbiddenException("Only the creator can access this trip");
+      lenient().when(tripAccessService.findForRead(id)).thenThrow(refusal);
+      lenient().when(tripAccessService.findForWrite(id)).thenThrow(refusal);
+    }
     return trip;
   }
 
@@ -189,7 +210,6 @@ class TripServiceUnitTest {
 
   @Test
   void findByIdReturnsTheTripToItsCreator() {
-    anaIsLoggedIn();
     tripOf(ana, 1L);
 
     TripDTO trip = tripService.findById(1L);
@@ -199,39 +219,7 @@ class TripServiceUnitTest {
   }
 
   @Test
-  void findByIdThrowsNotFoundWhenTheTripDoesNotExist() {
-    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> tripService.findById(99L))
-        .isInstanceOf(ResourceNotFoundException.class)
-        .hasMessage("Trip not found");
-    verifyNoInteractions(authService);
-  }
-
-  @Test
-  void findByIdOfAnotherUsersTripIsForbidden() {
-    anaIsLoggedIn();
-    tripOf(bob, 1L);
-
-    assertThatThrownBy(() -> tripService.findById(1L))
-        .isInstanceOf(ForbiddenException.class)
-        .hasMessage("Only the creator can access this trip");
-  }
-
-  @Test
-  void theAdministratorCannotReadAnotherUsersTripYet() {
-    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
-    when(authService.getCurrentUser()).thenReturn(UserDTO.from(admin));
-    tripOf(bob, 1L);
-
-    assertThatThrownBy(() -> tripService.findById(1L)).isInstanceOf(ForbiddenException.class);
-  }
-
-  // --- update ---
-
-  @Test
   void updateReplacesEveryEditableFieldAndKeepsTheCover() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     Image cover = image();
     trip.setCoverImage(cover);
@@ -251,7 +239,6 @@ class TripServiceUnitTest {
 
   @Test
   void updateOfAnotherUsersTripIsForbiddenAndWritesNothing() {
-    anaIsLoggedIn();
     Trip trip = tripOf(bob, 1L);
 
     assertThatThrownBy(() -> tripService.update(1L, REQUEST))
@@ -261,32 +248,32 @@ class TripServiceUnitTest {
   }
 
   @Test
-  void updateOfAMissingTripIsNotFound() {
-    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> tripService.update(99L, REQUEST))
-        .isInstanceOf(ResourceNotFoundException.class);
-  }
-
-  // --- delete ---
-
-  @Test
   void deleteRemovesTheTripAndThenItsCoverImage() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     Image cover = image();
     trip.setCoverImage(cover);
 
     tripService.delete(1L);
 
-    InOrder order = Mockito.inOrder(tripRepository, imageService);
+    InOrder order = Mockito.inOrder(activityService, tripRepository, imageService);
+    order.verify(activityService).deleteAllByTrip(1L);
     order.verify(tripRepository).delete(trip);
     order.verify(imageService).delete(cover.getId());
   }
 
   @Test
+  void deleteRemovesTheActivitiesBeforeTheTripEvenWithoutCover() {
+    Trip trip = tripOf(ana, 1L);
+
+    tripService.delete(1L);
+
+    InOrder order = Mockito.inOrder(activityService, tripRepository);
+    order.verify(activityService).deleteAllByTrip(1L);
+    order.verify(tripRepository).delete(trip);
+  }
+
+  @Test
   void deleteOfATripWithoutCoverDoesNotTouchImages() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
 
     tripService.delete(1L);
@@ -297,27 +284,16 @@ class TripServiceUnitTest {
 
   @Test
   void deleteOfAnotherUsersTripIsForbiddenAndDeletesNothing() {
-    anaIsLoggedIn();
     Trip trip = tripOf(bob, 1L);
     trip.setCoverImage(image());
 
     assertThatThrownBy(() -> tripService.delete(1L)).isInstanceOf(ForbiddenException.class);
     verify(tripRepository, never()).delete(any());
-    verifyNoInteractions(imageService);
+    verifyNoInteractions(imageService, activityService);
   }
-
-  @Test
-  void deleteOfAMissingTripIsNotFound() {
-    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> tripService.delete(99L)).isInstanceOf(ResourceNotFoundException.class);
-  }
-
-  // --- cover ---
 
   @Test
   void theFirstCoverIsStoredAndReportedAsCreated() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     Image stored = image();
     when(imageService.save(PICTURE)).thenReturn(stored);
@@ -333,7 +309,6 @@ class TripServiceUnitTest {
 
   @Test
   void replacingTheCoverDeletesThePreviousImage() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     Image previous = image();
     trip.setCoverImage(previous);
@@ -349,7 +324,6 @@ class TripServiceUnitTest {
 
   @Test
   void replacingTheCoverOfAnotherUsersTripIsForbiddenAndStoresNothing() {
-    anaIsLoggedIn();
     tripOf(bob, 1L);
 
     assertThatThrownBy(() -> tripService.replaceCover(1L, PICTURE))
@@ -359,7 +333,6 @@ class TripServiceUnitTest {
 
   @Test
   void aRejectedImageLeavesTheCoverUntouched() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     when(imageService.save(PICTURE)).thenThrow(new BadRequestException("The image is empty"));
 
@@ -371,7 +344,6 @@ class TripServiceUnitTest {
 
   @Test
   void deleteCoverUnlinksAndDeletesTheImage() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     Image cover = image();
     trip.setCoverImage(cover);
@@ -385,7 +357,6 @@ class TripServiceUnitTest {
 
   @Test
   void deleteCoverWithoutCoverChangesNothing() {
-    anaIsLoggedIn();
     tripOf(ana, 1L);
 
     tripService.deleteCover(1L);
@@ -396,7 +367,6 @@ class TripServiceUnitTest {
 
   @Test
   void deleteCoverOfAnotherUsersTripIsForbidden() {
-    anaIsLoggedIn();
     tripOf(bob, 1L);
 
     assertThatThrownBy(() -> tripService.deleteCover(1L)).isInstanceOf(ForbiddenException.class);
@@ -404,7 +374,6 @@ class TripServiceUnitTest {
 
   @Test
   void theCreatorCanReadTheCoverBytes() {
-    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     Image cover = image();
     trip.setCoverImage(cover);
@@ -416,7 +385,6 @@ class TripServiceUnitTest {
 
   @Test
   void readingTheCoverOfATripWithoutOneIsNotFound() {
-    anaIsLoggedIn();
     tripOf(ana, 1L);
 
     assertThatThrownBy(() -> tripService.findCoverContent(1L))
@@ -426,19 +394,9 @@ class TripServiceUnitTest {
 
   @Test
   void readingTheCoverOfAnotherUsersTripIsForbidden() {
-    anaIsLoggedIn();
     tripOf(bob, 1L);
 
     assertThatThrownBy(() -> tripService.findCoverContent(1L))
         .isInstanceOf(ForbiddenException.class);
-  }
-
-  @Test
-  void readingTheCoverOfAMissingTripIsNotFound() {
-    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
-
-    assertThatThrownBy(() -> tripService.findCoverContent(99L))
-        .isInstanceOf(ResourceNotFoundException.class)
-        .hasMessage("Trip not found");
   }
 }
