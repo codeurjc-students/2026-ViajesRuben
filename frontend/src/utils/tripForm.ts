@@ -17,8 +17,8 @@ export interface TripFormValues {
 }
 
 /** Why a field is wrong; the components turn each code into the Spanish message. */
-export type TripFieldError =
-  'required' | 'tooLong' | 'beforeStart' | 'invalidAmount' | 'negative' | 'tooBig';
+export type AmountError = 'invalidAmount' | 'negative' | 'tooBig';
+export type TripFieldError = 'required' | 'tooLong' | 'beforeStart' | AmountError;
 
 export type TripFieldErrors = Partial<Record<keyof TripFormValues, TripFieldError>>;
 
@@ -42,13 +42,14 @@ export function valuesFromTrip(trip: Trip): TripFormValues {
   };
 }
 
-/** "1200,50" and "1200.50" are the same amount; empty is no budget. */
-function normalizeBudget(text: string): string {
+/** "1200,50" and "1200.50" are the same amount; empty is no amount. */
+export function normalizeAmount(text: string): string {
   return text.trim().replace(',', '.');
 }
 
-function budgetError(text: string): TripFieldError | undefined {
-  const normalized = normalizeBudget(text);
+/** What is wrong with an optional amount of money (a budget, a cost), if anything. */
+export function amountError(text: string): AmountError | undefined {
+  const normalized = normalizeAmount(text);
   if (!normalized) return undefined;
   const amount = Number(normalized);
   if (Number.isNaN(amount)) return 'invalidAmount';
@@ -71,7 +72,7 @@ export function validateTrip(values: TripFormValues): TripFieldErrors {
     destination: requiredText(values.destination, MAX_DESTINATION_LENGTH),
     startDate: values.startDate ? undefined : 'required',
     endDate: values.endDate ? undefined : 'required',
-    budget: budgetError(values.budget),
+    budget: amountError(values.budget),
     description: values.description.length > MAX_DESCRIPTION_LENGTH ? 'tooLong' : undefined,
   };
   if (!found.endDate && !found.startDate && values.endDate < values.startDate) {
@@ -82,7 +83,7 @@ export function validateTrip(values: TripFormValues): TripFieldErrors {
 
 /** The request body for valid values: trimmed text, a number or null for the budget, null for no description. */
 export function toTripData(values: TripFormValues): TripData {
-  const budget = normalizeBudget(values.budget);
+  const budget = normalizeAmount(values.budget);
   const description = values.description.trim();
   return {
     name: values.name.trim(),
