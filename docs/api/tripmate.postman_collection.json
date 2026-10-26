@@ -753,6 +753,607 @@
       ]
     },
     {
+      "name": "Get activities of a trip (paginated, by day)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities?date=2027-05-02&page=0&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities"
+          ],
+          "query": [
+            {
+              "key": "date",
+              "value": "2027-05-02",
+              "description": "Only the activities of this day, yyyy-MM-dd (optional)"
+            },
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number, starting at 0"
+            },
+            {
+              "key": "size",
+              "value": "10",
+              "description": "Items per page (default 10, maximum 50)"
+            }
+          ]
+        },
+        "description": "Only the trip's creator. One page of the trip's activities sorted by date and start time (an activity without a start time comes first on its day): `content`, `page`, `size`, `totalElements` and `last`. `date` keeps only the activities of that day. `sort` accepts `id`, `date`, `startTime`, `name`, `cost` and `createdAt`; another property, or a date that is not yyyy-MM-dd, is a 400. 401, 403 for another user's trip and 404 when the trip does not exist."
+      },
+      "response": [
+        {
+          "name": "Activities of one day",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities?date=2027-05-02&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2027-05-02",
+                  "description": "Only the activities of this day, yyyy-MM-dd (optional)"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 21,\n      \"tripId\": 12,\n      \"authorId\": 7,\n      \"name\": \"Belém Tower\",\n      \"description\": \"Climb to the top\",\n      \"location\": \"Belém\",\n      \"date\": \"2027-05-02\",\n      \"startTime\": \"09:30:00\",\n      \"endTime\": \"11:00:00\",\n      \"cost\": 6.0,\n      \"category\": \"SIGHTSEEING\",\n      \"imageId\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
+        }
+      ]
+    },
+    {
+      "name": "Create activity",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Belém Tower\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30\",\n  \"endTime\": \"11:00\",\n  \"location\": \"Belém\",\n  \"description\": \"Climb to the top\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Only the trip's creator, who becomes the author. `name` (up to 100 characters) and `date` are required, and `date` must be within the trip's dates. Times are `HH:mm`: the end must be strictly after the start and cannot be given without a start. `location` (200), `description` (2000), `cost` (up to 2 decimals, not negative) and `category` (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`) are optional. Answers 201 with `Location`, 400, 401, 403 or 404. The image is set afterwards with `PUT .../activities/{id}/image`."
+      },
+      "response": [
+        {
+          "name": "Activity created",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Belém Tower\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30\",\n  \"endTime\": \"11:00\",\n  \"location\": \"Belém\",\n  \"description\": \"Climb to the top\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Location",
+              "value": "/api/v1/trips/12/activities/21"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"name\": \"Belém Tower\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get activity by id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/21",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "21"
+          ]
+        },
+        "description": "Only the trip's creator. 400 for an id that is not a number, 401, 403, and 404 when the trip does not exist or the activity belongs to another trip."
+      },
+      "response": [
+        {
+          "name": "The activity",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/21",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "21"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"name\": \"Belém Tower\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Update activity",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/21",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "21"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Belém Tower and Pastéis\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"location\": \"Belém\",\n  \"description\": \"Climb to the top\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Only the trip's creator. Replaces every field with the same rules as the creation; the image is not changed. 400, 401, 403 or 404."
+      },
+      "response": [
+        {
+          "name": "Activity updated",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/21",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "21"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Belém Tower and Pastéis\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"10:00\",\n  \"endTime\": \"11:00\",\n  \"location\": \"Belém\",\n  \"description\": \"Climb to the top\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"name\": \"Belém Tower and Pastéis\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"10:00:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete activity",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/21",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "21"
+          ]
+        },
+        "description": "Only the trip's creator. Deletes the activity and its image. 401, 403 or 404."
+      },
+      "response": [
+        {
+          "name": "Activity deleted",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/21",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "21"
+              ]
+            }
+          },
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "text",
+          "header": [],
+          "cookie": [],
+          "body": ""
+        }
+      ]
+    },
+    {
+      "name": "Upload activity image",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/21/image",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "21",
+            "image"
+          ]
+        },
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "description": "Only the trip's creator. Uploads the image in the `file` part: JPEG, PNG or WebP, up to 5 MB. Answers 201 with `Location` the first time and 200 when it replaces the previous image (which is deleted), 400 for a file that is not a valid image, 401, 403, 404 and 413 for a file that is too large."
+      },
+      "response": [
+        {
+          "name": "Image created",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/21/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "21",
+                "image"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Location",
+              "value": "/api/v1/trips/12/activities/21/image"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"contentType\": \"image/png\",\n  \"size\": 20480\n}"
+        },
+        {
+          "name": "Image replaced",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/21/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "21",
+                "image"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"3f2b8c1e-9d4a-4e7b-8a61-5c0d2f9e1b47\",\n  \"contentType\": \"image/png\",\n  \"size\": 20480\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get activity image",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/21/image",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "21",
+            "image"
+          ]
+        },
+        "description": "Only the trip's creator. Returns the bytes of the image with its `Content-Type`, not cached. 404 also when the activity has no image. The app shows the image through the public `GET /api/v1/images/{imageId}`."
+      },
+      "response": [
+        {
+          "name": "The image",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/21/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "21",
+                "image"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "text",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "image/png"
+            }
+          ],
+          "cookie": [],
+          "body": ""
+        }
+      ]
+    },
+    {
+      "name": "Delete activity image",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/21/image",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "21",
+            "image"
+          ]
+        },
+        "description": "Only the trip's creator. Deletes the image. Also answers 204 when there was none. 401, 403 or 404."
+      },
+      "response": [
+        {
+          "name": "Image deleted",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/21/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "21",
+                "image"
+              ]
+            }
+          },
+          "status": "No Content",
+          "code": 204,
+          "_postman_previewlanguage": "text",
+          "header": [],
+          "cookie": [],
+          "body": ""
+        }
+      ]
+    },
+    {
       "name": "Register",
       "request": {
         "method": "POST",

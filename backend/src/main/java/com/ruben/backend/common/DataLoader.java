@@ -17,9 +17,11 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -315,21 +317,21 @@ public class DataLoader implements CommandLineRunner {
                   () ->
                       userRepository.save(
                           new User(sample.name(), sample.email(), encodedPassword, Role.USER)));
-      Map<String, Trip> trips = new HashMap<>();
-      tripRepository
-          .findByCreatorIdAndNameIn(
-              user.getId(), sample.trips().stream().map(SampleTrip::name).toList())
-          .forEach(trip -> trips.put(trip.getName(), trip));
+      List<Trip> trips =
+          new ArrayList<>(
+              tripRepository.findByCreatorIdAndNameIn(
+                  user.getId(), sample.trips().stream().map(SampleTrip::name).toList()));
+      Set<String> existing = trips.stream().map(Trip::getName).collect(Collectors.toSet());
       List<Trip> missing =
           sample.trips().stream()
-              .filter(trip -> !trips.containsKey(trip.name()))
+              .filter(trip -> !existing.contains(trip.name()))
               .map(
                   trip ->
                       new Trip(
                           user, trip.name(), trip.destination(), trip.startDate(), trip.endDate()))
               .toList();
-      tripRepository.saveAll(missing).forEach(trip -> trips.put(trip.getName(), trip));
-      trips.values().forEach(trip -> loadItinerary(user, trip));
+      trips.addAll(tripRepository.saveAll(missing));
+      trips.forEach(trip -> loadItinerary(user, trip));
     }
   }
 

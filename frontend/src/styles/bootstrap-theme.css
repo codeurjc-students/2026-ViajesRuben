@@ -90,3 +90,11 @@ h3,
   --bs-btn-active-border-color: var(--tm-corte);
   --bs-btn-focus-shadow-rgb: 192, 38, 45;
 }
+
+/* The day tabs of the itinerary: the selected one is the line's blue, not Bootstrap's. */
+.nav-pills {
+  --bs-nav-link-color: var(--tm-linea);
+  --bs-nav-link-hover-color: var(--tm-tinta);
+  --bs-nav-pills-link-active-color: var(--tm-blanco);
+  --bs-nav-pills-link-active-bg: var(--tm-linea);
+}

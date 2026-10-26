@@ -114,7 +114,7 @@ class ActivityControllerUnitTest {
   void theFirstImageAnswers201WithItsLocation() {
     when(activityService.replaceImage(3L, 5L, PICTURE)).thenReturn(new ImageResult(IMAGE, true));
 
-    ResponseEntity<ImageDTO> response = controller.replaceImage(3L, 5L, PICTURE);
+    ResponseEntity<ImageDTO> response = controller.replaceActivityImage(3L, 5L, PICTURE);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     assertThat(response.getHeaders().getLocation())
@@ -126,7 +126,7 @@ class ActivityControllerUnitTest {
   void aReplacedImageAnswers200WithoutLocation() {
     when(activityService.replaceImage(3L, 5L, PICTURE)).thenReturn(new ImageResult(IMAGE, false));
 
-    ResponseEntity<ImageDTO> response = controller.replaceImage(3L, 5L, PICTURE);
+    ResponseEntity<ImageDTO> response = controller.replaceActivityImage(3L, 5L, PICTURE);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getHeaders().getLocation()).isNull();
@@ -139,7 +139,7 @@ class ActivityControllerUnitTest {
     when(activityService.findImageContent(3L, 5L))
         .thenReturn(new ImageContentDTO(data, "image/png"));
 
-    ResponseEntity<byte[]> response = controller.getImage(3L, 5L);
+    ResponseEntity<byte[]> response = controller.getActivityImage(3L, 5L);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.IMAGE_PNG);
@@ -150,7 +150,7 @@ class ActivityControllerUnitTest {
 
   @Test
   void deleteImageAnswers204() {
-    ResponseEntity<Void> response = controller.deleteImage(3L, 5L);
+    ResponseEntity<Void> response = controller.deleteActivityImage(3L, 5L);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     verify(activityService).deleteImage(3L, 5L);

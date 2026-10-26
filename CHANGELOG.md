@@ -48,6 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B4: the confirmation dialog (`ConfirmModal`), the select-only mode of `ImageUpload`, the `useTrip` hook and `usePagedList.reload`; the error page explains 403 and 401.
 - B4 tests: backend unit, integration and REST API tests (a negative case for every endpoint), frontend unit and client – server integration tests, and a Selenium flow as a sample user (create a trip with a cover, see it in the list, edit it, delete it).
 - Known limitation documented: database schema changes need Flyway migrations after 0.1.0.
+- B5: the activities of a trip's itinerary at `/api/v1/trips/{tripId}/activities`: `GET` (paginated, sorted by date and start time, filtered by day with `?date=yyyy-MM-dd`) and `POST` (201 with `Location`), and `GET`, `PUT` and `DELETE /api/v1/trips/{tripId}/activities/{activityId}`. Only the creator of the trip can use them (403 for another user, 404 for a missing trip, and 404 for an activity that belongs to another trip). An activity has a name, date, optional start and end times (the end strictly after the start), location, description, cost and category (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`), and its date must be within the trip's dates (400).
+- B5: the image of an activity stored in the database (`PUT`, `GET` and `DELETE /api/v1/trips/{tripId}/activities/{activityId}/image`), validated like any other image; replacing or deleting it, or deleting the activity, deletes the previous image.
+- B5: deleting a trip now deletes its activities and their images first, in the same transaction.
+- B5: the trip page shows the itinerary one day at a time: a tab per day of the trip with previous and next buttons (the strip scrolls on narrow screens), the activities of the selected day in time order on a vertical line, an empty state for days without activities, and "Nueva actividad" for the creator. The selected day is in the URL (`?day=`), so coming back from the form lands on the same day.
+- B5: `/trips/:id/activities/new` and `/trips/:id/activities/:activityId/edit` with one form for both (category, day limited to the trip, start and end time, cost, location, description and an image chosen and previewed before saving), and a confirmation dialog to delete an activity.
+- B5: sample data now has itineraries: Ana's "Lisbon getaway" (7 activities) and "Summer in Rome" (4), Carlos's "Andalusia route" (3) and Laura's "Weekend in Porto" (4, the third day left empty), some with generated images. A trip that already has activities is not touched.
+- B5: `TripAccessService`, the single place that decides who can read or change a trip; `TripService` and `ActivityService` both use it, and the sample data, the activities and the later participants (I3) and administrator moderation (B8) extend it.
+- B5 tests: backend unit, integration and REST API tests (a negative case for every endpoint, an activity of another trip, a date outside the trip, the filter by day, deleting a trip with its activities and images), frontend unit and client – server integration tests, and Selenium flows (browse the days, create, edit and delete an activity with an image, validation errors, the URL keeping the day, and the phone layout).
 
 ### Changed
 
@@ -66,6 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The full quality workflow starts the backend on HTTPS port 8443, since the GitHub Actions runner cannot use port 443.
 - Every screen except `/`, `/login`, `/register` and unknown URLs now requires a logged-in user in the frontend; the header no longer shows a placeholder user.
 - Fixes for the issues reported by SonarQube Cloud: `ImageContentDTO` compares and prints its bytes by content, the `Allow` header of a 405 reads the supported methods once, props are read-only in the components, and the exception tests isolate the call that throws. The reason for disabling CSRF protection is recorded in the development guide.
+- B5: `PUT /api/v1/trips/{id}` answers 409 when the new dates would leave an activity outside the trip; the activities have to be moved or deleted first. B6 will turn this into a warning.
+- B5: the dialog that deletes a trip says that its activities go with it, and the trip form explains the 409 in Spanish.
+- B5: `TripService` no longer checks the creator itself (`findTripForRead` and `findTripForWrite` moved to `TripAccessService`); the behaviour is the same.
+- B5: `ImageService.deleteAll` removes several images in one statement, and the day tabs take their colors from the theme tokens.
 
 ## [0.0.2] - 2026-10-19
 

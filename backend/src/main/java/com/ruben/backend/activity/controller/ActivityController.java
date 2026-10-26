@@ -235,7 +235,7 @@ public class ActivityController {
       description = "The image is too large",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @PutMapping(path = "/{activityId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<ImageDTO> replaceImage(
+  public ResponseEntity<ImageDTO> replaceActivityImage(
       @PathVariable Long tripId,
       @PathVariable Long activityId,
       @RequestPart("file") MultipartFile file) {
@@ -273,7 +273,8 @@ public class ActivityController {
       description = "No such trip or activity, or the activity has no picture",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @GetMapping("/{activityId}/image")
-  public ResponseEntity<byte[]> getImage(@PathVariable Long tripId, @PathVariable Long activityId) {
+  public ResponseEntity<byte[]> getActivityImage(
+      @PathVariable Long tripId, @PathVariable Long activityId) {
     ImageContentDTO image = activityService.findImageContent(tripId, activityId);
     return ResponseEntity.ok()
         .contentType(MediaType.parseMediaType(image.contentType()))
@@ -299,7 +300,7 @@ public class ActivityController {
       description = NO_ACTIVITY,
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @DeleteMapping("/{activityId}/image")
-  public ResponseEntity<Void> deleteImage(
+  public ResponseEntity<Void> deleteActivityImage(
       @PathVariable Long tripId, @PathVariable Long activityId) {
     activityService.deleteImage(tripId, activityId);
     return ResponseEntity.noContent().build();
