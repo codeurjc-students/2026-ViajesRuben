@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import type { AuthContextValue } from './context/AuthContext';
-import type { Activity, Page, Trip, User } from './types';
+import type { Activity, Page, Trip, TripConflicts, User } from './types';
 
 export const ANA: User = {
   id: 1,
@@ -83,4 +83,9 @@ export function activityOf(overrides: Partial<Activity> = {}): Activity {
     imageId: null,
     ...overrides,
   };
+}
+
+/** Builds the conflicts of a trip for tests: none unless overridden. */
+export function conflictsOf(overrides: Partial<TripConflicts> = {}): TripConflicts {
+  return { overlaps: [], outsideDates: [], budget: null, ...overrides };
 }
