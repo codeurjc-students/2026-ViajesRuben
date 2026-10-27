@@ -261,16 +261,21 @@ describe('B5 activityService against the REST API', () => {
     expect((await fetch(imageUrl(image.id))).status).toBe(404);
   });
 
-  test('trip dates that would leave an activity outside are a 409 until it is moved', async () => {
+  test('trip dates may leave an activity outside, which still can be read but not moved there', async () => {
     await newUser();
     const trip = await createTrip(tripData);
     const activity = await createActivity(trip.id, activityData({ date: '2027-07-14' }));
     const shorter = { ...tripData, endDate: '2027-07-12' };
 
-    await expect(updateTrip(trip.id, shorter)).rejects.toMatchObject({ status: 409 });
-    expect((await getTrip(trip.id)).endDate).toBe('2027-07-14');
-
-    await updateActivity(trip.id, activity.id, activityData({ date: '2027-07-11' }));
     await expect(updateTrip(trip.id, shorter)).resolves.toMatchObject({ endDate: '2027-07-12' });
+
+    expect((await getTrip(trip.id)).endDate).toBe('2027-07-12');
+    await expect(getActivity(trip.id, activity.id)).resolves.toMatchObject({ date: '2027-07-14' });
+    await expect(
+      updateActivity(trip.id, activity.id, activityData({ date: '2027-07-13' })),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      updateActivity(trip.id, activity.id, activityData({ date: '2027-07-11' })),
+    ).resolves.toMatchObject({ date: '2027-07-11' });
   });
 });

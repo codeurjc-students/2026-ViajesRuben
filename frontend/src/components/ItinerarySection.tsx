@@ -12,7 +12,16 @@ import './ItinerarySection.css';
  * The trip's itinerary, one day at a time. The selected day is in the URL (`?day=yyyy-MM-dd`), so
  * coming back from the activity form lands on the same day and the browser's Back button works.
  */
-export default function ItinerarySection({ trip }: Readonly<{ trip: Trip }>) {
+interface ItinerarySectionProps {
+  trip: Trip;
+  /** Called after an activity was deleted, e.g. to refresh the trip's conflicts. */
+  onActivityDeleted?: () => void;
+}
+
+export default function ItinerarySection({
+  trip,
+  onActivityDeleted,
+}: Readonly<ItinerarySectionProps>) {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const days = useMemo(
@@ -36,7 +45,13 @@ export default function ItinerarySection({ trip }: Readonly<{ trip: Trip }>) {
         )}
       </div>
       <ItineraryDays days={days} selected={day} onSelect={(next) => setParams({ day: next })} />
-      <DayActivities key={day} trip={trip} day={day} isCreator={isCreator} />
+      <DayActivities
+        key={day}
+        trip={trip}
+        day={day}
+        isCreator={isCreator}
+        onActivityDeleted={onActivityDeleted}
+      />
     </Card>
   );
 }

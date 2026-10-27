@@ -4,8 +4,10 @@ import Container from 'react-bootstrap/Container';
 import Button from 'react-bootstrap/Button';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
+import { useConflicts } from '../hooks/useConflicts';
 import { useTrip } from '../hooks/useTrip';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
+import ConflictAlert from './ConflictAlert';
 import DeleteTripModal from './DeleteTripModal';
 import ItinerarySection from './ItinerarySection';
 import StoredImage from './StoredImage';
@@ -17,6 +19,7 @@ export default function TripDetailPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { trip, error } = useTrip(tripId);
+  const { conflicts, reload: reloadConflicts } = useConflicts(trip?.id);
   const [confirming, setConfirming] = useState(false);
 
   // Rethrown so the route's error page (inside the layout) is shown.
@@ -75,7 +78,14 @@ export default function TripDetailPage() {
           />
         </Card>
       )}
-      {trip && <ItinerarySection trip={trip} />}
+      {trip && (
+        <ConflictAlert
+          tripId={trip.id}
+          conflicts={conflicts}
+          canEdit={user?.id === trip.creatorId}
+        />
+      )}
+      {trip && <ItinerarySection trip={trip} onActivityDeleted={reloadConflicts} />}
     </Container>
   );
 }

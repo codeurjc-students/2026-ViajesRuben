@@ -11,10 +11,16 @@ interface DayActivitiesProps {
   /** The day to list, yyyy-MM-dd. The parent gives a new `key` per day, so each day starts clean. */
   day: string;
   isCreator: boolean;
+  onActivityDeleted?: () => void;
 }
 
 /** The activities of one day, in time order, ten at a time. */
-export default function DayActivities({ trip, day, isCreator }: Readonly<DayActivitiesProps>) {
+export default function DayActivities({
+  trip,
+  day,
+  isCreator,
+  onActivityDeleted,
+}: Readonly<DayActivitiesProps>) {
   const fetchPage = useCallback(
     (page: number) => getActivities(trip.id, day, page),
     [trip.id, day],
@@ -50,7 +56,10 @@ export default function DayActivities({ trip, day, isCreator }: Readonly<DayActi
               key={activity.id}
               activity={activity}
               canEdit={isCreator}
-              onDeleted={reload}
+              onDeleted={() => {
+                reload();
+                onActivityDeleted?.();
+              }}
             />
           ))}
         </ol>
