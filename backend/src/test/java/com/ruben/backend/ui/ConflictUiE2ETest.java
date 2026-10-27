@@ -106,7 +106,8 @@ class ConflictUiE2ETest {
   /** Creates an activity on the first day of the trip, the one the form starts on. */
   private void createActivity(String name, String start, String end) {
     click(link("Nueva actividad"));
-    wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("activity-name"))).sendKeys(name);
+    wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("activity-name")))
+        .sendKeys(name);
     setValue("activity-start-time", start);
     setValue("activity-end-time", end);
     click(button("Crear actividad"));

@@ -280,8 +280,7 @@ class ActivityServiceIntegrationTest {
                 activityService.update(
                     trip.id(),
                     created.id(),
-                    new ActivityRequest(
-                        "Second day", START, null, null, null, null, null, null)))
+                    new ActivityRequest("Second day", START, null, null, null, null, null, null)))
         .isInstanceOf(BadRequestException.class);
     activityService.update(
         trip.id(),
@@ -312,11 +311,11 @@ class ActivityServiceIntegrationTest {
               "Costly " + cost, START, null, null, null, null, new BigDecimal(cost), null));
     }
     activityService.create(
-        budgeted.id(),
-        new ActivityRequest("Free", START, null, null, null, null, null, null));
+        budgeted.id(), new ActivityRequest("Free", START, null, null, null, null, null, null));
     activityService.create(
         trip.id(),
-        new ActivityRequest("Elsewhere", START, null, null, null, null, new BigDecimal("999"), null));
+        new ActivityRequest(
+            "Elsewhere", START, null, null, null, null, new BigDecimal("999"), null));
 
     TripCostDTO cost = activityService.findCost(budgeted.id());
 

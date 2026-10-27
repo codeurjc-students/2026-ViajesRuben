@@ -48,7 +48,8 @@ class ConflictServiceIntegrationTest {
   @BeforeEach
   void setUp() {
     databaseCleaner.clear();
-    UserDTO ana = userService.register(new RegisterRequest("Ana", "ana@example.com", "secret-pass"));
+    UserDTO ana =
+        userService.register(new RegisterRequest("Ana", "ana@example.com", "secret-pass"));
     TripMateUserDetails details = userDetailsService.loadUserById(ana.id());
     SecurityContextHolder.getContext()
         .setAuthentication(

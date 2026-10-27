@@ -104,8 +104,7 @@ class ConflictApiE2ETest {
     return as(token).contentType(ContentType.JSON);
   }
 
-  private long createActivity(
-      String name, String date, String start, String end, String cost) {
+  private long createActivity(String name, String date, String start, String end, String cost) {
     String body =
         "{\"name\":\"%s\",\"date\":\"%s\",\"startTime\":%s,\"endTime\":%s,\"cost\":%s}"
             .formatted(

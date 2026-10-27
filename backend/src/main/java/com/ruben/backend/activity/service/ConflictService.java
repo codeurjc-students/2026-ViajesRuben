@@ -12,9 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The warnings about a trip's itinerary: overlapping activities, activities outside the trip's dates
- * and a total cost above the budget. They are only reported, never enforced. Overlaps, dates and the
- * sum are computed by the queries; the only comparison left to Java is {@link #budgetConflict}.
+ * The warnings about a trip's itinerary: overlapping activities, activities outside the trip's
+ * dates and a total cost above the budget. They are only reported, never enforced. Overlaps, dates
+ * and the sum are computed by the queries; the only comparison left to Java is {@link
+ * #budgetConflict}.
  */
 @Service
 public class ConflictService {
@@ -42,8 +43,8 @@ public class ConflictService {
   }
 
   /**
-   * The conflict when the total is above the budget; none without a budget, and a total equal to the
-   * budget is fine. A null total means no activity has a cost.
+   * The conflict when the total is above the budget; none without a budget, and a total equal to
+   * the budget is fine. A null total means no activity has a cost.
    */
   static BudgetConflictDTO budgetConflict(BigDecimal total, BigDecimal budget) {
     if (total == null || budget == null || total.compareTo(budget) <= 0) {
