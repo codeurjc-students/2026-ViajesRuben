@@ -670,8 +670,8 @@ paths:
       summary: Replace a trip's details
       description:
         "Only the creator. Every field is replaced; the cover is not changed.\
-        \ The new dates cannot leave an activity of the trip outside them (409): move\
-        \ or delete it first."
+        \ New dates may leave activities outside them: that is not an error, they\
+        \ are reported by `GET /api/v1/trips/{id}/conflicts`."
       operationId: updateTrip
       parameters:
         - name: id
@@ -715,12 +715,6 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: No trip has that id
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Some activities of the trip fall outside the new dates
           content:
             "*/*":
               schema:
@@ -1283,6 +1277,57 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/conflicts:
+    get:
+      tags:
+        - conflict-controller
+      summary: List a trip's itinerary conflicts
+      description:
+        "Only the trip's creator. Warnings, never errors: `overlaps` are\
+        \ pairs of activities of the same day whose times intersect (touching times\
+        \ do not; activities without start and end time are ignored), `outsideDates`\
+        \ are activities before the trip starts or after it ends, and `budget` is\
+        \ set only when the total cost is above the trip's budget (null otherwise).\
+        \ Not paginated: it is one small report."
+      operationId: getConflicts
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: "The conflicts, all empty when there are none"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripConflictsDTO"
+        "400":
+          description: The trip id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/images/{id}:
     get:
       tags:
@@ -1598,6 +1643,65 @@ components:
           format: int64
         last:
           type: boolean
+    BudgetConflictDTO:
+      type: object
+      properties:
+        totalCost:
+          type: number
+        budget:
+          type: number
+    OutsideDatesDTO:
+      type: object
+      properties:
+        activityId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+    OverlapDTO:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        firstId:
+          type: integer
+          format: int64
+        firstName:
+          type: string
+        firstStart:
+          type: string
+          format: time-local
+        firstEnd:
+          type: string
+          format: time-local
+        secondId:
+          type: integer
+          format: int64
+        secondName:
+          type: string
+        secondStart:
+          type: string
+          format: time-local
+        secondEnd:
+          type: string
+          format: time-local
+    TripConflictsDTO:
+      type: object
+      properties:
+        overlaps:
+          type: array
+          items:
+            $ref: "#/components/schemas/OverlapDTO"
+        outsideDates:
+          type: array
+          items:
+            $ref: "#/components/schemas/OutsideDatesDTO"
+        budget:
+          $ref: "#/components/schemas/BudgetConflictDTO"
     PageDTOActivityDTO:
       type: object
       properties:

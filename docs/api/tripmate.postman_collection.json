@@ -340,7 +340,7 @@
             "12"
           ]
         },
-        "description": "Only the creator. Replaces every field of the request (not the cover). 200 with the trip, 400, 401, 403 or 404.",
+        "description": "Only the creator. Replaces every field of the request (not the cover). 200 with the trip, 400, 401, 403 or 404. New dates may leave activities outside them: that is not an error, see Get trip conflicts.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"name\": \"Lisbon getaway\",\n  \"destination\": \"Lisbon\",\n  \"startDate\": \"2027-05-01\",\n  \"endDate\": \"2027-05-05\",\n  \"budget\": 1200.5,\n  \"description\": \"Pasteis de nata and trams\"\n}",
@@ -1350,6 +1350,122 @@
           "header": [],
           "cookie": [],
           "body": ""
+        }
+      ]
+    },
+    {
+      "name": "Get trip conflicts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/conflicts",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "conflicts"
+          ]
+        },
+        "description": "Only the trip's creator. Warnings about the itinerary, never errors: `overlaps` are pairs of activities of the same day whose times intersect (times that only touch do not, and activities without start and end time are ignored), `outsideDates` are activities before the trip starts or after it ends (possible after editing the trip's dates), and `budget` is set only when the total cost is above the trip's budget, otherwise null. All empty and null when there is nothing to warn about. 400 for an id that is not a number, 401, 403 and 404."
+      },
+      "response": [
+        {
+          "name": "Conflicts found",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/conflicts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "conflicts"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"overlaps\": [\n    {\n      \"date\": \"2027-05-02\",\n      \"firstId\": 21,\n      \"firstName\": \"Belém Tower\",\n      \"firstStart\": \"09:30:00\",\n      \"firstEnd\": \"11:00:00\",\n      \"secondId\": 22,\n      \"secondName\": \"Pastéis de Belém tasting\",\n      \"secondStart\": \"10:30:00\",\n      \"secondEnd\": \"12:00:00\"\n    }\n  ],\n  \"outsideDates\": [\n    {\n      \"activityId\": 25,\n      \"name\": \"Day trip to Sintra\",\n      \"date\": \"2027-05-07\"\n    }\n  ],\n  \"budget\": {\n    \"totalCost\": 1350.0,\n    \"budget\": 1200.5\n  }\n}"
+        },
+        {
+          "name": "No conflicts",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/conflicts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "conflicts"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"overlaps\": [],\n  \"outsideDates\": [],\n  \"budget\": null\n}"
+        },
+        {
+          "name": "Trip of another user",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/conflicts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "conflicts"
+              ]
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-27T10:00:00Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Only the creator can access this trip\",\n  \"path\": \"/api/v1/trips/12/conflicts\"\n}"
         }
       ]
     },
