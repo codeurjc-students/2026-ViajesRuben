@@ -56,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B5: sample data now has itineraries: Ana's "Lisbon getaway" (7 activities) and "Summer in Rome" (4), Carlos's "Andalusia route" (3) and Laura's "Weekend in Porto" (4, the third day left empty), some with generated images. A trip that already has activities is not touched.
 - B5: `TripAccessService`, the single place that decides who can read or change a trip; `TripService` and `ActivityService` both use it, and the sample data, the activities and the later participants (I3) and administrator moderation (B8) extend it.
 - B5 tests: backend unit, integration and REST API tests (a negative case for every endpoint, an activity of another trip, a date outside the trip, the filter by day, deleting a trip with its activities and images), frontend unit and client – server integration tests, and Selenium flows (browse the days, create, edit and delete an activity with an image, validation errors, the URL keeping the day, and the phone layout).
+- B6: `GET /api/v1/trips/{tripId}/conflicts` (trip creator; 401, 403, 404) returns the warnings of the itinerary: activities of the same day whose times overlap (times that only touch do not, and activities without start and end time are ignored), activities outside the trip's dates, and the total cost when it is above the trip's budget (equal is fine, and a trip without budget has none). They are computed in the database queries and never block saving.
+- B6: the trip page shows a warning above the itinerary, in Spanish, with the overlapping activities and their day, the activities outside the trip's dates with an "Editar" link, and the total cost against the budget; nothing is shown when there are no conflicts, and it is refreshed after an activity is deleted.
+- B6 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (two overlapping activities show the warning, editing one removes it).
+- `GET /api/v1/trips/{tripId}/activities/cost` (trip creator; 401, 403, 404) returns the total cost of the trip's activities, summed in the query, and the remaining budget (the budget minus that total, negative when over, `null` for a trip without budget); the trip page shows it below the budget as "Presupuesto restante" and refreshes it when an activity is deleted.
 
 ### Changed
 
@@ -78,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B5: the dialog that deletes a trip says that its activities go with it, and the trip form explains the 409 in Spanish.
 - B5: `TripService` no longer checks the creator itself (`findTripForRead` and `findTripForWrite` moved to `TripAccessService`); the behaviour is the same.
 - B5: `ImageService.deleteAll` removes several images in one statement, and the day tabs take their colors from the theme tokens.
+- B6: `PUT /api/v1/trips/{id}` no longer answers 409 when the new dates leave an activity outside the trip; the change is saved and the activity is reported by `GET /api/v1/trips/{tripId}/conflicts`. Creating or editing an activity still requires a date inside the trip (400). The trip form no longer has a message for that 409.
 
 ## [0.0.2] - 2026-10-19
 

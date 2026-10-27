@@ -10,6 +10,7 @@ import {
   deleteActivityImage,
   getActivities,
   getActivity,
+  getTripCost,
   updateActivity,
   uploadActivityImage,
 } from './activityService';
@@ -261,16 +262,52 @@ describe('B5 activityService against the REST API', () => {
     expect((await fetch(imageUrl(image.id))).status).toBe(404);
   });
 
-  test('trip dates that would leave an activity outside are a 409 until it is moved', async () => {
+  test('trip dates may leave an activity outside, which still can be read but not moved there', async () => {
     await newUser();
     const trip = await createTrip(tripData);
     const activity = await createActivity(trip.id, activityData({ date: '2027-07-14' }));
     const shorter = { ...tripData, endDate: '2027-07-12' };
 
-    await expect(updateTrip(trip.id, shorter)).rejects.toMatchObject({ status: 409 });
-    expect((await getTrip(trip.id)).endDate).toBe('2027-07-14');
-
-    await updateActivity(trip.id, activity.id, activityData({ date: '2027-07-11' }));
     await expect(updateTrip(trip.id, shorter)).resolves.toMatchObject({ endDate: '2027-07-12' });
+
+    expect((await getTrip(trip.id)).endDate).toBe('2027-07-12');
+    await expect(getActivity(trip.id, activity.id)).resolves.toMatchObject({ date: '2027-07-14' });
+    await expect(
+      updateActivity(trip.id, activity.id, activityData({ date: '2027-07-13' })),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      updateActivity(trip.id, activity.id, activityData({ date: '2027-07-11' })),
+    ).resolves.toMatchObject({ date: '2027-07-11' });
+  });
+
+  test('B6 the cost of a trip is the sum of its activities and the remaining budget follows it', async () => {
+    await newUser();
+    const trip = await createTrip({ ...tripData, budget: 100 });
+    await expect(getTripCost(trip.id)).resolves.toEqual({ totalCost: 0, remainingBudget: 100 });
+
+    await createActivity(trip.id, activityData({ cost: 60.25 }));
+    await createActivity(trip.id, activityData({ name: 'Cena', cost: 50 }));
+    await createActivity(trip.id, activityData({ name: 'Paseo' }));
+
+    await expect(getTripCost(trip.id)).resolves.toEqual({
+      totalCost: 110.25,
+      remainingBudget: -10.25,
+    });
+  });
+
+  test('B6 a trip without budget has no remaining budget, and others get 401, 403 and 404', async () => {
+    await expect(getTripCost(1)).rejects.toMatchObject({ status: 401 });
+    await newUser('Ana');
+    const trip = await createTrip(tripData);
+    await createActivity(trip.id, activityData({ cost: 40 }));
+    await expect(getTripCost(trip.id)).resolves.toEqual({
+      totalCost: 40,
+      remainingBudget: null,
+    });
+    await expect(getTripCost(999999999)).rejects.toMatchObject({ status: 404 });
+    vi.restoreAllMocks();
+    await newUser('Bob');
+
+    await expect(getTripCost(trip.id)).rejects.toMatchObject({ status: 403 });
   });
 });

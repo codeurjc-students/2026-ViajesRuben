@@ -223,6 +223,13 @@ class TripUiE2ETest {
     waitForLoadedPicture("img[alt^='Portada de']");
     String detailUrl = driver.getCurrentUrl();
 
+    // Without activities nothing has been spent, so the whole budget is left.
+    wait.until(
+        ExpectedConditions.textToBePresentInElementLocated(
+            By.cssSelector("dl.trip-detail__facts"), "Presupuesto restante"));
+    String facts = driver.findElement(By.cssSelector("dl.trip-detail__facts")).getText();
+    assertThat(facts.split("300,50", -1)).hasSize(3);
+
     // It is in the list.
     click(link("Volver a Mis viajes"));
     wait.until(ExpectedConditions.textToBePresentInElementLocated(By.id("trips"), name));

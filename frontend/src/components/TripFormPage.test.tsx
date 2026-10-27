@@ -80,10 +80,6 @@ describe('B4 creating a trip', () => {
     [new ApiError(401), 'Tu sesión ha caducado. Inicia sesión de nuevo.'],
     [new ApiError(403), 'No puedes modificar este viaje.'],
     [new ApiError(404), 'Este viaje ya no existe.'],
-    [
-      new ApiError(409),
-      'Hay actividades fuera de las nuevas fechas. Muévelas o elimínalas antes de cambiar las fechas.',
-    ],
     [new NetworkError(), 'No se pudo conectar con el servidor. Inténtalo de nuevo.'],
     [new ApiError(500), 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.'],
   ])('shows the failure inline and stays on the form (%#)', async (failure, message) => {

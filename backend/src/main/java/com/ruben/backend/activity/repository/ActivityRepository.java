@@ -1,6 +1,9 @@
 package com.ruben.backend.activity.repository;
 
+import com.ruben.backend.activity.dto.OutsideDatesDTO;
+import com.ruben.backend.activity.dto.OverlapDTO;
 import com.ruben.backend.activity.entity.Activity;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -27,12 +30,33 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
   boolean existsByTripId(Long tripId);
 
-  /** True when some activity of the trip is on a day before `start` or after `end`. */
+  /**
+   * The pairs of activities of the same day whose times intersect. Ranges that only touch (one ends
+   * when the other starts) do not intersect; activities without both times are ignored.
+   */
   @Query(
-      "select count(a) > 0 from Activity a where a.trip.id = :tripId"
-          + " and (a.date < :start or a.date > :end)")
-  boolean existsOutside(
-      @Param("tripId") Long tripId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+      "select new com.ruben.backend.activity.dto.OverlapDTO(a.date, a.id, a.name, a.startTime,"
+          + " a.endTime, b.id, b.name, b.startTime, b.endTime)"
+          + " from Activity a, Activity b"
+          + " where a.trip.id = :tripId and b.trip.id = :tripId and a.id < b.id"
+          + " and a.date = b.date"
+          + " and a.startTime is not null and a.endTime is not null"
+          + " and b.startTime is not null and b.endTime is not null"
+          + " and a.startTime < b.endTime and b.startTime < a.endTime"
+          + " order by a.date, a.startTime, b.startTime")
+  List<OverlapDTO> findOverlaps(@Param("tripId") Long tripId);
+
+  /** The activities on a day before the trip starts or after it ends. */
+  @Query(
+      "select new com.ruben.backend.activity.dto.OutsideDatesDTO(a.id, a.name, a.date)"
+          + " from Activity a join a.trip t where t.id = :tripId"
+          + " and (a.date < t.startDate or a.date > t.endDate)"
+          + " order by a.date, a.startTime, a.id")
+  List<OutsideDatesDTO> findOutsideTrip(@Param("tripId") Long tripId);
+
+  /** The sum of the costs of the trip's activities; null when none has a cost. */
+  @Query("select sum(a.cost) from Activity a where a.trip.id = :tripId")
+  BigDecimal sumCost(@Param("tripId") Long tripId);
 
   /** The pictures of a trip's activities, read without loading any entity or bytes. */
   @Query("select a.image.id from Activity a where a.trip.id = :tripId and a.image is not null")

@@ -4,7 +4,7 @@ import { RouterProvider } from 'react-router/dom';
 import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
-import { getActivities, getActivity } from './services/activityService';
+import { getActivities, getActivity, getTripCost } from './services/activityService';
 import { getTrip, getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
 import { getCurrentUser } from './services/authService';
@@ -14,12 +14,17 @@ import type { User } from './types';
 import { activityOf, ANA, authValue, pageOf, tripOf } from './testHelpers';
 
 vi.mock('./services/tripService', () => ({ getTrip: vi.fn(), getTrips: vi.fn() }));
-vi.mock('./services/activityService', () => ({ getActivities: vi.fn(), getActivity: vi.fn() }));
+vi.mock('./services/activityService', () => ({
+  getActivities: vi.fn(),
+  getActivity: vi.fn(),
+  getTripCost: vi.fn(),
+}));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
 
 beforeEach(() => {
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
 });
 
 function renderAt(path: string, user: User | null = ANA) {

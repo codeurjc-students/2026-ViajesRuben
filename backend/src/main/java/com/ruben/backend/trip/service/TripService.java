@@ -3,7 +3,6 @@ package com.ruben.backend.trip.service;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
-import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
@@ -99,21 +98,12 @@ public class TripService {
   }
 
   /**
-   * Replaces every editable field; the cover is not touched.
-   *
-   * @throws ConflictException the new dates would leave an activity outside the trip
+   * Replaces every editable field; the cover is not touched. Activities left outside the new dates
+   * are not an error: they are reported as a conflict.
    */
   @Transactional
   public TripDTO update(Long id, TripRequest request) {
     Trip trip = tripAccessService.findForWrite(id);
-    boolean datesChange =
-        !trip.getStartDate().equals(request.startDate())
-            || !trip.getEndDate().equals(request.endDate());
-    // B6 turns this refusal into a warning.
-    if (datesChange && activityService.existsOutside(id, request.startDate(), request.endDate())) {
-      throw new ConflictException(
-          "Some activities fall outside the new dates; move or delete them first");
-    }
     trip.setName(request.name().trim());
     trip.setDestination(request.destination().trim());
     trip.setStartDate(request.startDate());

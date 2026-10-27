@@ -1,4 +1,4 @@
-import type { Activity, ActivityData, CoverChange, ImageInfo, Page } from '../types';
+import type { Activity, ActivityData, CoverChange, ImageInfo, Page, TripCost } from '../types';
 import { request, sendJson } from './apiError';
 import { DEFAULT_PAGE_SIZE } from './tripService';
 
@@ -17,6 +17,14 @@ export function getActivities(
 ): Promise<Page<Activity>> {
   const day = date ? `&date=${date}` : '';
   return request<Page<Activity>>(`${activitiesUrl(tripId)}?page=${page}&size=${size}${day}`);
+}
+
+/**
+ * What the trip's activities cost in total and what is left of its budget (null without budget).
+ * Answers 403 for another user's trip and 404 when it does not exist.
+ */
+export function getTripCost(tripId: number): Promise<TripCost> {
+  return request<TripCost>(`${activitiesUrl(tripId)}/cost`);
 }
 
 /** Answers 403 for another user's trip and 404 when the trip or the activity of that trip does not exist. */

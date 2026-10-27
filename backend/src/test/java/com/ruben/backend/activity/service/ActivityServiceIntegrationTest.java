@@ -7,11 +7,11 @@ import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.TripCostDTO;
 import com.ruben.backend.activity.entity.ActivityCategory;
 import com.ruben.backend.activity.repository.ActivityRepository;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
-import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.common.error.ForbiddenException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.common.security.TripMateUserDetails;
@@ -268,30 +268,25 @@ class ActivityServiceIntegrationTest {
   }
 
   @Test
-  void existsOutsideSeesAnActivityBeforeOrAfterTheNewDates() {
-    create("Second day", 1, null);
-
-    assertThat(activityService.existsOutside(trip.id(), START, END)).isFalse();
-    assertThat(activityService.existsOutside(trip.id(), START.plusDays(1), END)).isFalse();
-    assertThat(activityService.existsOutside(trip.id(), START.plusDays(2), END)).isTrue();
-    assertThat(activityService.existsOutside(trip.id(), START, START)).isTrue();
-  }
-
-  @Test
-  void tripDatesCannotLeaveAnActivityOutsideUntilItIsMoved() {
+  void tripDatesMayLeaveAnActivityOutsideAndItCanThenBeMovedInside() {
     ActivityDTO created = create("Second day", 1, null);
     TripRequest shorter = new TripRequest("Rome", "Rome", START.plusDays(2), END, null, null);
 
-    assertThatThrownBy(() -> tripService.update(trip.id(), shorter))
-        .isInstanceOf(ConflictException.class);
-    assertThat(tripService.findById(trip.id()).startDate()).isEqualTo(START);
+    assertThat(tripService.update(trip.id(), shorter).startDate()).isEqualTo(START.plusDays(2));
+    assertThat(activityRepository.findById(created.id())).isPresent();
 
+    assertThatThrownBy(
+            () ->
+                activityService.update(
+                    trip.id(),
+                    created.id(),
+                    new ActivityRequest("Second day", START, null, null, null, null, null, null)))
+        .isInstanceOf(BadRequestException.class);
     activityService.update(
         trip.id(),
         created.id(),
         new ActivityRequest("Second day", END, null, null, null, null, null, null));
-
-    assertThat(tripService.update(trip.id(), shorter).startDate()).isEqualTo(START.plusDays(2));
+    assertThat(activityRepository.findOutsideTrip(trip.id())).isEmpty();
   }
 
   @Test
@@ -302,5 +297,37 @@ class ActivityServiceIntegrationTest {
         tripService.update(trip.id(), new TripRequest("Roma", "Rome", START, END, null, null));
 
     assertThat(renamed.name()).isEqualTo("Roma");
+  }
+
+  @Test
+  void findCostSumsTheCostsInTheDatabaseAndSubtractsThemFromTheBudget() {
+    TripDTO budgeted =
+        tripService.create(
+            new TripRequest("Rome", "Rome", START, END, new BigDecimal("100.00"), null));
+    for (String cost : new String[] {"30.50", "20.25"}) {
+      activityService.create(
+          budgeted.id(),
+          new ActivityRequest(
+              "Costly " + cost, START, null, null, null, null, new BigDecimal(cost), null));
+    }
+    activityService.create(
+        budgeted.id(), new ActivityRequest("Free", START, null, null, null, null, null, null));
+    activityService.create(
+        trip.id(),
+        new ActivityRequest(
+            "Elsewhere", START, null, null, null, null, new BigDecimal("999"), null));
+
+    TripCostDTO cost = activityService.findCost(budgeted.id());
+
+    assertThat(cost.totalCost()).isEqualByComparingTo("50.75");
+    assertThat(cost.remainingBudget()).isEqualByComparingTo("49.25");
+  }
+
+  @Test
+  void findCostOfATripWithoutCostsOrBudgetIsZeroWithNoRemainingBudget() {
+    TripCostDTO cost = activityService.findCost(trip.id());
+
+    assertThat(cost.totalCost()).isEqualByComparingTo("0");
+    assertThat(cost.remainingBudget()).isNull();
   }
 }

@@ -282,3 +282,17 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents, and hooks.
 - **Context Files:** Private Claude Code configuration and a spec-driven plan for `B5`.
 - **Human Validation:** The student reviewed and approved the plan, decided the design change, tried the application manually and verified each stage before committing.
+
+#### Record 3.12 — Conflict detection in the itinerary (B6)
+
+- **Date:** 27/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Help implement feature B6.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.311; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `B6`, and to write some parts of the code and tests across three stages, and the documentation (OpenAPI, Postman collection, development guide, changelog). The review subagents audited the tests and the code against the guide rules.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills and review subagents.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `B6`.
+- **Human Validation:** The student reviewed and approved the plan, tried the application manually and verified each stage.

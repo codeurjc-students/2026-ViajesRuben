@@ -6,6 +6,7 @@ import {
   deleteActivityImage,
   getActivities,
   getActivity,
+  getTripCost,
   updateActivity,
   uploadActivityImage,
 } from './activityService';
@@ -159,4 +160,13 @@ describe('B5 activity operations', () => {
       await expect(getActivity(3, 8)).rejects.toMatchObject({ name: 'ApiError', status });
     },
   );
+
+  test('B6 getTripCost reads the cost and the remaining budget of the trip', async () => {
+    answer({ totalCost: 120.5, remainingBudget: 79.5 });
+
+    await expect(getTripCost(3)).resolves.toEqual({ totalCost: 120.5, remainingBudget: 79.5 });
+
+    expect(lastCall().url).toBe('/api/v1/trips/3/activities/cost');
+    expect(lastCall().init).toBeUndefined();
+  });
 });

@@ -238,6 +238,17 @@ class TripServiceUnitTest {
   }
 
   @Test
+  void updateWithNewDatesIsNeverRefusedBecauseOfActivities() {
+    Trip trip = tripOf(ana, 1L);
+    when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
+
+    TripDTO updated = tripService.update(1L, REQUEST);
+
+    assertThat(updated.startDate()).isEqualTo(LocalDate.of(2027, 5, 1));
+    verifyNoInteractions(activityService);
+  }
+
+  @Test
   void updateOfAnotherUsersTripIsForbiddenAndWritesNothing() {
     Trip trip = tripOf(bob, 1L);
 
