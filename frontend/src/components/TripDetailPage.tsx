@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { useConflicts } from '../hooks/useConflicts';
 import { useTrip } from '../hooks/useTrip';
+import { useTripCost } from '../hooks/useTripCost';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
 import ConflictAlert from './ConflictAlert';
 import DeleteTripModal from './DeleteTripModal';
@@ -20,6 +21,7 @@ export default function TripDetailPage() {
   const navigate = useNavigate();
   const { trip, error } = useTrip(tripId);
   const { conflicts, reload: reloadConflicts } = useConflicts(trip?.id);
+  const { cost, reload: reloadCost } = useTripCost(trip?.id);
   const [confirming, setConfirming] = useState(false);
 
   // Rethrown so the route's error page (inside the layout) is shown.
@@ -55,6 +57,14 @@ export default function TripDetailPage() {
                 <>
                   <dt>Presupuesto</dt>
                   <dd>{formatBudget(trip.budget)}</dd>
+                  {cost?.remainingBudget != null && (
+                    <>
+                      <dt>Presupuesto restante</dt>
+                      <dd className={cost.remainingBudget < 0 ? 'text-danger' : undefined}>
+                        {formatBudget(cost.remainingBudget)}
+                      </dd>
+                    </>
+                  )}
                 </>
               )}
             </dl>
@@ -85,7 +95,15 @@ export default function TripDetailPage() {
           canEdit={user?.id === trip.creatorId}
         />
       )}
-      {trip && <ItinerarySection trip={trip} onActivityDeleted={reloadConflicts} />}
+      {trip && (
+        <ItinerarySection
+          trip={trip}
+          onActivityDeleted={() => {
+            reloadConflicts();
+            reloadCost();
+          }}
+        />
+      )}
     </Container>
   );
 }

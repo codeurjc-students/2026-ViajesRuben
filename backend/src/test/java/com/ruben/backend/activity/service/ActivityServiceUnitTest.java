@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.TripCostDTO;
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.entity.ActivityCategory;
 import com.ruben.backend.activity.repository.ActivityRepository;
@@ -518,5 +519,64 @@ class ActivityServiceUnitTest {
 
     verify(activityRepository).deleteByTripId(1L);
     verify(imageService).deleteAll(List.of());
+  }
+
+  // --- cost and remaining budget ---
+
+  @Test
+  void findCostSubtractsTheTotalFromTheBudget() {
+    trip.setBudget(new BigDecimal("1000.00"));
+    when(activityRepository.sumCost(1L)).thenReturn(new BigDecimal("250.50"));
+
+    TripCostDTO cost = activityService.findCost(1L);
+
+    assertThat(cost.totalCost()).isEqualByComparingTo("250.50");
+    assertThat(cost.remainingBudget()).isEqualByComparingTo("749.50");
+  }
+
+  @Test
+  void findCostIsNegativeWhenTheActivitiesCostMoreThanTheBudget() {
+    trip.setBudget(new BigDecimal("100.00"));
+    when(activityRepository.sumCost(1L)).thenReturn(new BigDecimal("130.25"));
+
+    assertThat(activityService.findCost(1L).remainingBudget()).isEqualByComparingTo("-30.25");
+  }
+
+  @Test
+  void findCostWithoutAnyCostLeavesTheWholeBudget() {
+    trip.setBudget(new BigDecimal("100.00"));
+    when(activityRepository.sumCost(1L)).thenReturn(null);
+
+    TripCostDTO cost = activityService.findCost(1L);
+
+    assertThat(cost.totalCost()).isEqualByComparingTo("0");
+    assertThat(cost.remainingBudget()).isEqualByComparingTo("100.00");
+  }
+
+  @Test
+  void findCostOfATripWithoutBudgetHasNoRemainingBudget() {
+    when(activityRepository.sumCost(1L)).thenReturn(new BigDecimal("40.00"));
+
+    TripCostDTO cost = activityService.findCost(1L);
+
+    assertThat(cost.totalCost()).isEqualByComparingTo("40.00");
+    assertThat(cost.remainingBudget()).isNull();
+  }
+
+  @Test
+  void findCostIsRefusedBeforeAnyQueryWhenTheTripCannotBeSeen() {
+    tripIsRefused(new ForbiddenException("Not yours"));
+
+    assertThatThrownBy(() -> activityService.findCost(1L)).isInstanceOf(ForbiddenException.class);
+    verifyNoInteractions(activityRepository);
+  }
+
+  @Test
+  void findCostOfAMissingTripIsNotFound() {
+    tripIsRefused(new ResourceNotFoundException("Trip not found"));
+
+    assertThatThrownBy(() -> activityService.findCost(1L))
+        .isInstanceOf(ResourceNotFoundException.class);
+    verifyNoInteractions(activityRepository);
   }
 }

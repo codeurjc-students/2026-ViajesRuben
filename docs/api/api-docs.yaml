@@ -1328,6 +1328,55 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/activities/cost:
+    get:
+      tags:
+        - activity-controller
+      summary: Get what a trip's activities cost
+      description:
+        "Only the trip's creator. `totalCost` is the sum of the costs of\
+        \ all the activities (0 without any cost) and `remainingBudget` is the trip's\
+        \ budget minus that total, negative when the activities cost more and null\
+        \ when the trip has no budget."
+      operationId: getCost
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The total cost and the remaining budget
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripCostDTO"
+        "400":
+          description: The trip id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/images/{id}:
     get:
       tags:
@@ -1720,3 +1769,10 @@ components:
           format: int64
         last:
           type: boolean
+    TripCostDTO:
+      type: object
+      properties:
+        totalCost:
+          type: number
+        remainingBudget:
+          type: number

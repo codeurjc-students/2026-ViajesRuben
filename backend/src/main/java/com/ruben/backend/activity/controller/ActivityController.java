@@ -2,6 +2,7 @@ package com.ruben.backend.activity.controller;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.TripCostDTO;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.ErrorResponse;
@@ -90,6 +91,34 @@ public class ActivityController {
               sort = {"date", "startTime", "id"})
           Pageable pageable) {
     return activityService.findPage(tripId, date, pageable);
+  }
+
+  @Operation(
+      summary = "Get what a trip's activities cost",
+      description =
+          "Only the trip's creator. `totalCost` is the sum of the costs of all the activities (0"
+              + " without any cost) and `remainingBudget` is the trip's budget minus that total,"
+              + " negative when the activities cost more and null when the trip has no budget.")
+  @ApiResponse(responseCode = "200", description = "The total cost and the remaining budget")
+  @ApiResponse(
+      responseCode = "400",
+      description = "The trip id is not a number",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "401",
+      description = NOT_LOGGED_IN,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "403",
+      description = NOT_ALLOWED,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "No trip has that id",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @GetMapping("/cost")
+  public TripCostDTO getCost(@PathVariable Long tripId) {
+    return activityService.findCost(tripId);
   }
 
   @Operation(

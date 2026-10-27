@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.TripCostDTO;
 import com.ruben.backend.activity.entity.ActivityCategory;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
@@ -58,6 +59,14 @@ class ActivityControllerUnitTest {
 
   @Mock private ActivityService activityService;
   @InjectMocks private ActivityController controller;
+
+  @Test
+  void getCostReturnsWhatTheServiceCalculatesForTheTrip() {
+    TripCostDTO cost = new TripCostDTO(new BigDecimal("30.00"), new BigDecimal("70.00"));
+    when(activityService.findCost(3L)).thenReturn(cost);
+
+    assertThat(controller.getCost(3L)).isSameAs(cost);
+  }
 
   @Test
   void getActivitiesReturnsThePageOfTheServiceForTheDay() {

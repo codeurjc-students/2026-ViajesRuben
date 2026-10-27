@@ -648,4 +648,74 @@ class ActivityApiE2ETest {
     as(anaToken).get(item).then().body("imageId", nullValue());
     assertThat(imageRepository.count()).isZero();
   }
+
+  // --- cost and remaining budget ---
+
+  private long createBudgetedTrip() {
+    return json(anaToken)
+        .body(TRIP_BODY.replace("}", ",\"budget\":100}"))
+        .post(TRIPS)
+        .then()
+        .statusCode(201)
+        .extract()
+        .jsonPath()
+        .getLong("id");
+  }
+
+  @Test
+  void costRequiresLoginAndTheTripToBeVisible() {
+    given().get(activities + "/cost").then().statusCode(401);
+    as(bobToken).get(activities + "/cost").then().statusCode(403);
+    as(adminToken).get(activities + "/cost").then().statusCode(403);
+    as(anaToken).get(TRIPS + "/999999/activities/cost").then().statusCode(404);
+    as(bobToken).get(TRIPS + "/999999/activities/cost").then().statusCode(404);
+    as(anaToken).get(TRIPS + "/abc/activities/cost").then().statusCode(400);
+  }
+
+  @Test
+  void costOfATripWithoutBudgetHasNoRemainingBudget() {
+    json(anaToken)
+        .body("{\"name\":\"Dinner\",\"date\":\"2027-07-10\",\"cost\":40.5}")
+        .post(activities)
+        .then()
+        .statusCode(201);
+
+    as(anaToken)
+        .get(activities + "/cost")
+        .then()
+        .statusCode(200)
+        .body("totalCost", equalTo(40.5f))
+        .body("remainingBudget", nullValue());
+  }
+
+  @Test
+  void costSubtractsTheActivitiesFromTheBudgetAndGoesNegativeWhenOver() {
+    long budgeted = createBudgetedTrip();
+    String url = TRIPS + "/" + budgeted + "/activities";
+    var empty = as(anaToken).get(url + "/cost").then().statusCode(200).extract().jsonPath();
+    assertThat(empty.getFloat("totalCost")).isZero();
+    assertThat(empty.getFloat("remainingBudget")).isEqualTo(100f);
+
+    json(anaToken)
+        .body("{\"name\":\"Tour\",\"date\":\"2027-07-10\",\"cost\":60.25}")
+        .post(url)
+        .then()
+        .statusCode(201);
+    as(anaToken)
+        .get(url + "/cost")
+        .then()
+        .body("totalCost", equalTo(60.25f))
+        .body("remainingBudget", equalTo(39.75f));
+
+    json(anaToken)
+        .body("{\"name\":\"Hotel\",\"date\":\"2027-07-11\",\"cost\":50}")
+        .post(url)
+        .then()
+        .statusCode(201);
+    as(anaToken)
+        .get(url + "/cost")
+        .then()
+        .body("totalCost", equalTo(110.25f))
+        .body("remainingBudget", equalTo(-10.25f));
+  }
 }

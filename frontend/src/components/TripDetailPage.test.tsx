@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
-import { deleteActivity, getActivities } from '../services/activityService';
+import { deleteActivity, getActivities, getTripCost } from '../services/activityService';
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { deleteTrip, getTrip } from '../services/tripService';
@@ -12,6 +12,7 @@ vi.mock('../services/tripService', () => ({ deleteTrip: vi.fn(), getTrip: vi.fn(
 vi.mock('../services/activityService', () => ({
   getActivities: vi.fn(),
   deleteActivity: vi.fn(),
+  getTripCost: vi.fn(),
 }));
 vi.mock('../services/conflictService', () => ({ getConflicts: vi.fn() }));
 
@@ -37,6 +38,7 @@ beforeEach(() => {
   vi.mocked(getTrip).mockReset();
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(deleteActivity).mockReset();
+  vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
   vi.mocked(getConflicts).mockReset().mockResolvedValue(conflictsOf());
 });
 
@@ -237,5 +239,77 @@ describe('B4 TripDetailPage', () => {
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     expect(deleteActivity).toHaveBeenCalledWith(5, 3);
     expect(getConflicts).toHaveBeenCalledTimes(2);
+  });
+
+  test('shows the remaining budget below the budget', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getTripCost).mockResolvedValue({ totalCost: 450.25, remainingBudget: 750.25 });
+    renderRoutes(routes, '/trips/5');
+
+    const label = await screen.findByText('Presupuesto restante');
+
+    expect(getTripCost).toHaveBeenCalledWith(5);
+    // The budget (dt and dd) comes right before the remaining budget.
+    expect(label.previousElementSibling).toHaveTextContent(/1200,50|1\.200,50/);
+    expect(label.previousElementSibling?.previousElementSibling).toHaveTextContent('Presupuesto');
+    expect(label.nextElementSibling).toHaveTextContent(/750,25/);
+    expect(label.nextElementSibling).not.toHaveClass('text-danger');
+  });
+
+  test('shows a negative remaining budget in red when the activities cost more', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getTripCost).mockResolvedValue({ totalCost: 1300.5, remainingBudget: -100 });
+    renderRoutes(routes, '/trips/5');
+
+    const label = await screen.findByText('Presupuesto restante');
+
+    expect(label.nextElementSibling).toHaveTextContent(/-100,00/);
+    expect(label.nextElementSibling).toHaveClass('text-danger');
+  });
+
+  test('shows no remaining budget for a trip without budget', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, budget: null });
+    vi.mocked(getTripCost).mockResolvedValue({ totalCost: 40, remainingBudget: null });
+    renderRoutes(routes, '/trips/5');
+
+    await screen.findByRole('heading', { name: 'Itinerario' });
+    await waitFor(() => expect(getTripCost).toHaveBeenCalled());
+
+    expect(screen.queryByText('Presupuesto restante')).not.toBeInTheDocument();
+  });
+
+  test('a failure loading the cost keeps the page without the remaining budget', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getTripCost).mockRejectedValue(new ApiError(500));
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Itinerario' })).toBeInTheDocument();
+    await waitFor(() => expect(getTripCost).toHaveBeenCalled());
+    expect(screen.queryByText('Presupuesto restante')).not.toBeInTheDocument();
+    expect(screen.getByText('Presupuesto')).toBeInTheDocument();
+  });
+
+  test('deleting an activity asks for the cost again and updates the remaining budget', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([activityOf({ id: 3, tripId: 5, name: 'Museo', date: '2027-07-10' })]),
+    );
+    vi.mocked(deleteActivity).mockResolvedValue(undefined);
+    vi.mocked(getTripCost)
+      .mockResolvedValueOnce({ totalCost: 200, remainingBudget: 1000.5 })
+      .mockResolvedValue({ totalCost: 0, remainingBudget: 1200.5 });
+    renderRoutes(routes, '/trips/5');
+    const label = await screen.findByText('Presupuesto restante');
+    expect(label.nextElementSibling).toHaveTextContent(/1000,50|1\.000,50/);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Museo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar actividad' }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Presupuesto restante').nextElementSibling).toHaveTextContent(
+        /1200,50|1\.200,50/,
+      ),
+    );
+    expect(getTripCost).toHaveBeenCalledTimes(2);
   });
 });

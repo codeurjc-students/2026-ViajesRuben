@@ -753,6 +753,126 @@
       ]
     },
     {
+      "name": "Get trip cost and remaining budget",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/cost",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "cost"
+          ]
+        },
+        "description": "Only the trip's creator. `totalCost` is the sum of the costs of all the activities (0 without any cost) and `remainingBudget` is the trip's budget minus that total, negative when the activities cost more and null when the trip has no budget. 400 for an id that is not a number, 401, 403 and 404."
+      },
+      "response": [
+        {
+          "name": "Budget left",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/cost",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "cost"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"totalCost\": 450.25,\n  \"remainingBudget\": 750.25\n}"
+        },
+        {
+          "name": "Over the budget",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/cost",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "cost"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"totalCost\": 1300.5,\n  \"remainingBudget\": -100.0\n}"
+        },
+        {
+          "name": "Trip without budget",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/cost",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "cost"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"totalCost\": 40.0,\n  \"remainingBudget\": null\n}"
+        }
+      ]
+    },
+    {
       "name": "Get activities of a trip (paginated, by day)",
       "request": {
         "method": "GET",

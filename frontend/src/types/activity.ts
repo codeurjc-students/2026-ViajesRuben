@@ -31,3 +31,10 @@ export interface ActivityData {
   cost: number | null;
   category: ActivityCategory | null;
 }
+
+/** Mirrors the backend TripCostDTO: what the activities cost and what is left of the budget. */
+export interface TripCost {
+  totalCost: number;
+  /** The budget minus the total cost, negative when over; null when the trip has no budget. */
+  remainingBudget: number | null;
+}

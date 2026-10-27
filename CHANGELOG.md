@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B6: `GET /api/v1/trips/{tripId}/conflicts` (trip creator; 401, 403, 404) returns the warnings of the itinerary: activities of the same day whose times overlap (times that only touch do not, and activities without start and end time are ignored), activities outside the trip's dates, and the total cost when it is above the trip's budget (equal is fine, and a trip without budget has none). They are computed in the database queries and never block saving.
 - B6: the trip page shows a warning above the itinerary, in Spanish, with the overlapping activities and their day, the activities outside the trip's dates with an "Editar" link, and the total cost against the budget; nothing is shown when there are no conflicts, and it is refreshed after an activity is deleted.
 - B6 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (two overlapping activities show the warning, editing one removes it).
+- `GET /api/v1/trips/{tripId}/activities/cost` (trip creator; 401, 403, 404) returns the total cost of the trip's activities, summed in the query, and the remaining budget (the budget minus that total, negative when over, `null` for a trip without budget); the trip page shows it below the budget as "Presupuesto restante" and refreshes it when an activity is deleted.
 
 ### Changed
 

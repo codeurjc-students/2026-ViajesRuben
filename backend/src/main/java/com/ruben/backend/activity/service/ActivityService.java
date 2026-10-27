@@ -2,6 +2,7 @@ package com.ruben.backend.activity.service;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.TripCostDTO;
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.repository.ActivityRepository;
 import com.ruben.backend.common.dto.PageDTO;
@@ -17,6 +18,7 @@ import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.service.TripAccessService;
 import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -80,6 +82,23 @@ public class ActivityService {
     tripAccessService.findForRead(tripId);
     return PageDTO.from(
         activityRepository.findByTrip(tripId, date, pageable).map(ActivityDTO::from));
+  }
+
+  /**
+   * The total cost of the trip's activities and what is left of the budget.
+   *
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws ForbiddenException the user may not see the trip
+   */
+  @Transactional(readOnly = true)
+  public TripCostDTO findCost(Long tripId) {
+    Trip trip = tripAccessService.findForRead(tripId);
+    BigDecimal total = activityRepository.sumCost(tripId);
+    if (total == null) {
+      total = BigDecimal.ZERO;
+    }
+    BigDecimal budget = trip.getBudget();
+    return new TripCostDTO(total, budget == null ? null : budget.subtract(total));
   }
 
   /**
