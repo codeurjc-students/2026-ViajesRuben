@@ -1,8 +1,9 @@
 package com.ruben.backend.trip.service;
 
+import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
-import com.ruben.backend.common.error.ForbiddenException;
+import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
@@ -36,16 +37,22 @@ public class TripService {
   private final UserRepository userRepository;
   private final AuthService authService;
   private final ImageService imageService;
+  private final TripAccessService tripAccessService;
+  private final ActivityService activityService;
 
   public TripService(
       TripRepository tripRepository,
       UserRepository userRepository,
       AuthService authService,
-      ImageService imageService) {
+      ImageService imageService,
+      TripAccessService tripAccessService,
+      ActivityService activityService) {
     this.tripRepository = tripRepository;
     this.userRepository = userRepository;
     this.authService = authService;
     this.imageService = imageService;
+    this.tripAccessService = tripAccessService;
+    this.activityService = activityService;
   }
 
   /**
@@ -84,17 +91,29 @@ public class TripService {
 
   /**
    * @throws ResourceNotFoundException no trip has that id
-   * @throws ForbiddenException the trip is not the user's
+   * @throws com.ruben.backend.common.error.ForbiddenException the trip is not the user's
    */
   @Transactional(readOnly = true)
   public TripDTO findById(Long id) {
-    return TripDTO.from(findTripForRead(id));
+    return TripDTO.from(tripAccessService.findForRead(id));
   }
 
-  /** Replaces every editable field; the cover is not touched. */
+  /**
+   * Replaces every editable field; the cover is not touched.
+   *
+   * @throws ConflictException the new dates would leave an activity outside the trip
+   */
   @Transactional
   public TripDTO update(Long id, TripRequest request) {
-    Trip trip = findTripForWrite(id);
+    Trip trip = tripAccessService.findForWrite(id);
+    boolean datesChange =
+        !trip.getStartDate().equals(request.startDate())
+            || !trip.getEndDate().equals(request.endDate());
+    // B6 turns this refusal into a warning.
+    if (datesChange && activityService.existsOutside(id, request.startDate(), request.endDate())) {
+      throw new ConflictException(
+          "Some activities fall outside the new dates; move or delete them first");
+    }
     trip.setName(request.name().trim());
     trip.setDestination(request.destination().trim());
     trip.setStartDate(request.startDate());
@@ -106,14 +125,15 @@ public class TripService {
   }
 
   /**
-   * Deletes the trip and then its cover image, in this order because the trip points at the image.
-   * Features that add children of a trip (activities, invitations, participations) delete them here
-   * first, explicitly, before the trip.
+   * Deletes the activities (with their pictures), then the trip, then its cover image, in this
+   * order because each points at the next. Features that add children of a trip (invitations,
+   * participations) delete them here first, explicitly, before the trip.
    */
   @Transactional
   public void delete(Long id) {
-    Trip trip = findTripForWrite(id);
+    Trip trip = tripAccessService.findForWrite(id);
     Image cover = trip.getCoverImage();
+    activityService.deleteAllByTrip(id);
     tripRepository.delete(trip);
     if (cover != null) {
       imageService.delete(cover.getId());
@@ -124,7 +144,7 @@ public class TripService {
   /** Stores the picture as the cover and deletes the previous one, so no image is left behind. */
   @Transactional
   public ImageResult replaceCover(Long id, MultipartFile file) {
-    Trip trip = findTripForWrite(id);
+    Trip trip = tripAccessService.findForWrite(id);
     Image previous = trip.getCoverImage();
     Image cover = imageService.save(file);
     trip.setCoverImage(cover);
@@ -139,7 +159,7 @@ public class TripService {
   /** Removes the cover; doing it when there is none changes nothing. */
   @Transactional
   public void deleteCover(Long id) {
-    Trip trip = findTripForWrite(id);
+    Trip trip = tripAccessService.findForWrite(id);
     Image cover = trip.getCoverImage();
     if (cover == null) {
       return;
@@ -155,38 +175,11 @@ public class TripService {
    */
   @Transactional(readOnly = true)
   public ImageContentDTO findCoverContent(Long id) {
-    Image cover = findTripForRead(id).getCoverImage();
+    Image cover = tripAccessService.findForRead(id).getCoverImage();
     if (cover == null) {
       throw new ResourceNotFoundException("The trip has no cover");
     }
     return imageService.findContent(cover.getId());
-  }
-
-  /**
-   * Who may see a trip. Today only its creator; participants (I3) are added here, in one place. 404
-   * comes before 403, so a missing trip is reported as missing to anyone.
-   */
-  private Trip findTripForRead(Long id) {
-    return findCreatedByCurrentUser(id);
-  }
-
-  /**
-   * Who may change or delete a trip. Only its creator; the administrator may delete any trip once
-   * moderation exists (B8), and that rule is added here.
-   */
-  private Trip findTripForWrite(Long id) {
-    return findCreatedByCurrentUser(id);
-  }
-
-  private Trip findCreatedByCurrentUser(Long id) {
-    Trip trip =
-        tripRepository
-            .findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
-    if (!trip.getCreator().getId().equals(authService.getCurrentUser().id())) {
-      throw new ForbiddenException("Only the creator can access this trip");
-    }
-    return trip;
   }
 
   private static void applyOptionalFields(Trip trip, TripRequest request) {

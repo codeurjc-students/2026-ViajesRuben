@@ -25,7 +25,7 @@ describe('B4 DeleteTripModal', () => {
     renderModal();
 
     expect(screen.getByRole('dialog', { name: 'Eliminar viaje' })).toHaveTextContent(
-      'Se eliminará «Escapada» con su portada. Esta acción no se puede deshacer.',
+      'Se eliminará «Escapada» con su portada y sus actividades. Esta acción no se puede deshacer.',
     );
   });
 

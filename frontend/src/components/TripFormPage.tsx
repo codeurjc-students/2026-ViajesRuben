@@ -14,6 +14,9 @@ function saveErrorMessage(error: unknown): string {
     if (error.status === 401) return 'Tu sesión ha caducado. Inicia sesión de nuevo.';
     if (error.status === 403) return 'No puedes modificar este viaje.';
     if (error.status === 404) return 'Este viaje ya no existe.';
+    if (error.status === 409) {
+      return 'Hay actividades fuera de las nuevas fechas. Muévelas o elimínalas antes de cambiar las fechas.';
+    }
   }
   if (error instanceof NetworkError) {
     return 'No se pudo conectar con el servidor. Inténtalo de nuevo.';

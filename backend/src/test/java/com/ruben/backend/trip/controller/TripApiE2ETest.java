@@ -38,6 +38,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Tag("B4")
+@Tag("B5")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class TripApiE2ETest {
@@ -593,5 +594,101 @@ class TripApiE2ETest {
   void theCoverOperationsOfAMissingTripAre404() {
     uploadCover(anaToken, 999999, ImageTestData.png(100), "image/png").then().statusCode(404);
     as(anaToken).delete(TRIPS + "/999999/cover").then().statusCode(404);
+  }
+
+  // --- activities (B5) ---
+
+  private long createActivity(String token, long tripId, String name, String date) {
+    return json(token)
+        .body("{\"name\":\"%s\",\"date\":\"%s\"}".formatted(name, date))
+        .post(TRIPS + "/" + tripId + "/activities")
+        .then()
+        .statusCode(201)
+        .extract()
+        .jsonPath()
+        .getLong("id");
+  }
+
+  @Test
+  void deleteRemovesTheActivitiesOfTheTripAndTheirImagesAndKeepsThoseOfOtherTrips() {
+    long id = createTrip(anaToken);
+    long kept = createTrip(anaToken);
+    long withImage = createActivity(anaToken, id, "Museum", "2027-05-02");
+    createActivity(anaToken, id, "Walk", "2027-05-03");
+    long keptActivity = createActivity(anaToken, kept, "Beach", "2027-05-02");
+    as(anaToken)
+        .multiPart("file", "picture", ImageTestData.png(100), "image/png")
+        .put(TRIPS + "/" + id + "/activities/" + withImage + "/image")
+        .then()
+        .statusCode(201);
+    uploadCover(anaToken, id, ImageTestData.png(100), "image/png").then().statusCode(201);
+    String activityImage =
+        as(anaToken)
+            .get(TRIPS + "/" + id + "/activities/" + withImage)
+            .then()
+            .extract()
+            .path("imageId");
+    assertThat(imageRepository.count()).isEqualTo(2);
+
+    as(anaToken).delete(TRIPS + "/" + id).then().statusCode(204);
+
+    as(anaToken).get(TRIPS + "/" + id + "/activities").then().statusCode(404);
+    as(anaToken).get("/api/v1/images/" + activityImage).then().statusCode(404);
+    assertThat(imageRepository.count()).isZero();
+    as(anaToken)
+        .get(TRIPS + "/" + kept + "/activities/" + keptActivity)
+        .then()
+        .statusCode(200)
+        .body("name", equalTo("Beach"));
+  }
+
+  @Test
+  void putWithDatesThatLeaveAnActivityOutsideReturns409AndChangesNothingUntilItIsMoved() {
+    long id = createTrip(anaToken);
+    long activity = createActivity(anaToken, id, "Last day", "2027-05-05");
+    String shorter =
+        "{\"name\":\"Lisbon trip\",\"destination\":\"Lisbon\",\"startDate\":\"2027-05-01\","
+            + "\"endDate\":\"2027-05-03\"}";
+
+    json(anaToken)
+        .body(shorter)
+        .put(TRIPS + "/" + id)
+        .then()
+        .statusCode(409)
+        .body(
+            "message",
+            equalTo("Some activities fall outside the new dates; move or delete them first"));
+    as(anaToken).get(TRIPS + "/" + id).then().body("endDate", equalTo("2027-05-05"));
+
+    json(anaToken)
+        .body("{\"name\":\"Last day\",\"date\":\"2027-05-02\"}")
+        .put(TRIPS + "/" + id + "/activities/" + activity)
+        .then()
+        .statusCode(200);
+    json(anaToken)
+        .body(shorter)
+        .put(TRIPS + "/" + id)
+        .then()
+        .statusCode(200)
+        .body("endDate", equalTo("2027-05-03"));
+  }
+
+  @Test
+  void putThatKeepsTheDatesOrWidensThemIsNotBlockedByActivities() {
+    long id = createTrip(anaToken);
+    createActivity(anaToken, id, "Last day", "2027-05-05");
+
+    json(anaToken)
+        .body(VALID_TRIP.replace("Lisbon trip", "Renamed"))
+        .put(TRIPS + "/" + id)
+        .then()
+        .statusCode(200)
+        .body("name", equalTo("Renamed"));
+    json(anaToken)
+        .body(VALID_TRIP.replace("2027-05-05", "2027-05-09"))
+        .put(TRIPS + "/" + id)
+        .then()
+        .statusCode(200)
+        .body("endDate", equalTo("2027-05-09"));
   }
 }

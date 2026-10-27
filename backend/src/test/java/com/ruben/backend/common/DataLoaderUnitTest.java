@@ -1,6 +1,7 @@
 package com.ruben.backend.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -11,6 +12,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ruben.backend.activity.entity.Activity;
+import com.ruben.backend.activity.repository.ActivityRepository;
+import com.ruben.backend.image.entity.Image;
+import com.ruben.backend.image.repository.ImageRepository;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.UserTestData;
@@ -35,13 +40,17 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @Tag("B4")
+@Tag("B5")
 @ExtendWith(MockitoExtension.class)
 class DataLoaderUnitTest {
 
   @Mock private UserRepository userRepository;
   @Mock private TripRepository tripRepository;
+  @Mock private ActivityRepository activityRepository;
+  @Mock private ImageRepository imageRepository;
   @Mock private PasswordEncoder passwordEncoder;
   private DataLoader dataLoader;
   @Captor private ArgumentCaptor<User> savedUser;
@@ -50,7 +59,14 @@ class DataLoaderUnitTest {
   @BeforeEach
   void setUp() {
     lenient().when(passwordEncoder.encode(anyString())).thenReturn("encoded-password");
-    dataLoader = new DataLoader(userRepository, tripRepository, passwordEncoder, "Demo-2026");
+    dataLoader =
+        new DataLoader(
+            userRepository,
+            tripRepository,
+            activityRepository,
+            imageRepository,
+            passwordEncoder,
+            "Demo-2026");
   }
 
   private static User withId(User user, long id) {
@@ -74,7 +90,13 @@ class DataLoaderUnitTest {
   @Test
   void encodesTheConfiguredPasswordOnceAndStoresOnlyTheEncodedValue() {
     DataLoader other =
-        new DataLoader(userRepository, tripRepository, passwordEncoder, "Other-2026");
+        new DataLoader(
+            userRepository,
+            tripRepository,
+            activityRepository,
+            imageRepository,
+            passwordEncoder,
+            "Other-2026");
     when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
     when(userRepository.save(savedUser.capture()))
         .thenAnswer(invocation -> withId(invocation.getArgument(0), 5L));
@@ -185,11 +207,125 @@ class DataLoaderUnitTest {
               return existing;
             });
 
+    when(activityRepository.existsByTripId(any())).thenReturn(true);
+
     dataLoader.run();
 
     verify(userRepository, never()).save(org.mockito.ArgumentMatchers.any());
     verify(tripRepository, times(3)).saveAll(savedTrips.capture());
     assertThat(savedTrips.getAllValues()).allSatisfy(trips -> assertThat(trips).isEmpty());
+    verify(activityRepository, never())
+        .saveAll(org.mockito.ArgumentMatchers.<Iterable<Activity>>any());
+  }
+
+  /** Every sample user already exists (id 1) and has none of its trips yet; saving gives ids. */
+  private void emptyDatabaseWithSampleUsers() {
+    when(userRepository.findByEmail(anyString()))
+        .thenAnswer(
+            invocation ->
+                Optional.of(
+                    UserTestData.user(
+                        1L, invocation.getArgument(0), Role.USER, UserStatus.ACTIVE)));
+    when(tripRepository.findByCreatorIdAndNameIn(anyLong(), anyCollection())).thenReturn(List.of());
+    when(tripRepository.saveAll(org.mockito.ArgumentMatchers.<Iterable<Trip>>any()))
+        .thenAnswer(
+            invocation -> {
+              List<Trip> trips = tripsOf(invocation.getArgument(0));
+              long id = 100;
+              for (Trip trip : trips) {
+                ReflectionTestUtils.setField(trip, "id", id++);
+              }
+              return trips;
+            });
+    lenient()
+        .when(imageRepository.save(any(Image.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+  }
+
+  @Test
+  void loadsTheItineraryOfTheSampleTripsThatHaveOneInsideTheirDates() {
+    emptyDatabaseWithSampleUsers();
+    when(activityRepository.existsByTripId(anyLong())).thenReturn(false);
+
+    dataLoader.run();
+
+    ArgumentCaptor<Iterable<Activity>> saved = ArgumentCaptor.captor();
+    verify(activityRepository, times(4)).saveAll(saved.capture());
+    List<Activity> all = new java.util.ArrayList<>();
+    saved.getAllValues().forEach(batch -> batch.forEach(all::add));
+    assertThat(all).hasSize(18);
+    assertThat(all)
+        .allSatisfy(
+            activity -> {
+              assertThat(activity.getDate())
+                  .isBetween(activity.getTrip().getStartDate(), activity.getTrip().getEndDate());
+              assertThat(activity.getAuthor()).isSameAs(activity.getTrip().getCreator());
+              assertThat(activity.getName()).isNotBlank();
+            });
+    assertThat(all).filteredOn(a -> a.getTrip().getName().equals("Lisbon getaway")).hasSize(7);
+    assertThat(all).filteredOn(a -> a.getTrip().getName().equals("Weekend in Porto")).hasSize(4);
+    assertThat(all)
+        .filteredOn(a -> a.getTrip().getName().equals("Weekend in Porto"))
+        .extracting(Activity::getDate)
+        .doesNotContain(LocalDate.of(2027, 3, 14));
+  }
+
+  @Test
+  void someSampleActivitiesHaveAnImageAndOthersDoNot() {
+    emptyDatabaseWithSampleUsers();
+    when(activityRepository.existsByTripId(anyLong())).thenReturn(false);
+
+    dataLoader.run();
+
+    ArgumentCaptor<Image> images = ArgumentCaptor.forClass(Image.class);
+    verify(imageRepository, times(4)).save(images.capture());
+    assertThat(images.getAllValues())
+        .allSatisfy(
+            image -> {
+              assertThat(image.getContentType()).isEqualTo("image/png");
+              assertThat(image.getData())
+                  .startsWith((byte) 0x89, (byte) 0x50, (byte) 0x4E, (byte) 0x47);
+            });
+  }
+
+  @Test
+  void aTripThatAlreadyHasActivitiesIsLeftAlone() {
+    emptyDatabaseWithSampleUsers();
+    when(activityRepository.existsByTripId(anyLong())).thenReturn(true);
+
+    dataLoader.run();
+
+    verify(activityRepository, never())
+        .saveAll(org.mockito.ArgumentMatchers.<Iterable<Activity>>any());
+    verify(imageRepository, never()).save(any());
+  }
+
+  @Test
+  void everySampleItineraryBelongsToASampleTripAndFitsItsDays() {
+    List<DataLoader.SampleTrip> trips =
+        DataLoader.SAMPLE_USERS.stream().flatMap(user -> user.trips().stream()).toList();
+
+    DataLoader.SAMPLE_ACTIVITIES.forEach(
+        (tripName, activities) -> {
+          DataLoader.SampleTrip trip =
+              trips.stream().filter(t -> t.name().equals(tripName)).findFirst().orElseThrow();
+          long days = trip.endDate().toEpochDay() - trip.startDate().toEpochDay();
+          assertThat(activities)
+              .allSatisfy(
+                  activity -> {
+                    assertThat(activity.day()).isBetween(0, (int) days);
+                    if (activity.end() != null) {
+                      assertThat(activity.end()).isAfter(activity.start());
+                    }
+                  });
+        });
+  }
+
+  @Test
+  void theGeneratedPictureIsAValidPng() {
+    byte[] png = DataLoader.solidPng(0x2E6F9E);
+
+    assertThat(png).startsWith((byte) 0x89, (byte) 0x50, (byte) 0x4E, (byte) 0x47);
   }
 
   private static List<Trip> tripsOf(Iterable<Trip> trips) {

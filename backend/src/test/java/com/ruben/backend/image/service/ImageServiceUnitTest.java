@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ruben.backend.common.error.BadRequestException;
@@ -15,6 +16,7 @@ import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.repository.ImageRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -164,6 +166,22 @@ class ImageServiceUnitTest {
 
     verify(imageRepository).deleteWithoutLoading(id);
     verify(imageRepository, never()).findById(any());
+  }
+
+  @Test
+  void deleteAllRemovesSeveralImagesInOneStatement() {
+    List<UUID> ids = List.of(UUID.randomUUID(), UUID.randomUUID());
+
+    imageService.deleteAll(ids);
+
+    verify(imageRepository).deleteAllWithoutLoading(ids);
+  }
+
+  @Test
+  void deleteAllWithoutIdsDoesNothing() {
+    imageService.deleteAll(List.of());
+
+    verifyNoInteractions(imageRepository);
   }
 
   @Test

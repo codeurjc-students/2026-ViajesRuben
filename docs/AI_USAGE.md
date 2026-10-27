@@ -267,3 +267,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents, and hooks; MCP none.
 - **Context Files:** A spec-driven plan for `B4`.
 - **Human Validation:** Full human oversight throughout: the student reviewed and approved the plan, guided adjustments, and verified each stage before committing.
+
+#### Record 3.11 — Activities of a trip's itinerary (B5)
+
+- **Date:** 26/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Help implement feature B5.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code; model Sonnet 5.5 (planning and implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `B5`, and to write some parts of the code and tests across five stages, and the documentation (development guide, changelog). The review subagents audited the tests and the code against the guide rules.
+  - The student approved the plan and changed its design. The student also tried the application by hand.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents, and hooks.
+- **Context Files:** Private Claude Code configuration and a spec-driven plan for `B5`.
+- **Human Validation:** The student reviewed and approved the plan, decided the design change, tried the application manually and verified each stage before committing.

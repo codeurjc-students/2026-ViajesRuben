@@ -7,10 +7,11 @@ import { useAuth } from '../hooks/useAuth';
 import { useTrip } from '../hooks/useTrip';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
 import DeleteTripModal from './DeleteTripModal';
+import ItinerarySection from './ItinerarySection';
 import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
-/** `/trips/:tripId`: the trip's summary. Participants and the itinerary will go below it (I3, B5). */
+/** `/trips/:tripId`: the trip's summary and its itinerary. Participants will go in between (I3). */
 export default function TripDetailPage() {
   const { tripId } = useParams();
   const { user } = useAuth();
@@ -74,6 +75,7 @@ export default function TripDetailPage() {
           />
         </Card>
       )}
+      {trip && <ItinerarySection trip={trip} />}
     </Container>
   );
 }

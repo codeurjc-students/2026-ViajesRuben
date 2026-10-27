@@ -1,0 +1,98 @@
+/* One stop on the day's line: the dot sits on the line drawn by .itinerary-stops. */
+.activity-card {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  padding-bottom: var(--tm-stop-pitch);
+  padding-left: 2rem;
+}
+
+.activity-card::before {
+  content: '';
+  position: absolute;
+  top: 0.35rem;
+  left: calc((var(--tm-line-width) - var(--tm-stop-size)) / 2);
+  width: var(--tm-stop-size);
+  height: var(--tm-stop-size);
+  border: 2px solid var(--tm-linea);
+  border-radius: var(--tm-radius-pill);
+  background: var(--tm-blanco);
+}
+
+.activity-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-card__time {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.25rem;
+  font-family: var(--tm-font-mono);
+  font-size: 0.875rem;
+  color: var(--tm-linea);
+}
+
+.activity-card__duration {
+  color: var(--tm-via);
+}
+
+.activity-card__name {
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.activity-card__meta,
+.activity-card__cost,
+.activity-card__description {
+  margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.activity-card__meta {
+  color: var(--tm-via);
+}
+
+.activity-card__cost {
+  font-family: var(--tm-font-mono);
+}
+
+.activity-card__description {
+  white-space: pre-line;
+}
+
+.activity-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.activity-card__image {
+  flex: none;
+  align-self: flex-start;
+  width: 9rem;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--tm-radius);
+  background: var(--tm-linea-suave);
+}
+
+.activity-card__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (width < 576px) {
+  .activity-card {
+    flex-direction: column-reverse;
+  }
+
+  .activity-card__image {
+    width: 100%;
+    max-width: 16rem;
+  }
+}

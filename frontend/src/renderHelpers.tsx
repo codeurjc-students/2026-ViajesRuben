@@ -15,14 +15,17 @@ export function renderAsUser(ui: ReactElement, user: User | null = ANA, path = '
   );
 }
 
-/** Renders routes at a path, so a page can read its params and navigate to the others. */
+/** Renders routes at a path (it may carry a query string), so a page can read its params and navigate to the others. */
 export function renderRoutes(
   routes: RouteObject[],
   path: string,
   user: User | null = ANA,
   state?: unknown,
 ) {
-  const router = createMemoryRouter(routes, { initialEntries: [{ pathname: path, state }] });
+  const [pathname, search = ''] = path.split('?');
+  const router = createMemoryRouter(routes, {
+    initialEntries: [{ pathname, search: search && `?${search}`, state }],
+  });
   render(
     <AuthContext.Provider value={authValue(user)}>
       <RouterProvider router={router} />

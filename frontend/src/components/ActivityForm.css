@@ -1,0 +1,30 @@
+.activity-form-page {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+.activity-form-page__title {
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+}
+
+.activity-form-card {
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.activity-form__image {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.activity-form__image img {
+  max-height: 12rem;
+}
+
+.activity-form__image-note {
+  margin-bottom: 0;
+}

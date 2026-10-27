@@ -1,0 +1,46 @@
+.itinerary {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.itinerary__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.itinerary__count {
+  margin-left: 0.75rem;
+  color: var(--tm-via);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.itinerary__empty {
+  padding: 1rem 0;
+  color: var(--tm-via);
+}
+
+/* The day is a line and each activity a stop on it (see docs/design-system.md). */
+.itinerary__stops {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itinerary__stops::before {
+  content: '';
+  position: absolute;
+  top: 0.5rem;
+  bottom: var(--tm-stop-pitch);
+  left: 0;
+  width: var(--tm-line-width);
+  border-radius: var(--tm-radius-pill);
+  background: var(--tm-linea);
+}

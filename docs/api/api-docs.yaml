@@ -291,6 +291,332 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/activities/{activityId}:
+    get:
+      tags:
+        - activity-controller
+      summary: Get an activity by id
+      description:
+        "Only the trip's creator. `imageId` is null without picture; otherwise\
+        \ the picture is at `GET /api/v1/images/{imageId}`."
+      operationId: getActivity
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The activity
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ActivityDTO"
+        "400":
+          description: An id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No trip has that id, or it has no such activity"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - activity-controller
+      summary: Replace an activity's details
+      description:
+        Only the trip's creator. Every field is replaced; the picture is
+        not changed.
+      operationId: updateActivity
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityRequest"
+        required: true
+      responses:
+        "200":
+          description: The updated activity
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ActivityDTO"
+        "400":
+          description:
+            "Missing or invalid fields, or the date is outside the trip's\
+            \ dates"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No trip has that id, or it has no such activity"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - activity-controller
+      summary: Delete an activity
+      description: Only the trip's creator. The picture is deleted with the activity.
+      operationId: deleteActivity
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: The activity was deleted
+        "400":
+          description: An id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No trip has that id, or it has no such activity"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/activities/{activityId}/image:
+    get:
+      tags:
+        - activity-controller
+      summary: Get the bytes of an activity's picture
+      description:
+        "Only the trip's creator. Not cached, because it changes when the\
+        \ picture is replaced; the SPA uses `GET /api/v1/images/{imageId}` instead."
+      operationId: getActivityImage
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: "The picture, with its `Content-Type`"
+          content:
+            image/*: {}
+        "400":
+          description: An id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No such trip or activity, or the activity has no picture"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - activity-controller
+      summary: Upload or replace an activity's picture
+      description:
+        "Only the trip's creator. Multipart form with the picture in the\
+        \ `file` part: JPEG, PNG or WebP up to the configured size. The previous picture\
+        \ is deleted."
+      operationId: replaceActivityImage
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "201":
+          description: The activity had no picture; `Location` is the picture URL
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ImageDTO"
+        "200":
+          description: The previous picture was replaced
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ImageDTO"
+        "400":
+          description: "Missing, empty or not a JPEG, PNG or WebP image"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No trip has that id, or it has no such activity"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: The image is too large
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - activity-controller
+      summary: Delete an activity's picture
+      description: Only the trip's creator. Also answers 204 when there was no picture.
+      operationId: deleteActivityImage
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: activityId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: The activity has no picture now
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No trip has that id, or it has no such activity"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/trips/{id}:
     get:
       tags:
@@ -342,7 +668,10 @@ paths:
       tags:
         - trip-controller
       summary: Replace a trip's details
-      description: Only the creator. Every field is replaced; the cover is not changed.
+      description:
+        "Only the creator. Every field is replaced; the cover is not changed.\
+        \ The new dates cannot leave an activity of the trip outside them (409): move\
+        \ or delete it first."
       operationId: updateTrip
       parameters:
         - name: id
@@ -386,6 +715,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Some activities of the trip fall outside the new dates
           content:
             "*/*":
               schema:
@@ -710,6 +1045,148 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/activities:
+    get:
+      tags:
+        - activity-controller
+      summary: List a trip's activities
+      description:
+        "Only the trip's creator. Paginated: `?page=0&size=10` (50 at most),\
+        \ sorted by date and start time by default; activities without a start time\
+        \ come first on their day. `date=yyyy-MM-dd` keeps only the activities of\
+        \ that day. `sort` accepts `id`, `date`, `startTime`, `name`, `cost` and `createdAt`."
+      operationId: getActivities
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: date
+          in: query
+          description: "Only the activities of this day, `yyyy-MM-dd`"
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "date,ASC"
+              - "startTime,ASC"
+              - "id,ASC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of activities
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOActivityDTO"
+        "400":
+          description: "Invalid trip id, date, page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - activity-controller
+      summary: Create an activity
+      description:
+        "Only the trip's creator, who becomes the author. `date` must be\
+        \ within the trip's dates; times are `HH:mm`, the end strictly after the start\
+        \ and not without a start. The picture is set afterwards with `PUT .../{activityId}/image`.\
+        \ The `Location` header is the URL of the new activity."
+      operationId: createActivity
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityRequest"
+        required: true
+      responses:
+        "201":
+          description: The activity was created
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ActivityDTO"
+        "400":
+          description:
+            "Missing or invalid fields, or the date is outside the trip's\
+            \ dates"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/images:
     post:
       tags:
@@ -935,6 +1412,86 @@ components:
         size:
           type: integer
           format: int64
+    ActivityRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 0
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+          format: time-local
+        endTime:
+          type: string
+          format: time-local
+        location:
+          type: string
+          maxLength: 200
+          minLength: 0
+        description:
+          type: string
+          maxLength: 2000
+          minLength: 0
+        cost:
+          type: number
+          minimum: 0.00
+        category:
+          type: string
+          enum:
+            - SIGHTSEEING
+            - FOOD
+            - TRANSPORT
+            - ACCOMMODATION
+            - LEISURE
+            - OTHER
+      required:
+        - date
+        - name
+    ActivityDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tripId:
+          type: integer
+          format: int64
+        authorId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+          format: time-local
+        endTime:
+          type: string
+          format: time-local
+        cost:
+          type: number
+        category:
+          type: string
+          enum:
+            - SIGHTSEEING
+            - FOOD
+            - TRANSPORT
+            - ACCOMMODATION
+            - LEISURE
+            - OTHER
+        imageId:
+          type: string
+          format: uuid
     TripRequest:
       type: object
       properties:
@@ -1030,6 +1587,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TripDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
+    PageDTOActivityDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityDTO"
         page:
           type: integer
           format: int32

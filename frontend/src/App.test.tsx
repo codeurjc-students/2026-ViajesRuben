@@ -1,20 +1,26 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
-import { vi, test, expect } from 'vitest';
+import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
+import { getActivities, getActivity } from './services/activityService';
 import { getTrip, getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
 import { getCurrentUser } from './services/authService';
 import { getProfile } from './services/userService';
 import { AuthContext } from './context/AuthContext';
 import type { User } from './types';
-import { ANA, authValue, pageOf, tripOf } from './testHelpers';
+import { activityOf, ANA, authValue, pageOf, tripOf } from './testHelpers';
 
 vi.mock('./services/tripService', () => ({ getTrip: vi.fn(), getTrips: vi.fn() }));
+vi.mock('./services/activityService', () => ({ getActivities: vi.fn(), getActivity: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
+
+beforeEach(() => {
+  vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
+});
 
 function renderAt(path: string, user: User | null = ANA) {
   render(
@@ -57,8 +63,6 @@ test('renders the trip list at /trips with the header and footer', async () => {
 });
 
 test.each([
-  ['/trips/7/activities/new', 'Añadir actividad'],
-  ['/trips/7/activities/3/edit', 'Editar actividad'],
   ['/trips/7/ai-generator', 'Generador IA'],
   ['/admin', 'Administración'],
   ['/admin/users/2/edit', 'Editar usuario'],
@@ -201,4 +205,36 @@ test('B4 the public home page for an anonymous visitor never asks for trips', as
     0,
   );
   fetchSpy.mockRestore();
+});
+
+test('B5 /trips/:id shows the itinerary of the trip', async () => {
+  vi.mocked(getTrip).mockResolvedValue(tripOf({ id: 7, creatorId: ANA.id, name: 'Verano' }));
+  vi.mocked(getActivities).mockResolvedValue(pageOf([activityOf({ name: 'Museo' })]));
+
+  renderAt('/trips/7?day=2027-05-02');
+
+  expect(await screen.findByRole('heading', { name: 'Itinerario' })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Museo' })).toBeInTheDocument();
+  expect(getActivities).toHaveBeenCalledWith(7, '2027-05-02', 0);
+});
+
+test('B5 /trips/:id/activities/new shows the activity form in the layout', async () => {
+  vi.mocked(getTrip).mockResolvedValue(tripOf({ id: 7, creatorId: ANA.id }));
+
+  renderAt('/trips/7/activities/new');
+
+  expect(await screen.findByRole('heading', { name: 'Nueva actividad' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Crear actividad' })).toBeInTheDocument();
+  expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+});
+
+test('B5 /trips/:id/activities/:id/edit shows the form of that activity', async () => {
+  vi.mocked(getTrip).mockResolvedValue(tripOf({ id: 7, creatorId: ANA.id }));
+  vi.mocked(getActivity).mockResolvedValue(activityOf({ id: 4, tripId: 7, name: 'Museo' }));
+
+  renderAt('/trips/7/activities/4/edit');
+
+  expect(await screen.findByLabelText('Nombre de la actividad')).toHaveValue('Museo');
+  expect(screen.getByRole('heading', { name: 'Editar actividad' })).toBeInTheDocument();
+  expect(getActivity).toHaveBeenCalledWith(7, 4);
 });

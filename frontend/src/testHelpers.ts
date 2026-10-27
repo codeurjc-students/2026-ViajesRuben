@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import type { AuthContextValue } from './context/AuthContext';
-import type { Page, Trip, User } from './types';
+import type { Activity, Page, Trip, User } from './types';
 
 export const ANA: User = {
   id: 1,
@@ -64,4 +64,23 @@ export function tripsFrom(firstId: number, count: number): Trip[] {
       destination: `City ${firstId + i}`,
     }),
   );
+}
+
+/** Builds an activity of the API for tests: day 2 of `tripOf()`, created by Ana (id 1). */
+export function activityOf(overrides: Partial<Activity> = {}): Activity {
+  return {
+    id: 1,
+    tripId: 1,
+    authorId: 1,
+    name: 'Torre de Belém',
+    description: null,
+    location: null,
+    date: '2027-05-02',
+    startTime: null,
+    endTime: null,
+    cost: null,
+    category: null,
+    imageId: null,
+    ...overrides,
+  };
 }
