@@ -11,7 +11,6 @@ import com.ruben.backend.activity.entity.ActivityCategory;
 import com.ruben.backend.activity.repository.ActivityRepository;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
-import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.common.error.ForbiddenException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.common.security.TripMateUserDetails;
@@ -268,30 +267,26 @@ class ActivityServiceIntegrationTest {
   }
 
   @Test
-  void existsOutsideSeesAnActivityBeforeOrAfterTheNewDates() {
-    create("Second day", 1, null);
-
-    assertThat(activityService.existsOutside(trip.id(), START, END)).isFalse();
-    assertThat(activityService.existsOutside(trip.id(), START.plusDays(1), END)).isFalse();
-    assertThat(activityService.existsOutside(trip.id(), START.plusDays(2), END)).isTrue();
-    assertThat(activityService.existsOutside(trip.id(), START, START)).isTrue();
-  }
-
-  @Test
-  void tripDatesCannotLeaveAnActivityOutsideUntilItIsMoved() {
+  void tripDatesMayLeaveAnActivityOutsideAndItCanThenBeMovedInside() {
     ActivityDTO created = create("Second day", 1, null);
     TripRequest shorter = new TripRequest("Rome", "Rome", START.plusDays(2), END, null, null);
 
-    assertThatThrownBy(() -> tripService.update(trip.id(), shorter))
-        .isInstanceOf(ConflictException.class);
-    assertThat(tripService.findById(trip.id()).startDate()).isEqualTo(START);
+    assertThat(tripService.update(trip.id(), shorter).startDate()).isEqualTo(START.plusDays(2));
+    assertThat(activityRepository.findById(created.id())).isPresent();
 
+    assertThatThrownBy(
+            () ->
+                activityService.update(
+                    trip.id(),
+                    created.id(),
+                    new ActivityRequest(
+                        "Second day", START, null, null, null, null, null, null)))
+        .isInstanceOf(BadRequestException.class);
     activityService.update(
         trip.id(),
         created.id(),
         new ActivityRequest("Second day", END, null, null, null, null, null, null));
-
-    assertThat(tripService.update(trip.id(), shorter).startDate()).isEqualTo(START.plusDays(2));
+    assertThat(activityRepository.findOutsideTrip(trip.id())).isEmpty();
   }
 
   @Test

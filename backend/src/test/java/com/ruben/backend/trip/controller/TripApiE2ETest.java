@@ -643,7 +643,7 @@ class TripApiE2ETest {
   }
 
   @Test
-  void putWithDatesThatLeaveAnActivityOutsideReturns409AndChangesNothingUntilItIsMoved() {
+  void putWithDatesThatLeaveAnActivityOutsideSucceedsAndTheActivityIsReportedAsAConflict() {
     long id = createTrip(anaToken);
     long activity = createActivity(anaToken, id, "Last day", "2027-05-05");
     String shorter =
@@ -654,23 +654,16 @@ class TripApiE2ETest {
         .body(shorter)
         .put(TRIPS + "/" + id)
         .then()
-        .statusCode(409)
-        .body(
-            "message",
-            equalTo("Some activities fall outside the new dates; move or delete them first"));
-    as(anaToken).get(TRIPS + "/" + id).then().body("endDate", equalTo("2027-05-05"));
-
-    json(anaToken)
-        .body("{\"name\":\"Last day\",\"date\":\"2027-05-02\"}")
-        .put(TRIPS + "/" + id + "/activities/" + activity)
-        .then()
-        .statusCode(200);
-    json(anaToken)
-        .body(shorter)
-        .put(TRIPS + "/" + id)
-        .then()
         .statusCode(200)
         .body("endDate", equalTo("2027-05-03"));
+
+    as(anaToken)
+        .get(TRIPS + "/" + id + "/conflicts")
+        .then()
+        .statusCode(200)
+        .body("outsideDates.size()", equalTo(1))
+        .body("outsideDates[0].activityId", equalTo((int) activity))
+        .body("outsideDates[0].date", equalTo("2027-05-05"));
   }
 
   @Test

@@ -519,14 +519,4 @@ class ActivityServiceUnitTest {
     verify(activityRepository).deleteByTripId(1L);
     verify(imageService).deleteAll(List.of());
   }
-
-  @Test
-  void existsOutsideAsksTheQueryAndNotThePermission() {
-    when(activityRepository.existsOutside(1L, START, END)).thenReturn(true);
-    when(activityRepository.existsOutside(1L, START, END.plusDays(1))).thenReturn(false);
-
-    assertThat(activityService.existsOutside(1L, START, END)).isTrue();
-    assertThat(activityService.existsOutside(1L, START, END.plusDays(1))).isFalse();
-    verifyNoInteractions(tripAccessService);
-  }
 }

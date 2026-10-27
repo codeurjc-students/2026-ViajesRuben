@@ -122,8 +122,9 @@ public class TripController {
   @Operation(
       summary = "Replace a trip's details",
       description =
-          "Only the creator. Every field is replaced; the cover is not changed. The new dates"
-              + " cannot leave an activity of the trip outside them (409): move or delete it first.")
+          "Only the creator. Every field is replaced; the cover is not changed. New dates may leave"
+              + " activities outside them: that is not an error, they are reported by `GET"
+              + " /api/v1/trips/{id}/conflicts`.")
   @ApiResponse(responseCode = "200", description = "The updated trip")
   @ApiResponse(
       responseCode = "400",
@@ -140,10 +141,6 @@ public class TripController {
   @ApiResponse(
       responseCode = "404",
       description = NO_TRIP,
-      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-  @ApiResponse(
-      responseCode = "409",
-      description = "Some activities of the trip fall outside the new dates",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @PutMapping("/{id}")
   public TripDTO updateTrip(@PathVariable Long id, @Valid @RequestBody TripRequest request) {

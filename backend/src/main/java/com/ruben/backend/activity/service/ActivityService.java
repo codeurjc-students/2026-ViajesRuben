@@ -194,15 +194,6 @@ public class ActivityService {
     imageService.deleteAll(imageIds);
   }
 
-  /**
-   * True when some activity of the trip would fall outside the days `start` to `end`. For the
-   * trip's own update: the caller has already checked that the user may change the trip.
-   */
-  @Transactional(readOnly = true)
-  public boolean existsOutside(Long tripId, LocalDate start, LocalDate end) {
-    return activityRepository.existsOutside(tripId, start, end);
-  }
-
   private Activity findActivity(Long tripId, Long id) {
     return activityRepository
         .findByIdAndTripId(id, tripId)
