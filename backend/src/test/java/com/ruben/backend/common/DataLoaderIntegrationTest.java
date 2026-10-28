@@ -65,9 +65,9 @@ class DataLoaderIntegrationTest {
     dataLoader.run();
     dataLoader.run();
 
-    // Three sample users and the administrator; 17 trips of the users and the 4 example trips.
+    // Three sample users and the administrator; 17 trips of the users and the 3 example trips.
     assertThat(userRepository.count()).isEqualTo(4);
-    assertThat(tripRepository.count()).isEqualTo(21);
+    assertThat(tripRepository.count()).isEqualTo(20);
     assertThat(
             tripRepository
                 .findByCreatorId(
@@ -85,7 +85,7 @@ class DataLoaderIntegrationTest {
 
     var examples = tripRepository.findByCreatorRole(Role.ADMIN, PageRequest.of(0, 10));
 
-    assertThat(examples.getTotalElements()).isEqualTo(4);
+    assertThat(examples.getTotalElements()).isEqualTo(3);
     assertThat(examples.getContent())
         .allSatisfy(
             trip -> {
@@ -146,9 +146,9 @@ class DataLoaderIntegrationTest {
 
     dataLoader.run();
 
-    // 18 activities and 4 pictures of the users, 23 activities and 4 covers of the examples.
-    assertThat(loaded).isEqualTo(41);
-    assertThat(images).isEqualTo(8);
+    // 18 activities and 4 pictures of the users, 40 activities and 3 covers of the examples.
+    assertThat(loaded).isEqualTo(58);
+    assertThat(images).isEqualTo(7);
     assertThat(activityRepository.count()).isEqualTo(loaded);
     assertThat(imageRepository.count()).isEqualTo(images);
     var lisbon =

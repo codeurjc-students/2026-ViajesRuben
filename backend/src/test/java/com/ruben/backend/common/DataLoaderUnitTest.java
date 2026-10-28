@@ -279,10 +279,10 @@ class DataLoaderUnitTest {
     dataLoader.run();
 
     ArgumentCaptor<Iterable<Activity>> saved = ArgumentCaptor.captor();
-    verify(activityRepository, times(8)).saveAll(saved.capture());
+    verify(activityRepository, times(7)).saveAll(saved.capture());
     List<Activity> all = new java.util.ArrayList<>();
     saved.getAllValues().forEach(batch -> batch.forEach(all::add));
-    assertThat(all).hasSize(41);
+    assertThat(all).hasSize(58);
     assertThat(all)
         .allSatisfy(
             activity -> {
@@ -306,9 +306,9 @@ class DataLoaderUnitTest {
 
     dataLoader.run();
 
-    // Four activity pictures and the four covers of the example trips.
+    // Four activity pictures and the three covers of the example trips.
     ArgumentCaptor<Image> images = ArgumentCaptor.forClass(Image.class);
-    verify(imageRepository, times(8)).save(images.capture());
+    verify(imageRepository, times(7)).save(images.capture());
     assertThat(images.getAllValues())
         .allSatisfy(
             image -> {
@@ -331,8 +331,7 @@ class DataLoaderUnitTest {
     List<Trip> examples = tripsOf(savedTrips.getAllValues().get(3));
     assertThat(examples)
         .extracting(Trip::getName)
-        .containsExactly(
-            "Rome in five days", "Paris in four days", "Maldives escape", "Tokyo highlights");
+        .containsExactly("Roma en cinco días", "Escapada a las Maldivas", "Lo mejor de Tokio");
     assertThat(examples)
         .allSatisfy(
             trip -> {
@@ -340,7 +339,7 @@ class DataLoaderUnitTest {
               assertThat(trip.getDescription()).isNotBlank();
             });
     ArgumentCaptor<Trip> withCover = ArgumentCaptor.forClass(Trip.class);
-    verify(tripRepository, times(4)).save(withCover.capture());
+    verify(tripRepository, times(3)).save(withCover.capture());
     assertThat(withCover.getAllValues())
         .extracting(Trip::getName)
         .containsExactlyInAnyOrderElementsOf(examples.stream().map(Trip::getName).toList());
@@ -358,21 +357,22 @@ class DataLoaderUnitTest {
     verify(activityRepository, never())
         .saveAll(org.mockito.ArgumentMatchers.<Iterable<Activity>>any());
     // Only the covers of the example trips: no activity picture is created.
-    verify(imageRepository, times(4)).save(any());
+    verify(imageRepository, times(3)).save(any());
   }
 
   @Test
   @Tag("B1")
-  void everyExampleTripHasItsPhotoAndActivitiesOnItsFirstThreeDays() {
+  void everyExampleTripHasItsPhotoAndActivitiesOnEveryDay() {
     assertThat(DataLoader.SAMPLE_EXAMPLES)
-        .hasSize(4)
+        .hasSize(3)
         .allSatisfy(
             trip -> {
+              int days = (int) (trip.endDate().toEpochDay() - trip.startDate().toEpochDay()) + 1;
               assertThat(Path.of("src/main/resources/sample_images", trip.cover())).exists();
               assertThat(trip.budget()).isNotNull();
               assertThat(DataLoader.SAMPLE_ACTIVITIES.get(trip.name()))
                   .extracting(DataLoader.SampleActivity::day)
-                  .contains(0, 1, 2);
+                  .containsAll(java.util.stream.IntStream.range(0, days).boxed().toList());
             });
   }
 
