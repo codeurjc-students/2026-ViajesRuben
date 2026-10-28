@@ -120,4 +120,32 @@ describe('B1 ExampleTrips', () => {
 
     await waitFor(() => expect(screen.getByText('Página de error')).toBeInTheDocument());
   });
+
+  test('ignores an answer that arrives after the section is gone, whether it succeeds or fails', async () => {
+    let succeed: (page: ReturnType<typeof twoPages>) => void = () => {};
+    let fail: (reason: unknown) => void = () => {};
+    vi.mocked(getExampleTrips)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            succeed = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            fail = reject;
+          }),
+      );
+    const first = renderExamples();
+    first.unmount();
+    const second = renderExamples();
+    second.unmount();
+
+    succeed(twoPages(0));
+    fail(new ApiError(500));
+    await Promise.resolve();
+
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+  });
 });

@@ -9,18 +9,16 @@ afterEach(() => {
 });
 
 // The example trips are the administrator's, loaded with the sample data (SAMPLE_DATA, on by
-// default): four trips with an itinerary. Nobody can create them without the administrator.
+// default): three trips with an itinerary on every day. Nobody can create them without the
+// administrator.
 describe('B1 exampleService against the REST API', () => {
-  test('an anonymous visitor lists the example trips three at a time, with a preview of the first days', async () => {
-    const first = await getExampleTrips(0, 3);
-    const second = await getExampleTrips(1, 3);
+  test('an anonymous visitor lists the example trips with a preview of the first days', async () => {
+    const all = await getExampleTrips(0, 3);
 
-    expect(first).toMatchObject({ page: 0, size: 3, last: false });
-    expect(first.totalElements).toBeGreaterThanOrEqual(4);
-    expect(first.content).toHaveLength(3);
-    expect(second.content.length).toBeGreaterThanOrEqual(1);
-    expect(second.content[0].trip.id).not.toBe(first.content[0].trip.id);
-    for (const { trip, firstDays } of first.content) {
+    expect(all).toMatchObject({ page: 0, size: 3 });
+    expect(all.totalElements).toBeGreaterThanOrEqual(3);
+    expect(all.content).toHaveLength(3);
+    for (const { trip, firstDays } of all.content) {
       expect(trip.name).toBeTruthy();
       expect(trip.budget).not.toBeNull();
       expect(firstDays.length).toBeGreaterThan(0);
@@ -31,6 +29,18 @@ describe('B1 exampleService against the REST API', () => {
       expect(firstDays.every((preview) => preview.day >= 1 && preview.day <= 3)).toBe(true);
       expect(firstDays.every((preview) => preview.activityName.length > 0)).toBe(true);
     }
+  });
+
+  test('the examples are paginated like any other list', async () => {
+    const first = await getExampleTrips(0, 2);
+    const second = await getExampleTrips(1, 2);
+
+    expect(first).toMatchObject({ page: 0, size: 2, last: false });
+    expect(first.content).toHaveLength(2);
+    expect(second.page).toBe(1);
+    expect(second.content.length).toBeGreaterThanOrEqual(1);
+    expect(second.content[0].trip.id).not.toBe(first.content[0].trip.id);
+    expect(second.content[0].trip.id).not.toBe(first.content[1].trip.id);
   });
 
   test('an anonymous visitor opens an example trip and browses its days', async () => {
