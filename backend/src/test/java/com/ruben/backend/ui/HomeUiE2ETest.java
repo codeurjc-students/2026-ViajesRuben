@@ -20,8 +20,8 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 /**
  * The public home page as an anonymous visitor uses it. The example trips are the ones the
- * application loads for the administrator with SAMPLE_DATA (see the README): Rome, Paris and the
- * Maldives on the first page of three, Tokyo on the second.
+ * application loads for the administrator with SAMPLE_DATA (see the README): Rome, the Maldives and
+ * Tokyo, all on the first page of three, so the home page has no previous and next buttons.
  */
 @Tag("B1")
 class HomeUiE2ETest {
@@ -82,7 +82,7 @@ class HomeUiE2ETest {
   // --- tests ---
 
   @Test
-  void anAnonymousVisitorSeesTheExampleTripsPagesThroughThemAndBrowsesOneItinerary() {
+  void anAnonymousVisitorSeesTheThreeExampleTripsAndBrowsesEveryDayOfOneItinerary() {
     driver.get(baseUrl + "/");
 
     // The hero invites to register or log in.
@@ -92,46 +92,48 @@ class HomeUiE2ETest {
     assertThat(driver.findElements(link("Regístrate gratis"))).hasSize(1);
     assertThat(driver.findElements(link("Ya tengo cuenta"))).hasSize(1);
 
-    // The first page has three cards with their key facts and the preview of the first days.
+    // Three cards with their key facts and the preview of the first days, and nothing to page.
     List<WebElement> cards = waitForCards(3);
-    assertThat(cards.get(0).findElement(By.tagName("h3")).getText()).isEqualTo("Rome in five days");
+    assertThat(cards.get(0).findElement(By.tagName("h3")).getText())
+        .isEqualTo("Roma en cinco días");
     assertThat(cards.get(0).getText())
-        .contains("Rome, Italy · 5 días", "Día 1 · Colosseum guided tour", "Día 2 · Vatican");
+        .contains(
+            "Roma, Italia · 5 días",
+            "Día 1 · Visita guiada al Coliseo",
+            "Día 2 · Museos Vaticanos");
     assertThat(cards.get(1).findElement(By.tagName("h3")).getText())
-        .isEqualTo("Paris in four days");
-    assertThat(cards.get(2).findElement(By.tagName("h3")).getText()).isEqualTo("Maldives escape");
+        .isEqualTo("Escapada a las Maldivas");
+    assertThat(cards.get(1).getText())
+        .contains("Maldivas · 7 días", "Día 1 · Traslado en hidroavión al resort");
+    assertThat(cards.get(2).findElement(By.tagName("h3")).getText()).isEqualTo("Lo mejor de Tokio");
+    assertThat(cards.get(2).getText()).contains("Tokio, Japón · 7 días", "Día 1 · Templo Senso-ji");
     assertThat(driver.findElements(By.cssSelector("article.example-card a.btn")))
         .extracting(WebElement::getText)
         .containsOnly("Ver itinerario completo");
-
-    // Next shows the fourth example alone, previous brings the first page back.
-    click(By.cssSelector("button[aria-label='Ejemplos siguientes']"));
-    cards = waitForCards(1);
-    assertThat(cards.get(0).findElement(By.tagName("h3")).getText()).isEqualTo("Tokyo highlights");
-    assertThat(
-            driver
-                .findElement(By.cssSelector("button[aria-label='Ejemplos siguientes']"))
-                .isEnabled())
-        .isFalse();
-    click(By.cssSelector("button[aria-label='Ejemplos anteriores']"));
-    waitForCards(3);
+    assertThat(driver.findElements(By.cssSelector("button[aria-label^='Ejemplos']"))).isEmpty();
 
     // Opening an example shows the trip and its first day, read-only.
-    click(openExample("Rome in five days"));
+    click(openExample("Roma en cinco días"));
     wait.until(ExpectedConditions.urlContains("/examples/"));
     wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Rome in five days"));
-    waitForItineraryText("Colosseum guided tour");
+        ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Roma en cinco días"));
+    waitForItineraryText("Visita guiada al Coliseo");
     assertThat(driver.findElement(By.tagName("main")).getText())
-        .contains("Rome, Italy", "Presupuesto", "Itinerario");
+        .contains("Roma, Italia", "Presupuesto", "Itinerario");
 
-    // Browsing the days changes the activities.
+    // Browsing the days changes the activities, and every one of the five days has some.
     click(tab("Día 2"));
-    waitForItineraryText("Vatican Museums and Sistine Chapel");
+    waitForItineraryText("Museos Vaticanos y Capilla Sixtina");
     assertThat(driver.findElement(By.cssSelector("section.itinerary")).getText())
-        .doesNotContain("Colosseum guided tour");
+        .doesNotContain("Visita guiada al Coliseo");
     click(tab("Día 3"));
-    waitForItineraryText("Borghese Gallery and Gardens");
+    waitForItineraryText("Galería Borghese y jardines");
+    click(tab("Día 4"));
+    waitForItineraryText("Clase de cocina de pasta fresca");
+    click(tab("Día 5"));
+    waitForItineraryText("Museos Capitolinos");
+    assertThat(driver.findElement(By.cssSelector("section.itinerary")).getText())
+        .doesNotContain("No hay actividades");
 
     // Nothing to change: no new activity, edit, delete or conflicts.
     assertThat(driver.findElements(link("Nueva actividad"))).isEmpty();
