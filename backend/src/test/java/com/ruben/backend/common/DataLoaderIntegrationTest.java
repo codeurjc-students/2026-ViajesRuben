@@ -6,15 +6,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.activity.repository.ActivityRepository;
+import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.image.repository.ImageRepository;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.dto.LoginRequest;
+import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.repository.UserRepository;
+import com.ruben.backend.user.service.AdminAccountInitializer;
 import com.ruben.backend.user.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +39,8 @@ class DataLoaderIntegrationTest {
   @Autowired private ImageRepository imageRepository;
   @Autowired private AuthService authService;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private AdminProperties adminProperties;
+  @Autowired private AdminAccountInitializer adminAccountInitializer;
   @Autowired private DatabaseCleaner databaseCleaner;
 
   private DataLoader dataLoader;
@@ -42,6 +48,7 @@ class DataLoaderIntegrationTest {
   @BeforeEach
   void setUp() {
     databaseCleaner.clear();
+    adminAccountInitializer.run(new DefaultApplicationArguments());
     dataLoader =
         new DataLoader(
             userRepository,
@@ -49,6 +56,7 @@ class DataLoaderIntegrationTest {
             activityRepository,
             imageRepository,
             passwordEncoder,
+            adminProperties,
             "Demo-2026");
   }
 
@@ -57,8 +65,9 @@ class DataLoaderIntegrationTest {
     dataLoader.run();
     dataLoader.run();
 
-    assertThat(userRepository.count()).isEqualTo(3);
-    assertThat(tripRepository.count()).isEqualTo(17);
+    // Three sample users and the administrator; 17 trips of the users and the 4 example trips.
+    assertThat(userRepository.count()).isEqualTo(4);
+    assertThat(tripRepository.count()).isEqualTo(21);
     assertThat(
             tripRepository
                 .findByCreatorId(
@@ -66,6 +75,38 @@ class DataLoaderIntegrationTest {
                     PageRequest.of(0, 50))
                 .getTotalElements())
         .isEqualTo(12);
+  }
+
+  @Test
+  @Tag("B1")
+  void theAdministratorOwnsTheExampleTripsWithTheirCoversAndAStoppedCoverIsRestored() {
+    dataLoader.run();
+    var admin = userRepository.findByEmail(adminProperties.email()).orElseThrow();
+
+    var examples = tripRepository.findByCreatorRole(Role.ADMIN, PageRequest.of(0, 10));
+
+    assertThat(examples.getTotalElements()).isEqualTo(4);
+    assertThat(examples.getContent())
+        .allSatisfy(
+            trip -> {
+              assertThat(trip.getCreator().getId()).isEqualTo(admin.getId());
+              assertThat(trip.getCoverImage()).isNotNull();
+              assertThat(trip.getBudget()).isNotNull();
+            });
+    assertThat(
+            tripRepository
+                .findByCreatorRole(Role.USER, PageRequest.of(0, 50))
+                .map(trip -> trip.getCoverImage())
+                .stream()
+                .filter(java.util.Objects::nonNull))
+        .isEmpty();
+
+    var rome = examples.getContent().get(0);
+    rome.setCoverImage(null);
+    tripRepository.save(rome);
+    dataLoader.run();
+
+    assertThat(tripRepository.findById(rome.getId()).orElseThrow().getCoverImage()).isNotNull();
   }
 
   @Test
@@ -87,6 +128,7 @@ class DataLoaderIntegrationTest {
             activityRepository,
             imageRepository,
             passwordEncoder,
+            adminProperties,
             "Other-2026")
         .run();
 
@@ -104,8 +146,9 @@ class DataLoaderIntegrationTest {
 
     dataLoader.run();
 
-    assertThat(loaded).isEqualTo(18);
-    assertThat(images).isEqualTo(4);
+    // 18 activities and 4 pictures of the users, 23 activities and 4 covers of the examples.
+    assertThat(loaded).isEqualTo(41);
+    assertThat(images).isEqualTo(8);
     assertThat(activityRepository.count()).isEqualTo(loaded);
     assertThat(imageRepository.count()).isEqualTo(images);
     var lisbon =
