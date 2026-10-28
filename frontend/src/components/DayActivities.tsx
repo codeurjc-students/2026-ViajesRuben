@@ -12,6 +12,8 @@ interface DayActivitiesProps {
   day: string;
   isCreator: boolean;
   onActivityDeleted?: () => void;
+  /** Where the activities come from: `getActivities` unless the trip is a public example. */
+  load?: typeof getActivities;
 }
 
 /** The activities of one day, in time order, ten at a time. */
@@ -20,11 +22,9 @@ export default function DayActivities({
   day,
   isCreator,
   onActivityDeleted,
+  load = getActivities,
 }: Readonly<DayActivitiesProps>) {
-  const fetchPage = useCallback(
-    (page: number) => getActivities(trip.id, day, page),
-    [trip.id, day],
-  );
+  const fetchPage = useCallback((page: number) => load(trip.id, day, page), [load, trip.id, day]);
   const { items, totalElements, loaded, loading, last, error, loadMore, reload } =
     usePagedList(fetchPage);
 

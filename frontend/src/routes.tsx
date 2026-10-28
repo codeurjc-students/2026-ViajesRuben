@@ -2,6 +2,8 @@ import type { RouteObject } from 'react-router';
 import ActivityFormPage from './components/ActivityFormPage';
 import AppLayout from './components/AppLayout';
 import ErrorPage from './components/ErrorPage';
+import ExampleTripPage from './components/ExampleTripPage';
+import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import PlaceholderPage from './components/PlaceholderPage';
 import ProfilePage from './components/ProfilePage';
@@ -11,7 +13,7 @@ import TripDetailPage from './components/TripDetailPage';
 import TripFormPage from './components/TripFormPage';
 import TripList from './components/TripList';
 
-/** One route per screen in docs/analysis.md; trips, profile and auth are built so far. */
+/** One route per screen in docs/analysis.md; the home page, trips, profile and auth are built so far. */
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -19,7 +21,8 @@ export const routes: RouteObject[] = [
       {
         errorElement: <ErrorPage />,
         children: [
-          { path: '/', element: <PlaceholderPage title="Inicio" /> },
+          { path: '/', element: <HomePage /> },
+          { path: '/examples/:tripId', element: <ExampleTripPage /> },
           { path: '/login', element: <LoginPage /> },
           { path: '/register', element: <RegisterPage /> },
           {

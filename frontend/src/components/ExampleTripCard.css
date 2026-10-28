@@ -1,0 +1,50 @@
+.example-card {
+  overflow: hidden;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.example-card__image {
+  flex: none;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--tm-linea-suave);
+}
+
+.example-card__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.example-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1.25rem;
+}
+
+.example-card__facts {
+  margin-bottom: 1rem;
+  font-family: var(--tm-font-mono);
+  font-size: 0.875rem;
+}
+
+.example-card__days {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  list-style: none;
+  border-radius: var(--tm-radius);
+  background: var(--tm-linea-suave);
+  font-size: 0.9375rem;
+}
+
+.example-card__days li + li {
+  margin-top: 0.25rem;
+}
+
+/* The button sits at the bottom, so the three cards of a row line up. */
+.example-card__open {
+  margin-top: auto;
+}

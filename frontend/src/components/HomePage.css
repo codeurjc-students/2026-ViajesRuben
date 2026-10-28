@@ -1,0 +1,46 @@
+.home-hero {
+  display: grid;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+@media (width >= 768px) {
+  .home-hero {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.home-hero__title {
+  font-size: clamp(2.25rem, 7vw, 3.25rem);
+}
+
+.home-hero__intro {
+  max-width: 36rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+}
+
+.home-hero__photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid var(--tm-card-border);
+  border-radius: var(--tm-radius);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.home-how {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  border: 1px solid var(--tm-via-border);
+  border-radius: var(--tm-radius);
+  background: var(--tm-blanco);
+}
+
+/* The steps are a real sequence, so they keep their numbers. */
+.home-how__steps {
+  margin: 0;
+  padding-left: 2.5rem;
+}

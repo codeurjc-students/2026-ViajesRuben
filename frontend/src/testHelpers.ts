@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import type { AuthContextValue } from './context/AuthContext';
-import type { Activity, Page, Trip, TripConflicts, User } from './types';
+import type { Activity, ExampleTrip, Page, Trip, TripConflicts, User } from './types';
 
 export const ANA: User = {
   id: 1,
@@ -81,6 +81,26 @@ export function activityOf(overrides: Partial<Activity> = {}): Activity {
     cost: null,
     category: null,
     imageId: null,
+    ...overrides,
+  };
+}
+
+/** Builds an example trip of the home page for tests: 5 days in Roma with a preview of the first two. */
+export function exampleOf(overrides: Partial<ExampleTrip> = {}): ExampleTrip {
+  return {
+    trip: tripOf({
+      id: 10,
+      creatorId: 99,
+      name: 'Roma en cinco días',
+      destination: 'Roma',
+      startDate: '2027-05-10',
+      endDate: '2027-05-14',
+      budget: 1200,
+    }),
+    firstDays: [
+      { day: 1, activityName: 'Coliseo' },
+      { day: 2, activityName: 'Vaticano' },
+    ],
     ...overrides,
   };
 }

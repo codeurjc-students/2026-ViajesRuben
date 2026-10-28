@@ -1,0 +1,33 @@
+.example-trips__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.example-trips__pager {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.example-trips__pager svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.example-trips__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.example-trips__list > li {
+  list-style: none;
+}

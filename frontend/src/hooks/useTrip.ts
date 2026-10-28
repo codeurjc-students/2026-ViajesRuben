@@ -16,8 +16,15 @@ export interface TripLoad {
   error?: unknown;
 }
 
-/** Loads one trip by the id of the URL; an id that is not a whole number is a trip that does not exist. */
-export function useTrip(rawId: string | undefined): TripLoad {
+/**
+ * Loads one trip by the id of the URL; an id that is not a whole number is a trip that does not
+ * exist. `load` must keep the same identity between renders; it is `getTrip` unless the page reads
+ * another source, such as the public example trips.
+ */
+export function useTrip(
+  rawId: string | undefined,
+  load: (id: number) => Promise<Trip> = getTrip,
+): TripLoad {
   const id = Number(rawId);
   const valid = rawId !== undefined && /^\d+$/.test(rawId);
   // The answer is kept with its id, so a previous trip is never shown for another URL.
@@ -26,7 +33,7 @@ export function useTrip(rawId: string | undefined): TripLoad {
   useEffect(() => {
     if (!valid) return;
     let cancelled = false;
-    getTrip(id)
+    load(id)
       .then((trip) => {
         if (!cancelled) setLoaded({ id, trip });
       })
@@ -36,7 +43,7 @@ export function useTrip(rawId: string | undefined): TripLoad {
     return () => {
       cancelled = true;
     };
-  }, [id, valid]);
+  }, [id, valid, load]);
 
   if (!valid) return { error: new ApiError(404) };
   return loaded?.id === id ? { trip: loaded.trip, error: loaded.error } : {};

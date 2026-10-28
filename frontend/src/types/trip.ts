@@ -25,3 +25,15 @@ export interface TripData {
 
 /** What to do with the cover when a trip is saved. */
 export type CoverChange = { kind: 'keep' } | { kind: 'replace'; file: File } | { kind: 'remove' };
+
+/** Mirrors the backend DayPreviewDTO: the first activity of one day of an example trip (`day` counts from 1). */
+export interface DayPreview {
+  day: number;
+  activityName: string;
+}
+
+/** Mirrors the backend ExampleTripDTO: an example trip of the public home page with a preview of its first days. */
+export interface ExampleTrip {
+  trip: Trip;
+  firstDays: DayPreview[];
+}
