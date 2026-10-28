@@ -132,7 +132,9 @@ class TripUiE2ETest {
   void anAnonymousVisitorOpensTheHomePageAndSeesNoErrorPage() {
     driver.get(baseUrl + "/");
 
-    wait.until(ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Inicio"));
+    wait.until(
+        ExpectedConditions.textToBePresentInElementLocated(
+            By.tagName("h1"), "Planifica tus viajes con TripMate"));
     assertThat(driver.findElement(By.tagName("body")).getText())
         .doesNotContain("Algo ha fallado")
         .doesNotContain("No hay conexión");

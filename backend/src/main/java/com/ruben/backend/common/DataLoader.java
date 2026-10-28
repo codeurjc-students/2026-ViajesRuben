@@ -3,6 +3,7 @@ package com.ruben.backend.common;
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.entity.ActivityCategory;
 import com.ruben.backend.activity.repository.ActivityRepository;
+import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.repository.ImageRepository;
 import com.ruben.backend.trip.entity.Trip;
@@ -13,6 +14,7 @@ import com.ruben.backend.user.repository.UserRepository;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,23 +25,46 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
  * Loads the sample users, their trips and the itinerary of some trips that are not in the database
- * yet; enabled with app.sample-data.enabled. The sample users are for development and demos: every
- * one logs in with app.sample-data.password (SAMPLE_USERS_PASSWORD, documented in the README),
- * which is encoded at start-up, so production must set SAMPLE_DATA=false.
+ * yet, plus the example trips of the public home page (B1), which belong to the administrator;
+ * enabled with app.sample-data.enabled. The sample users are for development and demos: every one
+ * logs in with app.sample-data.password (SAMPLE_USERS_PASSWORD, documented in the README), which is
+ * encoded at start-up, so production must set SAMPLE_DATA=false. Runs after the administrator
+ * account has been created.
  */
 @Component
+@Order(1)
 @ConditionalOnProperty(name = "app.sample-data.enabled", havingValue = "true")
 public class DataLoader implements CommandLineRunner {
 
-  record SampleTrip(String name, String destination, LocalDate startDate, LocalDate endDate) {}
+  private static final Logger log = LoggerFactory.getLogger(DataLoader.class);
+
+  /** Folder of the classpath with the photos used as covers. */
+  private static final String PHOTOS = "sample_images/";
+
+  /**
+   * A trip of the sample data. `budget`, `description` and `cover` (the file name of a photo in the
+   * photos folder) are optional.
+   */
+  record SampleTrip(
+      String name,
+      String destination,
+      LocalDate startDate,
+      LocalDate endDate,
+      String budget,
+      String description,
+      String cover) {}
 
   /**
    * An activity of a sample trip: `day` counts from the first day of the trip, a null `start` means
@@ -90,11 +115,488 @@ public class DataLoader implements CommandLineRunner {
                   trip("Alps in winter", "Innsbruck", 2028, 1, 8, 2028, 1, 15))));
 
   /**
+   * The example trips of the public home page: the administrator's trips. There are three, which is
+   * what the home page shows at a time, and every day of each one has activities.
+   */
+  static final List<SampleTrip> SAMPLE_EXAMPLES =
+      List.of(
+          example(
+              "Roma en cinco días",
+              "Roma, Italia",
+              LocalDate.of(2027, 5, 10),
+              LocalDate.of(2027, 5, 14),
+              "1200.00",
+              "La Roma antigua, el Vaticano y la mejor pasta de la ciudad, a un ritmo relajado.",
+              "Rome_trip_example.png"),
+          example(
+              "Escapada a las Maldivas",
+              "Maldivas",
+              LocalDate.of(2027, 9, 6),
+              LocalDate.of(2027, 9, 12),
+              "3200.00",
+              "Una semana de playas, snorkel y atardeceres sobre el agua.",
+              "Maldivas_trip_example.png"),
+          example(
+              "Lo mejor de Tokio",
+              "Tokio, Japón",
+              LocalDate.of(2027, 10, 4),
+              LocalDate.of(2027, 10, 10),
+              "2800.00",
+              "Templos, mercados y luces de neón: lo esencial de Tokio en una semana.",
+              "Tokyo_trip_example.png"));
+
+  /**
    * The itinerary of some sample trips, by trip name; the other trips start empty. The third day of
    * the Porto weekend is left empty on purpose: the UI tests create and delete an activity there.
    */
   static final Map<String, List<SampleActivity>> SAMPLE_ACTIVITIES =
       Map.of(
+          "Roma en cinco días",
+          List.of(
+              activity(
+                  0,
+                  "Visita guiada al Coliseo",
+                  "Piazza del Colosseo",
+                  9,
+                  0,
+                  11,
+                  0,
+                  "16.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  0,
+                  "Comida en Armando al Pantheon",
+                  "Panteón",
+                  13,
+                  0,
+                  14,
+                  30,
+                  "35.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  0,
+                  "Paseo por el Foro Romano",
+                  "Foro Romano",
+                  16,
+                  0,
+                  18,
+                  0,
+                  "0.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  1,
+                  "Museos Vaticanos y Capilla Sixtina",
+                  "Ciudad del Vaticano",
+                  9,
+                  0,
+                  13,
+                  0,
+                  "20.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  1,
+                  "Comida de pasta en Trastevere",
+                  "Trastevere",
+                  13,
+                  30,
+                  15,
+                  0,
+                  "22.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  2,
+                  "Galería Borghese y jardines",
+                  "Villa Borghese",
+                  10,
+                  0,
+                  13,
+                  0,
+                  "15.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  2,
+                  "Fontana de Trevi al atardecer",
+                  "Trevi",
+                  19,
+                  0,
+                  20,
+                  0,
+                  null,
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  1,
+                  "Subida a la cúpula de San Pedro",
+                  "Ciudad del Vaticano",
+                  15,
+                  30,
+                  17,
+                  30,
+                  "10.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  3,
+                  "Paseo por la Plaza de España y Via Condotti",
+                  "Piazza di Spagna",
+                  10,
+                  0,
+                  12,
+                  30,
+                  null,
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  3,
+                  "Clase de cocina de pasta fresca",
+                  "Campo de' Fiori",
+                  17,
+                  0,
+                  20,
+                  0,
+                  "65.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  4,
+                  "Museos Capitolinos",
+                  "Piazza del Campidoglio",
+                  9,
+                  30,
+                  12,
+                  30,
+                  "15.50",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  4,
+                  "Leonardo Express al aeropuerto",
+                  "Roma Termini",
+                  15,
+                  0,
+                  15,
+                  45,
+                  "14.00",
+                  ActivityCategory.TRANSPORT,
+                  null)),
+          "Escapada a las Maldivas",
+          List.of(
+              activity(
+                  0,
+                  "Traslado en hidroavión al resort",
+                  "Malé",
+                  10,
+                  0,
+                  11,
+                  0,
+                  "250.00",
+                  ActivityCategory.TRANSPORT,
+                  null),
+              activity(
+                  0,
+                  "Cena al atardecer en la playa",
+                  "Playa del resort",
+                  19,
+                  0,
+                  21,
+                  0,
+                  "90.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  1,
+                  "Snorkel en el arrecife del resort",
+                  "Arrecife del resort",
+                  9,
+                  30,
+                  12,
+                  0,
+                  "40.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  2,
+                  "Crucero para ver delfines",
+                  "Mar abierto",
+                  16,
+                  0,
+                  18,
+                  0,
+                  "60.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  2,
+                  "Tarde de spa",
+                  "Spa del resort",
+                  20,
+                  0,
+                  21,
+                  30,
+                  "80.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  1,
+                  "Comida en la parrilla del resort",
+                  "Restaurante del resort",
+                  12,
+                  30,
+                  14,
+                  0,
+                  "35.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  3,
+                  "Picnic en un banco de arena",
+                  "Banco de arena",
+                  10,
+                  0,
+                  14,
+                  0,
+                  "120.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  3,
+                  "Kayak al atardecer",
+                  "Laguna del resort",
+                  17,
+                  0,
+                  18,
+                  30,
+                  "30.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  4,
+                  "Bautismo de buceo",
+                  "Centro de buceo",
+                  9,
+                  0,
+                  12,
+                  0,
+                  "95.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  4,
+                  "Cena de marisco en el restaurante sobre el agua",
+                  "Restaurante sobre el agua",
+                  19,
+                  30,
+                  21,
+                  30,
+                  "85.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  5,
+                  "Visita a una isla local y su mercado",
+                  "Isla local",
+                  10,
+                  0,
+                  13,
+                  0,
+                  "20.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  5,
+                  "Pesca al atardecer",
+                  "Mar abierto",
+                  16,
+                  0,
+                  18,
+                  0,
+                  "45.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  6,
+                  "Desayuno tranquilo y salida del hotel",
+                  "Restaurante del resort",
+                  8,
+                  0,
+                  9,
+                  30,
+                  null,
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  6,
+                  "Traslado en hidroavión al aeropuerto",
+                  "Embarcadero del resort",
+                  12,
+                  0,
+                  13,
+                  0,
+                  "250.00",
+                  ActivityCategory.TRANSPORT,
+                  null)),
+          "Lo mejor de Tokio",
+          List.of(
+              activity(
+                  0,
+                  "Templo Senso-ji y Asakusa",
+                  "Asakusa",
+                  9,
+                  0,
+                  12,
+                  0,
+                  null,
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  0,
+                  "Almuerzo de sushi en el mercado exterior de Tsukiji",
+                  "Tsukiji",
+                  12,
+                  30,
+                  14,
+                  0,
+                  "40.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  1,
+                  "Cruce de Shibuya y santuario Meiji",
+                  "Shibuya",
+                  10,
+                  0,
+                  13,
+                  0,
+                  null,
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  1,
+                  "Cena de ramen en Shinjuku",
+                  "Shinjuku",
+                  19,
+                  30,
+                  21,
+                  0,
+                  "15.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  2,
+                  "Excursión al monte Fuji",
+                  "Kawaguchiko",
+                  null,
+                  null,
+                  null,
+                  null,
+                  "90.00",
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  0,
+                  "Tokyo Skytree de noche",
+                  "Sumida",
+                  18,
+                  0,
+                  20,
+                  0,
+                  "22.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  3,
+                  "Museo de arte digital teamLab",
+                  "Toyosu",
+                  10,
+                  0,
+                  12,
+                  30,
+                  "35.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  3,
+                  "Akihabara: electrónica y salas recreativas",
+                  "Akihabara",
+                  14,
+                  0,
+                  17,
+                  0,
+                  null,
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  4,
+                  "Jardines del Este del Palacio Imperial",
+                  "Chiyoda",
+                  9,
+                  30,
+                  11,
+                  30,
+                  null,
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  4,
+                  "Parque Ueno y Museo Nacional",
+                  "Ueno",
+                  13,
+                  0,
+                  16,
+                  0,
+                  "10.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  5,
+                  "Excursión a Nikko",
+                  "Nikko",
+                  null,
+                  null,
+                  null,
+                  null,
+                  "55.00",
+                  ActivityCategory.SIGHTSEEING,
+                  null),
+              activity(
+                  5,
+                  "Cena en un izakaya de Golden Gai",
+                  "Shinjuku",
+                  20,
+                  0,
+                  22,
+                  0,
+                  "45.00",
+                  ActivityCategory.FOOD,
+                  null),
+              activity(
+                  6,
+                  "Últimas compras en Ginza",
+                  "Ginza",
+                  10,
+                  0,
+                  12,
+                  0,
+                  null,
+                  ActivityCategory.LEISURE,
+                  null),
+              activity(
+                  6,
+                  "Narita Express al aeropuerto",
+                  "Estación de Tokio",
+                  14,
+                  0,
+                  15,
+                  30,
+                  "30.00",
+                  ActivityCategory.TRANSPORT,
+                  null)),
           "Lisbon getaway",
           List.of(
               activity(
@@ -289,6 +791,7 @@ public class DataLoader implements CommandLineRunner {
   private final ActivityRepository activityRepository;
   private final ImageRepository imageRepository;
   private final PasswordEncoder passwordEncoder;
+  private final AdminProperties adminProperties;
   private final String password;
 
   public DataLoader(
@@ -297,12 +800,14 @@ public class DataLoader implements CommandLineRunner {
       ActivityRepository activityRepository,
       ImageRepository imageRepository,
       PasswordEncoder passwordEncoder,
+      AdminProperties adminProperties,
       @Value("${app.sample-data.password}") String password) {
     this.userRepository = userRepository;
     this.tripRepository = tripRepository;
     this.activityRepository = activityRepository;
     this.imageRepository = imageRepository;
     this.passwordEncoder = passwordEncoder;
+    this.adminProperties = adminProperties;
     this.password = password;
   }
 
@@ -317,21 +822,64 @@ public class DataLoader implements CommandLineRunner {
                   () ->
                       userRepository.save(
                           new User(sample.name(), sample.email(), encodedPassword, Role.USER)));
-      List<Trip> trips =
-          new ArrayList<>(
-              tripRepository.findByCreatorIdAndNameIn(
-                  user.getId(), sample.trips().stream().map(SampleTrip::name).toList()));
-      Set<String> existing = trips.stream().map(Trip::getName).collect(Collectors.toSet());
-      List<Trip> missing =
-          sample.trips().stream()
-              .filter(trip -> !existing.contains(trip.name()))
-              .map(
-                  trip ->
-                      new Trip(
-                          user, trip.name(), trip.destination(), trip.startDate(), trip.endDate()))
-              .toList();
-      trips.addAll(tripRepository.saveAll(missing));
-      trips.forEach(trip -> loadItinerary(user, trip));
+      loadTrips(user, sample.trips());
+    }
+    userRepository
+        .findByEmail(adminProperties.email())
+        .ifPresentOrElse(
+            admin -> loadTrips(admin, SAMPLE_EXAMPLES),
+            () -> log.warn("No administrator account, so the example trips were not loaded"));
+  }
+
+  /**
+   * Creates the trips of `owner` that are missing, gives a cover to the ones that have a sample
+   * cover and none yet, and loads the itineraries.
+   */
+  private void loadTrips(User owner, List<SampleTrip> samples) {
+    List<Trip> trips =
+        new ArrayList<>(
+            tripRepository.findByCreatorIdAndNameIn(
+                owner.getId(), samples.stream().map(SampleTrip::name).toList()));
+    Set<String> existing = trips.stream().map(Trip::getName).collect(Collectors.toSet());
+    List<Trip> missing =
+        samples.stream()
+            .filter(sample -> !existing.contains(sample.name()))
+            .map(sample -> toTrip(owner, sample))
+            .toList();
+    trips.addAll(tripRepository.saveAll(missing));
+    Map<String, SampleTrip> byName =
+        samples.stream().collect(Collectors.toMap(SampleTrip::name, sample -> sample));
+    trips.forEach(
+        trip -> {
+          loadCover(trip, byName.get(trip.getName()));
+          loadItinerary(owner, trip);
+        });
+  }
+
+  private static Trip toTrip(User owner, SampleTrip sample) {
+    Trip trip =
+        new Trip(owner, sample.name(), sample.destination(), sample.startDate(), sample.endDate());
+    trip.setBudget(sample.budget() == null ? null : new BigDecimal(sample.budget()));
+    trip.setDescription(sample.description());
+    return trip;
+  }
+
+  /** A trip without a cover gets its sample photo, so databases loaded before it also get it. */
+  private void loadCover(Trip trip, SampleTrip sample) {
+    if (sample.cover() == null || trip.getCoverImage() != null) {
+      return;
+    }
+    trip.setCoverImage(imageRepository.save(photo(sample.cover())));
+    tripRepository.save(trip);
+  }
+
+  /** A photo of the sample photos folder of the classpath, with the type of its extension. */
+  private static Image photo(String file) {
+    String type = file.endsWith(".png") ? "image/png" : "image/jpeg";
+    try (InputStream stream = new ClassPathResource(PHOTOS + file).getInputStream()) {
+      return new Image(stream.readAllBytes(), type);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -406,6 +954,18 @@ public class DataLoader implements CommandLineRunner {
 
   private static SampleTrip trip(
       String name, String destination, int y1, int m1, int d1, int y2, int m2, int d2) {
-    return new SampleTrip(name, destination, LocalDate.of(y1, m1, d1), LocalDate.of(y2, m2, d2));
+    return new SampleTrip(
+        name, destination, LocalDate.of(y1, m1, d1), LocalDate.of(y2, m2, d2), null, null, null);
+  }
+
+  private static SampleTrip example(
+      String name,
+      String destination,
+      LocalDate startDate,
+      LocalDate endDate,
+      String budget,
+      String description,
+      String cover) {
+    return new SampleTrip(name, destination, startDate, endDate, budget, description, cover);
   }
 }

@@ -5,13 +5,14 @@ import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
 import { getActivities, getActivity, getTripCost } from './services/activityService';
+import { getExampleActivities, getExampleTrip, getExampleTrips } from './services/exampleService';
 import { getTrip, getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
 import { getCurrentUser } from './services/authService';
 import { getProfile } from './services/userService';
 import { AuthContext } from './context/AuthContext';
 import type { User } from './types';
-import { activityOf, ANA, authValue, pageOf, tripOf } from './testHelpers';
+import { activityOf, ANA, authValue, exampleOf, pageOf, tripOf } from './testHelpers';
 
 vi.mock('./services/tripService', () => ({ getTrip: vi.fn(), getTrips: vi.fn() }));
 vi.mock('./services/activityService', () => ({
@@ -19,10 +20,21 @@ vi.mock('./services/activityService', () => ({
   getActivity: vi.fn(),
   getTripCost: vi.fn(),
 }));
+vi.mock('./services/exampleService', () => ({
+  EXAMPLES_PAGE_SIZE: 3,
+  getExampleTrips: vi.fn(),
+  getExampleTrip: vi.fn(),
+  getExampleActivities: vi.fn(),
+}));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
 
 beforeEach(() => {
+  vi.mocked(getExampleTrips)
+    .mockReset()
+    .mockResolvedValue(pageOf([exampleOf()], { size: 3 }));
+  vi.mocked(getExampleTrip).mockReset();
+  vi.mocked(getExampleActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
 });
@@ -35,15 +47,47 @@ function renderAt(path: string, user: User | null = ANA) {
   );
 }
 
-test('the app opens on the home page inside the layout', async () => {
+test('B1 the app opens on the public home page inside the layout', async () => {
   vi.mocked(getCurrentUser).mockResolvedValue(null);
 
   render(<App />);
 
   expect(await screen.findByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('heading', { level: 1, name: 'Planifica tus viajes con TripMate' }),
+  ).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Roma en cinco días' })).toBeInTheDocument();
   expect(screen.getByRole('navigation')).toBeInTheDocument();
   expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+});
+
+test('B1 /examples/:id shows the read-only preview of an example trip without a session', async () => {
+  vi.mocked(getExampleTrip).mockResolvedValue(
+    tripOf({ id: 10, creatorId: 99, name: 'Roma en cinco días' }),
+  );
+  vi.mocked(getActivities).mockClear();
+
+  renderAt('/examples/10', null);
+
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'Roma en cinco días' }),
+  ).toBeInTheDocument();
+  expect(getExampleTrip).toHaveBeenCalledWith(10);
+  expect(await screen.findByRole('heading', { name: 'Itinerario' })).toBeInTheDocument();
+  expect(getExampleActivities).toHaveBeenCalledWith(10, '2027-05-01', 0);
+  expect(getActivities).not.toHaveBeenCalled();
+  expect(screen.queryByRole('link', { name: 'Nueva actividad' })).not.toBeInTheDocument();
+  expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+});
+
+test('B1 an example trip that does not exist shows the 404 page', async () => {
+  vi.mocked(getExampleTrip).mockRejectedValue(new ApiError(404));
+
+  renderAt('/examples/999', null);
+
+  expect(
+    await screen.findByRole('heading', { name: 'No encontramos esta página' }),
+  ).toBeInTheDocument();
 });
 
 test('renders the trip list at /trips with the header and footer', async () => {
@@ -196,14 +240,16 @@ test('B4 anonymous visitors are sent to /login from every trip screen without an
   expect(getTrip).not.toHaveBeenCalled();
 });
 
-test('B4 the public home page for an anonymous visitor never asks for trips', async () => {
+test('B4 the public home page for an anonymous visitor never asks for the private trips', async () => {
   vi.mocked(getTrips).mockClear();
   vi.mocked(getCurrentUser).mockResolvedValue(null);
   const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
   render(<App />);
 
-  expect(await screen.findByRole('heading', { name: 'Inicio' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'Planifica tus viajes con TripMate' }),
+  ).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument();
   expect(getTrips).not.toHaveBeenCalled();
   expect(fetchSpy.mock.calls.filter(([url]) => String(url).includes('/api/v1/trips'))).toHaveLength(

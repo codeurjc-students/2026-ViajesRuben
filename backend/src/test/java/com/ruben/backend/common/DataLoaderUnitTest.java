@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.repository.ActivityRepository;
+import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.repository.ImageRepository;
 import com.ruben.backend.trip.entity.Trip;
@@ -42,10 +43,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@Tag("B1")
 @Tag("B4")
 @Tag("B5")
 @ExtendWith(MockitoExtension.class)
 class DataLoaderUnitTest {
+
+  private static final AdminProperties ADMIN =
+      new AdminProperties("admin@tripmate.com", "Admin", "$2a$10$" + "x".repeat(53));
 
   @Mock private UserRepository userRepository;
   @Mock private TripRepository tripRepository;
@@ -66,6 +71,7 @@ class DataLoaderUnitTest {
             activityRepository,
             imageRepository,
             passwordEncoder,
+            ADMIN,
             "Demo-2026");
   }
 
@@ -96,6 +102,7 @@ class DataLoaderUnitTest {
             activityRepository,
             imageRepository,
             passwordEncoder,
+            ADMIN,
             "Other-2026");
     when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
     when(userRepository.save(savedUser.capture()))
@@ -200,9 +207,11 @@ class DataLoaderUnitTest {
               User creator = UserTestData.user(1L, "x@example.com", Role.USER, UserStatus.ACTIVE);
               List<Trip> existing = new java.util.ArrayList<>();
               for (String name : names) {
-                existing.add(
+                Trip trip =
                     new Trip(
-                        creator, name, "City", LocalDate.of(2027, 1, 1), LocalDate.of(2027, 1, 2)));
+                        creator, name, "City", LocalDate.of(2027, 1, 1), LocalDate.of(2027, 1, 2));
+                trip.setCoverImage(new Image(new byte[] {1}, "image/png"));
+                existing.add(trip);
               }
               return existing;
             });
@@ -212,10 +221,30 @@ class DataLoaderUnitTest {
     dataLoader.run();
 
     verify(userRepository, never()).save(org.mockito.ArgumentMatchers.any());
-    verify(tripRepository, times(3)).saveAll(savedTrips.capture());
+    verify(tripRepository, times(4)).saveAll(savedTrips.capture());
     assertThat(savedTrips.getAllValues()).allSatisfy(trips -> assertThat(trips).isEmpty());
+    verify(tripRepository, never()).save(any(Trip.class));
+    verify(imageRepository, never()).save(any());
     verify(activityRepository, never())
         .saveAll(org.mockito.ArgumentMatchers.<Iterable<Activity>>any());
+  }
+
+  @Test
+  @Tag("B1")
+  void withoutAnAdministratorAccountTheExampleTripsAreSkipped() {
+    when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+    when(userRepository.save(savedUser.capture()))
+        .thenAnswer(invocation -> withId(invocation.getArgument(0), 5L));
+    when(tripRepository.findByCreatorIdAndNameIn(eq(5L), anyCollection())).thenReturn(List.of());
+
+    dataLoader.run();
+
+    verify(userRepository).findByEmail("admin@tripmate.com");
+    verify(tripRepository, times(3)).saveAll(savedTrips.capture());
+    assertThat(savedTrips.getAllValues().stream().flatMap(trips -> tripsOf(trips).stream()))
+        .extracting(Trip::getName)
+        .doesNotContainAnyElementsOf(
+            DataLoader.SAMPLE_EXAMPLES.stream().map(DataLoader.SampleTrip::name).toList());
   }
 
   /** Every sample user already exists (id 1) and has none of its trips yet; saving gives ids. */
@@ -250,10 +279,10 @@ class DataLoaderUnitTest {
     dataLoader.run();
 
     ArgumentCaptor<Iterable<Activity>> saved = ArgumentCaptor.captor();
-    verify(activityRepository, times(4)).saveAll(saved.capture());
+    verify(activityRepository, times(7)).saveAll(saved.capture());
     List<Activity> all = new java.util.ArrayList<>();
     saved.getAllValues().forEach(batch -> batch.forEach(all::add));
-    assertThat(all).hasSize(18);
+    assertThat(all).hasSize(58);
     assertThat(all)
         .allSatisfy(
             activity -> {
@@ -277,8 +306,9 @@ class DataLoaderUnitTest {
 
     dataLoader.run();
 
+    // Four activity pictures and the three covers of the example trips.
     ArgumentCaptor<Image> images = ArgumentCaptor.forClass(Image.class);
-    verify(imageRepository, times(4)).save(images.capture());
+    verify(imageRepository, times(7)).save(images.capture());
     assertThat(images.getAllValues())
         .allSatisfy(
             image -> {
@@ -286,6 +316,35 @@ class DataLoaderUnitTest {
               assertThat(image.getData())
                   .startsWith((byte) 0x89, (byte) 0x50, (byte) 0x4E, (byte) 0x47);
             });
+  }
+
+  @Test
+  @Tag("B1")
+  void theExampleTripsAreTheAdministratorsWithBudgetDescriptionAndCover() {
+    emptyDatabaseWithSampleUsers();
+    when(activityRepository.existsByTripId(anyLong())).thenReturn(false);
+
+    dataLoader.run();
+
+    verify(userRepository).findByEmail("admin@tripmate.com");
+    verify(tripRepository, times(4)).saveAll(savedTrips.capture());
+    List<Trip> examples = tripsOf(savedTrips.getAllValues().get(3));
+    assertThat(examples)
+        .extracting(Trip::getName)
+        .containsExactly("Roma en cinco días", "Escapada a las Maldivas", "Lo mejor de Tokio");
+    assertThat(examples)
+        .allSatisfy(
+            trip -> {
+              assertThat(trip.getBudget()).isNotNull();
+              assertThat(trip.getDescription()).isNotBlank();
+            });
+    ArgumentCaptor<Trip> withCover = ArgumentCaptor.forClass(Trip.class);
+    verify(tripRepository, times(3)).save(withCover.capture());
+    assertThat(withCover.getAllValues())
+        .extracting(Trip::getName)
+        .containsExactlyInAnyOrderElementsOf(examples.stream().map(Trip::getName).toList());
+    assertThat(withCover.getAllValues())
+        .allSatisfy(trip -> assertThat(trip.getCoverImage()).isNotNull());
   }
 
   @Test
@@ -297,13 +356,33 @@ class DataLoaderUnitTest {
 
     verify(activityRepository, never())
         .saveAll(org.mockito.ArgumentMatchers.<Iterable<Activity>>any());
-    verify(imageRepository, never()).save(any());
+    // Only the covers of the example trips: no activity picture is created.
+    verify(imageRepository, times(3)).save(any());
+  }
+
+  @Test
+  @Tag("B1")
+  void everyExampleTripHasItsPhotoAndActivitiesOnEveryDay() {
+    assertThat(DataLoader.SAMPLE_EXAMPLES)
+        .hasSize(3)
+        .allSatisfy(
+            trip -> {
+              int days = (int) (trip.endDate().toEpochDay() - trip.startDate().toEpochDay()) + 1;
+              assertThat(Path.of("src/main/resources/sample_images", trip.cover())).exists();
+              assertThat(trip.budget()).isNotNull();
+              assertThat(DataLoader.SAMPLE_ACTIVITIES.get(trip.name()))
+                  .extracting(DataLoader.SampleActivity::day)
+                  .containsAll(java.util.stream.IntStream.range(0, days).boxed().toList());
+            });
   }
 
   @Test
   void everySampleItineraryBelongsToASampleTripAndFitsItsDays() {
     List<DataLoader.SampleTrip> trips =
-        DataLoader.SAMPLE_USERS.stream().flatMap(user -> user.trips().stream()).toList();
+        java.util.stream.Stream.concat(
+                DataLoader.SAMPLE_USERS.stream().flatMap(user -> user.trips().stream()),
+                DataLoader.SAMPLE_EXAMPLES.stream())
+            .toList();
 
     DataLoader.SAMPLE_ACTIVITIES.forEach(
         (tripName, activities) -> {

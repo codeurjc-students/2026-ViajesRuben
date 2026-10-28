@@ -43,6 +43,8 @@ class ErrorPageUiE2ETest {
 
     driver.findElement(By.linkText("Volver al inicio")).click();
     wait.until(ExpectedConditions.urlToBe(baseUrl + "/"));
-    wait.until(ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Inicio"));
+    wait.until(
+        ExpectedConditions.textToBePresentInElementLocated(
+            By.tagName("h1"), "Planifica tus viajes con TripMate"));
   }
 }

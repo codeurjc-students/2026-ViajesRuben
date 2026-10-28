@@ -213,7 +213,7 @@ The image tag in `docker/docker-compose.yml` is always the full version of the l
 | `DB_URL`                                | `jdbc:mysql://db:3306/${MYSQL_DATABASE}` | `app`   | Fixed by the Compose file, pointing to the `db` service     |
 | `DB_USERNAME`                           | `root`                                   | `app`   | Database user                                               |
 | `DB_PASSWORD`                           | `${MYSQL_ROOT_PASSWORD}`                 | `app`   | Database password                                           |
-| `SAMPLE_DATA`                           | `true`                                   | `app`   | Loads the 3 sample users and their 17 trips at start-up     |
+| `SAMPLE_DATA`                           | `true`                                   | `app`   | Loads the 3 sample users with their 17 trips and the administrator's 3 example trips at start-up |
 | `SAMPLE_USERS_PASSWORD`                 | `Demo-2026`                              | `app`   | Password of the sample users (development only)             |
 | `ADMIN_EMAIL`, `ADMIN_NAME`             | `admin@tripmate.com`, `Administrator`    | `app`   | The administrator                                           |
 | `ADMIN_PASSWORD_HASH`                   | BCrypt hash of the password `admin`      | `app`   | BCrypt hash of the administrator password                   |
@@ -277,6 +277,9 @@ Current operations:
 
 | Method | URL                           | Access    | Description                                                                                            |
 | ------ | ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| GET    | `/api/v1/trips/examples`      | Public    | Returns one page of the example trips (the administrator's), each with the first activity of its first three days (`?page=0&size=3`) |
+| GET    | `/api/v1/trips/examples/{id}` | Public    | Returns one example trip (404 for any trip the administrator did not create, never 403)                |
+| GET    | `/api/v1/trips/examples/{id}/activities` | Public | Returns one page of an example trip's activities, sorted by date and start time (`?date=yyyy-MM-dd&page=0&size=10`) |
 | GET    | `/api/v1/trips`               | Logged-in | Returns one page of the user's own trips (`?page=0&size=10&sort=startDate`)                            |
 | POST   | `/api/v1/trips`               | Logged-in | Creates a trip for the user; 201 with `Location`, 400 for invalid data or the end before the start     |
 | GET    | `/api/v1/trips/{id}`          | Creator   | Returns one trip (403 for another user's trip, 404 if it does not exist)                               |
@@ -440,6 +443,17 @@ Support classes (not tests): `TestcontainersConfiguration` defines the MySQL con
 | `conflictService.test.tsx`, `useConflicts.test.tsx`, `ConflictAlert.test.tsx`, `TripDetailPage.test.tsx`, `TripFormPage.test.tsx` | Frontend unit | The call, the hook (reload, another trip's answer ignored, a failure shows nothing), the Spanish texts of the three kinds, edit links only for the creator, nothing shown without conflicts, and the warning refreshed after deleting an activity |
 | `conflictService.int.test.tsx`, `activityService.int.test.tsx` | Client – server integration | Against the real API: 401, overlap and touching, editing clears it, shortening the trip is accepted and reports the activity, over and equal to the budget, no budget, 403 and 404 |
 | `ConflictUiE2ETest` | Frontend system (UI) | As a sample user: two overlapping activities show the warning with both names, editing one so that they only touch removes it |
+
+**Public home page (B1).** Anyone, logged in or not, sees the home page at `/` with the example trips, and opens one at `/examples/:tripId` to browse its itinerary day by day without being able to change anything. The example trips are the trips the administrator created, so the administrator manages them with the normal trip and itinerary pages; no table or flag marks them. They are read from three public, read-only endpoints under `/api/v1/trips/examples`, added to `SecurityConfig` as exact `GET` paths (every other trip endpoint still needs a login). `TripAccessService.findExample` answers 404, never 403, for a trip the administrator did not create. The home page shows three examples at a time (`?size=3`), each with the first activity of its first three days, which `ActivityRepository.findFirstOfFirstDays` reads for the whole page in one query.
+
+| Test | Type | What it verifies |
+| ---- | ---- | ---------------- |
+| `ExampleTripServiceUnitTest`, `ExampleTripControllerUnitTest`, `TripAccessServiceUnitTest`, `ActivityServiceUnitTest`, `DataLoaderUnitTest` | Backend unit | Only the administrator's trips, the day numbers of the preview, the sort whitelist, 404 for a trip that is not an example, the activities of an example read without a login, the sample example trips with their cover photos, a missing administrator, and a cover given to a trip that has none |
+| `ExampleTripServiceIntegrationTest`, `DataLoaderIntegrationTest` | Backend integration | With MySQL: only the administrator's trips and paging, the first activity of each of the first three days (activities without start time first, ties by id, the fourth day and other users' trips left out, trips not mixed), 404 for a regular user's trip, the administrator's example trips with covers and a removed cover restored |
+| `ExampleTripApiE2ETest` | Backend system | Over HTTPS, anonymous: the list by pages of three with the preview, one example and its activities of a day, 404 for another user's trip or a missing one on the three endpoints, 400 for a bad id, sort or date, and 401 for every other trip endpoint and for writing |
+| `exampleService.test.tsx`, `ExampleTripCard.test.tsx`, `ExampleTrips.test.tsx`, `HomePage.test.tsx`, `ExampleTripPage.test.tsx`, `useTrip.test.tsx`, `ItinerarySection.test.tsx`, `App.test.tsx` | Frontend unit | The calls, the card (facts, preview, link, no buttons), previous and next (only with more than three examples) with the loading, empty and error states, the hero for an anonymous and a logged-in user, the three steps, the read-only preview even for the creator, a loader other than `getTrip`, and the routes |
+| `exampleService.int.test.tsx` | Client – server integration | Against the real API, without a session: three examples at a time with a preview of at most three days, one example and a day of its itinerary, 404 for a missing trip and for a regular user's trip |
+| `HomeUiE2ETest` | Frontend system (UI) | As an anonymous visitor: the three example trips on the home page with no previous and next buttons, opening one and browsing each of its days with no edit buttons; the register button; a logged-in user on the same page; the phone layout |
 
 **Statistics** (19/10/2026):
 
@@ -642,7 +656,7 @@ This section runs the application from the source code. To run the packaged appl
    | `ADMIN_PASSWORD_HASH`   | BCrypt hash of the password `admin`           | BCrypt hash of the administrator password. The application does not start with anything else |
    | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                        |
    | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                   |
-   | `SAMPLE_DATA`           | `true`                                        | Loads the sample users and trips that are missing at start-up (`false` to disable)           |
+   | `SAMPLE_DATA`           | `true`                                        | Loads the sample users and trips, and the administrator's example trips, that are missing at start-up (`false` to disable) |
    | `SAMPLE_USERS_PASSWORD` | `Demo-2026`                                   | Password of the sample users, encoded when they are created (development only)               |
    | `IMAGE_MAX_SIZE`        | `5MB`                                         | Largest image accepted by `POST /api/v1/images`                                              |
 
@@ -703,7 +717,7 @@ To stop everything, press `Ctrl + C` in the backend and frontend terminals and r
 
 ### Sample data
 
-With `SAMPLE_DATA=true` (the default) the application creates, at start-up, three regular users and their trips if they do not exist yet. The accounts are for development and demos and all use the same password, so **a deployment that must not have known accounts has to set `SAMPLE_DATA=false`**.
+With `SAMPLE_DATA=true` (the default) the application creates, at start-up, three regular users and their trips, and the example trips of the administrator, if they do not exist yet. The accounts are for development and demos and all use the same password, so **a deployment that must not have known accounts has to set `SAMPLE_DATA=false`**.
 
 | User         | Email                 | Password    | Trips                                                      |
 | ------------ | --------------------- | ----------- | ---------------------------------------------------------- |
@@ -712,6 +726,8 @@ With `SAMPLE_DATA=true` (the default) the application creates, at start-up, thre
 | Laura Pérez  | `laura@tripmate.com`  | `Demo-2026` | 2                                                          |
 
 Some trips come with an itinerary (B5): Ana's "Lisbon getaway" (7 activities over its first three days, two with an image) and "Summer in Rome" (4), Carlos's "Andalusia route" (3) and Laura's "Weekend in Porto" (4 over two days; the third day is empty on purpose, because the Selenium test creates and deletes an activity there). The images are small PNGs generated at start-up. A trip that already has any activity is left as it is, so nothing is duplicated and what a user changed is kept.
+
+The administrator also gets three **example trips** (B1), which the public home page shows to everyone: "Roma en cinco días", "Escapada a las Maldivas" and "Lo mejor de Tokio" (their text is in Spanish, like the rest of what the home page shows), with a budget, a description, a cover photo and activities on every day of the trip (12, 14 and 14 activities). The home page shows three at a time, so with these there are no previous and next buttons. The photos are in `backend/src/main/resources/sample_images/` and `DataLoader` reads them from the classpath. A sample trip that has no cover gets its photo at start-up, so a database loaded before the photos existed also gets them; for the same reason, a cover that the administrator removes from an example trip comes back at the next start while `SAMPLE_DATA` is `true`. The administrator can edit or delete the example trips like any other trip, and any other trip the administrator creates is also an example. A trip's itinerary is only loaded while the trip has no activity, so a development database loaded before an example trip changed keeps the old trips and itineraries: recreate it (see above) to get the current ones.
 
 The password comes from `app.sample-data.password` (the environment variable `SAMPLE_USERS_PASSWORD`, `Demo-2026` by default) and `DataLoader` encodes it with BCrypt when it creates the users, so the source holds no password or hash; a test checks that the default in `application.properties` is the one written in the README. Users that already exist keep the password they had, so recreate the database to change it. The administrator is still `admin@tripmate.com` / `admin`.
 
@@ -818,6 +834,10 @@ Relevant technical decisions taken during the development, with their reasons.
 | Oct 2026 | An activity lasts one day: the end time must be strictly after the start and there are no overnight activities | Allowing an end on the next day | The schedule is shown per day and conflict detection (B6) compares times of the same day; an activity that crosses midnight is entered as two |
 | Oct 2026 | The selected day of the itinerary is in the URL (`?day=yyyy-MM-dd`) | Component state | The form returns to the same day, the browser's Back button and a refresh keep it, and a day can be linked |
 | Oct 2026 | The itinerary list is paginated and filtered by day in the query (`?date=`), and the activities without a start time come first on their day | Loading the whole itinerary and grouping it in the browser; sorting them last | The rule of the project is to filter and page in the database; MySQL sorts nulls first, which puts the "all day" activities at the head of their day |
+| Oct 2026 | The example trips of the public home page (B1) are the trips the administrator created, read from public `GET /api/v1/trips/examples` endpoints | A flag or an `example` table; copying the trips into a separate table | The administrator already manages trips with the normal pages (B4, B5), so there is nothing new to keep in step; a trip of anyone else can never be exposed because the query is by the creator's role, and it is a 404, not a 403, for anything else |
+| Oct 2026 | The first activity of each of the first three days of the example trips is read in one query for the whole page (`findFirstOfFirstDays`) | Loading every activity of each trip and choosing in Java; one query per trip | The project filters and aggregates in the database, and the home page would otherwise load every itinerary of the page |
+| Oct 2026 | The text of the example trips (names, places, descriptions and activities) is written in Spanish in `DataLoader`; the rest of the sample data, the identifiers and the comments stay in English | English text, as the other sample trips | The home page shows the examples exactly as stored, to Spanish-speaking visitors, and there is no translation layer for data; it is content, not an identifier |
+| Oct 2026 | The home page shows the examples three at a time and, only when there are more than three, pages through them with previous and next buttons, not with "More results" | A button that appends the next page; always showing the buttons | The design asked for a fixed row of three cards that changes, so the page replaces the cards; with the three sample examples there is nothing to page, so the buttons stay hidden; the endpoint is the usual paginated one |
 | Oct 2026 | The category of an activity is a closed list (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`) | Free text | The spending chart by category (I5) and the AI proposals (A1) need values that can be grouped; the Spanish names are written in the frontend component |
 
 ## Problems and solutions

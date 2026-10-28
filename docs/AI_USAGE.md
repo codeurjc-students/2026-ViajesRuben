@@ -296,3 +296,17 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills and review subagents.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `B6`.
 - **Human Validation:** The student reviewed and approved the plan, tried the application manually and verified each stage.
+
+#### Record 3.13 — Public home page with example itineraries (B1)
+
+- **Date:** 28/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Help implement feature B1.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `B1`, and to write some parts of the code and tests across four stages (public endpoints, sample data, home page and preview, documentation), and the documentation (OpenAPI, Postman collection, development guide, changelog).
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `B1`.
+- **Human Validation:** The student reviewed and approved the plan, made the necessary changes, chose the photos and verified each stage before committing.

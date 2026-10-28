@@ -60,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B6: the trip page shows a warning above the itinerary, in Spanish, with the overlapping activities and their day, the activities outside the trip's dates with an "Editar" link, and the total cost against the budget; nothing is shown when there are no conflicts, and it is refreshed after an activity is deleted.
 - B6 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (two overlapping activities show the warning, editing one removes it).
 - `GET /api/v1/trips/{tripId}/activities/cost` (trip creator; 401, 403, 404) returns the total cost of the trip's activities, summed in the query, and the remaining budget (the budget minus that total, negative when over, `null` for a trip without budget); the trip page shows it below the budget as "Presupuesto restante" and refreshes it when an activity is deleted.
+- B1: the public home page at `/`, in Spanish: a short introduction with "Regístrate gratis" and "Ya tengo cuenta" (a logged-in user sees "Ir a Mis viajes" instead), "Itinerarios de ejemplo" with the example trips three at a time (previous and next buttons appear only when there are more than three), and a "Cómo funciona" box with three steps. Each example card shows the cover, the name, the destination, the number of days and the budget, the first activity of its first three days and a "Ver itinerario completo" button.
+- B1: `/examples/:tripId`, a read-only preview of an example trip: cover, trip data and the itinerary day by day, with no edit, delete or create buttons and no conflicts. A trip that is not an example is the 404 page.
+- B1: the example trips are the trips the administrator created, so the administrator manages them with the normal trip and itinerary pages. `GET /api/v1/trips/examples` (paginated, each trip with the first activity of its first three days, read in one query for the whole page), `GET /api/v1/trips/examples/{id}` and `GET /api/v1/trips/examples/{id}/activities` (paginated, `?date=` like B5) are public and read-only; a trip the administrator did not create is a 404, never a 403.
+- B1: the sample data gives the administrator three example trips (Rome, the Maldives and Tokyo) with a budget, a description, a cover photo from `backend/src/main/resources/sample_images/` and activities on every day of the trip. A sample trip that has no cover gets its photo when the application starts, so existing development databases get them too.
+- B1 tests: backend unit, integration and REST API tests (anonymous list, preview and pagination, a trip of a regular user is a 404, the write endpoints stay 401), frontend unit and client – server integration tests, and a Selenium flow (an anonymous visitor opens `/`, sees the example trips, pages through them, opens one and browses its days).
 
 ### Changed
 
@@ -83,6 +88,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B5: `TripService` no longer checks the creator itself (`findTripForRead` and `findTripForWrite` moved to `TripAccessService`); the behaviour is the same.
 - B5: `ImageService.deleteAll` removes several images in one statement, and the day tabs take their colors from the theme tokens.
 - B6: `PUT /api/v1/trips/{id}` no longer answers 409 when the new dates leave an activity outside the trip; the change is saved and the activity is reported by `GET /api/v1/trips/{tripId}/conflicts`. Creating or editing an activity still requires a date inside the trip (400). The trip form no longer has a message for that 409.
+- B1: only `GET /api/v1/trips/examples`, `GET /api/v1/trips/examples/{id}` and `GET /api/v1/trips/examples/{id}/activities` are public among the trip endpoints; everything else under `/api/` still needs a login.
+- B1: `DataLoader` runs after the administrator account is created and needs `AdminProperties`; the home page `/` replaces the placeholder.
+- B1: `ItinerarySection`, `DayActivities` and `useTrip` can read from another source (the example trips) and `ItinerarySection` has a read-only mode.
 
 ## [0.0.2] - 2026-10-19
 

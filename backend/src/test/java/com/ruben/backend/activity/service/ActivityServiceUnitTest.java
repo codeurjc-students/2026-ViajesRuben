@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.FirstActivityDTO;
 import com.ruben.backend.activity.dto.TripCostDTO;
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.entity.ActivityCategory;
@@ -166,6 +167,60 @@ class ActivityServiceUnitTest {
 
     assertThatThrownBy(() -> activityService.findPage(1L, null, PageRequest.of(0, 10)))
         .isInstanceOf(ForbiddenException.class);
+    verifyNoInteractions(activityRepository);
+  }
+
+  // --- example trips (B1) ---
+
+  @Test
+  @Tag("B1")
+  void findExamplePageReadsTheActivitiesOfAnExampleTripWithoutAnyLogin() {
+    Pageable pageable = PageRequest.of(0, 10, Sort.by("date", "startTime", "id"));
+    LocalDate day = START.plusDays(1);
+    List<Activity> found = List.of(activity(5L));
+    when(tripAccessService.findExample(1L)).thenReturn(trip);
+    when(activityRepository.findByTrip(1L, day, pageable))
+        .thenReturn(new PageImpl<>(found, pageable, 1));
+
+    PageDTO<ActivityDTO> page = activityService.findExamplePage(1L, day, pageable);
+
+    assertThat(page.content()).extracting(ActivityDTO::id).containsExactly(5L);
+    verify(tripAccessService, never()).findForRead(any());
+  }
+
+  @Test
+  @Tag("B1")
+  void findExamplePageOfATripThatIsNotAnExampleIsNotFoundAndQueriesNothing() {
+    when(tripAccessService.findExample(1L)).thenThrow(new ResourceNotFoundException("Trip"));
+
+    assertThatThrownBy(() -> activityService.findExamplePage(1L, null, PageRequest.of(0, 10)))
+        .isInstanceOf(ResourceNotFoundException.class);
+    verifyNoInteractions(activityRepository);
+  }
+
+  @Test
+  @Tag("B1")
+  void findExamplePageRejectsSortingByAnotherPropertyBeforeLookingAtTheTrip() {
+    Pageable nested = PageRequest.of(0, 10, Sort.by("trip.creator.password"));
+
+    assertThatThrownBy(() -> activityService.findExamplePage(1L, null, nested))
+        .isInstanceOf(BadRequestException.class);
+    verifyNoInteractions(tripAccessService, activityRepository);
+  }
+
+  @Test
+  @Tag("B1")
+  void findFirstActivitiesAsksForAllTheTripsInOneQuery() {
+    FirstActivityDTO first = new FirstActivityDTO(1L, START, "Colosseum");
+    when(activityRepository.findFirstOfFirstDays(List.of(1L, 2L))).thenReturn(List.of(first));
+
+    assertThat(activityService.findFirstActivities(List.of(1L, 2L))).containsExactly(first);
+  }
+
+  @Test
+  @Tag("B1")
+  void findFirstActivitiesWithoutTripsDoesNotQuery() {
+    assertThat(activityService.findFirstActivities(List.of())).isEmpty();
     verifyNoInteractions(activityRepository);
   }
 

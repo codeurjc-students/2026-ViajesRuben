@@ -1,10 +1,12 @@
 package com.ruben.backend.activity.repository;
 
+import com.ruben.backend.activity.dto.FirstActivityDTO;
 import com.ruben.backend.activity.dto.OutsideDatesDTO;
 import com.ruben.backend.activity.dto.OverlapDTO;
 import com.ruben.backend.activity.entity.Activity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +26,23 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
   @Query("select a from Activity a where a.trip.id = :tripId and (:date is null or a.date = :date)")
   Page<Activity> findByTrip(
       @Param("tripId") Long tripId, @Param("date") LocalDate date, Pageable pageable);
+
+  /**
+   * The first activity of each of the first three days of the given trips, in one query: on a day,
+   * the ones without start time come first, then the earliest, as in the itinerary.
+   */
+  @Query(
+      "select new com.ruben.backend.activity.dto.FirstActivityDTO(t.id, a.date, a.name)"
+          + " from Activity a join a.trip t where t.id in :tripIds"
+          + " and a.date >= t.startDate and a.date < t.startDate + 3 day"
+          + " and not exists (select 1 from Activity b where b.trip = a.trip and b.date = a.date"
+          + " and b.id <> a.id and ((b.startTime is null"
+          + " and (a.startTime is not null or b.id < a.id))"
+          + " or (b.startTime is not null and a.startTime is not null"
+          + " and (b.startTime < a.startTime"
+          + " or (b.startTime = a.startTime and b.id < a.id)))))"
+          + " order by t.id, a.date")
+  List<FirstActivityDTO> findFirstOfFirstDays(@Param("tripIds") Collection<Long> tripIds);
 
   /** The activity only when it belongs to that trip, so another trip's id is not found. */
   Optional<Activity> findByIdAndTripId(Long id, Long tripId);

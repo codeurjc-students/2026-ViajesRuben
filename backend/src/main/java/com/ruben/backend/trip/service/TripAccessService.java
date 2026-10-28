@@ -4,6 +4,7 @@ import com.ruben.backend.common.error.ForbiddenException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
+import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.service.AuthService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,19 @@ public class TripAccessService {
   @Transactional(readOnly = true)
   public Trip findForWrite(Long id) {
     return findCreatedByCurrentUser(id);
+  }
+
+  /**
+   * An example trip is public to read: one the administrator created. Any other trip is reported as
+   * missing, never as forbidden, so the public endpoints reveal nothing about it.
+   *
+   * @throws ResourceNotFoundException no example trip has that id
+   */
+  @Transactional(readOnly = true)
+  public Trip findExample(Long id) {
+    return tripRepository
+        .findByIdAndCreatorRole(id, Role.ADMIN)
+        .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
   }
 
   private Trip findCreatedByCurrentUser(Long id) {

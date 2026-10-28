@@ -1377,6 +1377,169 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/examples:
+    get:
+      tags:
+        - example-trip-controller
+      summary: List the example trips
+      description:
+        "Public, no login. The trips the administrator created, each with\
+        \ the first activity of its first three days (`firstDays`; days without activities\
+        \ are left out). Paginated: `?page=0&size=10` (50 at most), sorted by start\
+        \ date by default; `sort` accepts `id`, `name`, `destination`, `startDate`,\
+        \ `endDate` and `createdAt`."
+      operationId: getExamples
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "startDate,ASC"
+              - "id,ASC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of example trips
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOExampleTripDTO"
+        "400":
+          description: "Invalid page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/examples/{id}:
+    get:
+      tags:
+        - example-trip-controller
+      summary: Get an example trip by id
+      description:
+        "Public, no login. Only trips the administrator created; any other\
+        \ id is 404."
+      operationId: getExample
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The example trip
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description: The id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No example trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/examples/{id}/activities:
+    get:
+      tags:
+        - example-trip-controller
+      summary: List an example trip's activities
+      description:
+        "Public, no login. Paginated like `GET /api/v1/trips/{tripId}/activities`:\
+        \ `?page=0&size=10`, sorted by date and start time by default, `date=yyyy-MM-dd`\
+        \ keeps only the activities of that day."
+      operationId: getExampleActivities
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: date
+          in: query
+          description: "Only the activities of this day, `yyyy-MM-dd`"
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "date,ASC"
+              - "startTime,ASC"
+              - "id,ASC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of activities
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOActivityDTO"
+        "400":
+          description: "Invalid trip id, date, page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No example trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/images/{id}:
     get:
       tags:
@@ -1776,3 +1939,38 @@ components:
           type: number
         remainingBudget:
           type: number
+    DayPreviewDTO:
+      type: object
+      properties:
+        day:
+          type: integer
+          format: int32
+        activityName:
+          type: string
+    ExampleTripDTO:
+      type: object
+      properties:
+        trip:
+          $ref: "#/components/schemas/TripDTO"
+        firstDays:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayPreviewDTO"
+    PageDTOExampleTripDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExampleTripDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
