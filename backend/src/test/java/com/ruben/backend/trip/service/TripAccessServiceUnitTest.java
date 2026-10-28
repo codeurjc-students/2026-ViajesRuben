@@ -101,4 +101,26 @@ class TripAccessServiceUnitTest {
         .hasMessage("Trip not found");
     verifyNoInteractions(authService);
   }
+
+  @Test
+  @Tag("B1")
+  void anExampleTripIsFoundWithoutLookingAtTheCurrentUser() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    Trip trip =
+        new Trip(admin, "Rome", "Rome", LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 17));
+    when(tripRepository.findByIdAndCreatorRole(1L, Role.ADMIN)).thenReturn(Optional.of(trip));
+
+    assertThat(tripAccessService.findExample(1L)).isSameAs(trip);
+    verifyNoInteractions(authService);
+  }
+
+  @Test
+  @Tag("B1")
+  void aTripThatIsNotTheAdministratorsIsNotFoundAsAnExample() {
+    when(tripRepository.findByIdAndCreatorRole(2L, Role.ADMIN)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> tripAccessService.findExample(2L))
+        .isInstanceOf(ResourceNotFoundException.class)
+        .hasMessage("Trip not found");
+  }
 }

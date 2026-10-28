@@ -29,7 +29,7 @@ public class TripService {
   private static final Logger log = LoggerFactory.getLogger(TripService.class);
 
   /** The only properties a client may sort by; a nested path such as `creator.password` is not. */
-  private static final Set<String> SORTABLE =
+  static final Set<String> SORTABLE =
       Set.of("id", "name", "destination", "startDate", "endDate", "createdAt");
 
   private final TripRepository tripRepository;

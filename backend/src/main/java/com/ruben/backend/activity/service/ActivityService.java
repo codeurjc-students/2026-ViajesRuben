@@ -2,6 +2,7 @@ package com.ruben.backend.activity.service;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.FirstActivityDTO;
 import com.ruben.backend.activity.dto.TripCostDTO;
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.repository.ActivityRepository;
@@ -20,6 +21,7 @@ import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -71,6 +73,35 @@ public class ActivityService {
    */
   @Transactional(readOnly = true)
   public PageDTO<ActivityDTO> findPage(Long tripId, LocalDate date, Pageable pageable) {
+    checkSortable(pageable);
+    tripAccessService.findForRead(tripId);
+    return PageDTO.from(
+        activityRepository.findByTrip(tripId, date, pageable).map(ActivityDTO::from));
+  }
+
+  /**
+   * Like {@link #findPage}, for an example trip, which anyone may read.
+   *
+   * @throws ResourceNotFoundException no example trip has that id
+   */
+  @Transactional(readOnly = true)
+  public PageDTO<ActivityDTO> findExamplePage(Long tripId, LocalDate date, Pageable pageable) {
+    checkSortable(pageable);
+    tripAccessService.findExample(tripId);
+    return PageDTO.from(
+        activityRepository.findByTrip(tripId, date, pageable).map(ActivityDTO::from));
+  }
+
+  /** The first activity of each of the first three days of the trips, in a single query. */
+  @Transactional(readOnly = true)
+  public List<FirstActivityDTO> findFirstActivities(Collection<Long> tripIds) {
+    if (tripIds.isEmpty()) {
+      return List.of();
+    }
+    return activityRepository.findFirstOfFirstDays(tripIds);
+  }
+
+  private static void checkSortable(Pageable pageable) {
     pageable
         .getSort()
         .forEach(
@@ -79,9 +110,6 @@ public class ActivityService {
                 throw new BadRequestException("Cannot sort by '" + order.getProperty() + "'");
               }
             });
-    tripAccessService.findForRead(tripId);
-    return PageDTO.from(
-        activityRepository.findByTrip(tripId, date, pageable).map(ActivityDTO::from));
   }
 
   /**
