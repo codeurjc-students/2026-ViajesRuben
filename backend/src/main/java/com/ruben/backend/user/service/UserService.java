@@ -1,5 +1,6 @@
 package com.ruben.backend.user.service;
 
+import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
 import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.common.error.ForbiddenException;
@@ -10,17 +11,21 @@ import com.ruben.backend.image.dto.ImageDTO;
 import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
+import com.ruben.backend.user.dto.AdminUserDTO;
 import com.ruben.backend.user.dto.ChangePasswordRequest;
 import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UpdateProfileRequest;
 import com.ruben.backend.user.dto.UserDTO;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
+import com.ruben.backend.user.entity.UserStatus;
 import com.ruben.backend.user.repository.UserRepository;
 import java.util.Locale;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +36,7 @@ public class UserService {
 
   private static final Logger log = LoggerFactory.getLogger(UserService.class);
   private static final String EMAIL_TAKEN = "Email is already registered";
+  static final Set<String> SORTABLE = Set.of("id", "name", "email", "registrationDate");
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
@@ -90,15 +96,62 @@ public class UserService {
   public UserDTO updateProfile(Long id, UpdateProfileRequest request) {
     User user = findOwnUser(id);
     ensureNotAdministrator(user);
-    String email = normalizeEmail(request.email());
-    if (!email.equalsIgnoreCase(user.getEmail())) {
-      ensureEmailAvailable(email);
-    }
-    user.setName(request.name().trim());
-    user.setEmail(email);
-    user = saveCheckingEmail(user);
+    user = applyDetails(user, request);
     log.info("User {} updated their profile", user.getId());
     return UserDTO.from(user);
+  }
+
+  /**
+   * One page of the regular users, for the administrator; `search` matches the name or the email,
+   * ignoring case, and a blank one lists everyone.
+   *
+   * @throws BadRequestException the page asks to sort by a property that is not sortable
+   */
+  @Transactional(readOnly = true)
+  public PageDTO<AdminUserDTO> findPage(String search, Pageable pageable) {
+    pageable
+        .getSort()
+        .forEach(
+            order -> {
+              if (!SORTABLE.contains(order.getProperty())) {
+                throw new BadRequestException("Cannot sort by '" + order.getProperty() + "'");
+              }
+            });
+    String text = search == null || search.isBlank() ? null : search.trim();
+    return PageDTO.from(userRepository.searchUsers(text, pageable).map(AdminUserDTO::from));
+  }
+
+  /**
+   * The administrator changes a user's name and email, with the registration rules for the email.
+   *
+   * @throws ResourceNotFoundException no user has that id
+   * @throws ForbiddenException it is the administrator's own account
+   * @throws ConflictException the new email belongs to another account or to the administrator
+   */
+  @Transactional
+  public AdminUserDTO updateByAdmin(Long id, UpdateProfileRequest request) {
+    User user = findUser(id);
+    ensureNotAdministrator(user);
+    user = applyDetails(user, request);
+    log.info("Administrator updated user {}", user.getId());
+    return AdminUserDTO.from(user);
+  }
+
+  /**
+   * Blocks or unblocks an account. A blocked user cannot log in, and their open session is rejected
+   * on the next request, because every request reloads the user.
+   *
+   * @throws ResourceNotFoundException no user has that id
+   * @throws ForbiddenException it is the administrator's own account
+   */
+  @Transactional
+  public AdminUserDTO changeStatus(Long id, UserStatus status) {
+    User user = findUser(id);
+    ensureNotAdministrator(user);
+    user.setStatus(status);
+    user = userRepository.save(user);
+    log.info("Administrator set user {} to {}", user.getId(), status);
+    return AdminUserDTO.from(user);
   }
 
   /**
@@ -193,6 +246,17 @@ public class UserService {
         || userRepository.existsByEmailIgnoreCase(email)) {
       throw new ConflictException(EMAIL_TAKEN);
     }
+  }
+
+  /** Sets the trimmed name and the normalised email, checking the email only when it changes. */
+  private User applyDetails(User user, UpdateProfileRequest request) {
+    String email = normalizeEmail(request.email());
+    if (!email.equalsIgnoreCase(user.getEmail())) {
+      ensureEmailAvailable(email);
+    }
+    user.setName(request.name().trim());
+    user.setEmail(email);
+    return saveCheckingEmail(user);
   }
 
   private User saveCheckingEmail(User user) {
