@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
+import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
 import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.common.security.ActiveUserJwtConverter;
@@ -14,6 +15,7 @@ import com.ruben.backend.common.security.TripMateUserDetailsService;
 import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageDTO;
 import com.ruben.backend.image.repository.ImageRepository;
+import com.ruben.backend.user.dto.AdminUserDTO;
 import com.ruben.backend.user.dto.ChangePasswordRequest;
 import com.ruben.backend.user.dto.LoginRequest;
 import com.ruben.backend.user.dto.RegisterRequest;
@@ -32,15 +34,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 @Tag("B2")
 @Tag("B3")
+@Tag("B7")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class UserServiceIntegrationTest {
@@ -209,6 +217,86 @@ class UserServiceIntegrationTest {
     // Outside any transaction: the id of the lazy avatar must still be readable.
     assertThat(userDetailsService.loadUserById(ana.id()).getAvatarId()).isEqualTo(avatar.id());
     assertThat(userService.findAvatarContent(ana.id()).contentType()).isEqualTo("image/png");
+  }
+
+  // --- B7: user management by the administrator ---
+
+  private void saveUser(String name, String email) {
+    userRepository.save(new User(name, email, passwordEncoder.encode(PASSWORD), Role.USER));
+  }
+
+  @Test
+  @Tag("B7")
+  void searchMatchesNameOrEmailIgnoringCaseAndNeverListsTheAdministrator() {
+    saveUser("Ana Ruiz", "ana@example.com");
+    saveUser("Bruno", "BRUNO@mail.com");
+    saveUser("Carla", "carla@ANA-corp.com");
+    Pageable pageable = PageRequest.of(0, 10, Sort.by("name", "id"));
+
+    assertThat(userService.findPage("ANA", pageable).content())
+        .extracting(AdminUserDTO::name)
+        .containsExactly("Ana Ruiz", "Carla");
+    assertThat(userService.findPage("bruno@mail", pageable).content())
+        .extracting(AdminUserDTO::name)
+        .containsExactly("Bruno");
+    assertThat(userService.findPage("test.tripmate", pageable).content()).isEmpty();
+    assertThat(userService.findPage(null, pageable).content())
+        .extracting(AdminUserDTO::name)
+        .containsExactly("Ana Ruiz", "Bruno", "Carla");
+  }
+
+  @Test
+  @Tag("B7")
+  void thePagesFollowTheSortAndReportTheLastOne() {
+    saveUser("Ana", "ana@example.com");
+    saveUser("Bruno", "bruno@example.com");
+    saveUser("Carla", "carla@example.com");
+
+    PageDTO<AdminUserDTO> first = userService.findPage("", PageRequest.of(0, 2, Sort.by("name")));
+    PageDTO<AdminUserDTO> second = userService.findPage("", PageRequest.of(1, 2, Sort.by("name")));
+
+    assertThat(first.content()).extracting(AdminUserDTO::name).containsExactly("Ana", "Bruno");
+    assertThat(first.totalElements()).isEqualTo(3);
+    assertThat(first.last()).isFalse();
+    assertThat(second.content()).extracting(AdminUserDTO::name).containsExactly("Carla");
+    assertThat(second.last()).isTrue();
+  }
+
+  @Test
+  @Tag("B7")
+  void aBlockedUsersTokenIsRejectedUntilTheyAreUnblocked() {
+    UserDTO ana = userService.register(new RegisterRequest("Ana", "ana@example.com", PASSWORD));
+    String token = jwtService.issueToken(userDetailsService.loadUserById(ana.id()));
+
+    userService.changeStatus(ana.id(), UserStatus.BLOCKED);
+
+    Jwt jwt = jwtDecoder.decode(token);
+    assertThatThrownBy(() -> jwtConverter.convert(jwt)).isInstanceOf(LockedException.class);
+    LoginRequest login = new LoginRequest("ana@example.com", PASSWORD);
+    assertThatThrownBy(() -> authService.login(login)).isInstanceOf(LockedException.class);
+
+    userService.changeStatus(ana.id(), UserStatus.ACTIVE);
+
+    TripMateUserDetails resolved = (TripMateUserDetails) jwtConverter.convert(jwt).getPrincipal();
+    assertThat(resolved.getId()).isEqualTo(ana.id());
+    assertThat(authService.login(login).user().id()).isEqualTo(ana.id());
+  }
+
+  @Test
+  @Tag("B7")
+  void anAdminEditChangesTheStoredDetailsAndKeepsTheEmailUnique() {
+    UserDTO ana = userService.register(new RegisterRequest("Ana", "ana@example.com", PASSWORD));
+    saveUser("Bruno", "bruno@example.com");
+
+    AdminUserDTO updated =
+        userService.updateByAdmin(ana.id(), new UpdateProfileRequest(" Ana R ", "Ana.R@Mail.com"));
+
+    assertThat(updated.name()).isEqualTo("Ana R");
+    assertThat(userRepository.findById(ana.id()).orElseThrow().getEmail())
+        .isEqualTo("ana.r@mail.com");
+    UpdateProfileRequest taken = new UpdateProfileRequest("Ana", "bruno@example.com");
+    assertThatThrownBy(() -> userService.updateByAdmin(ana.id(), taken))
+        .isInstanceOf(ConflictException.class);
   }
 
   @Test

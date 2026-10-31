@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 import type { AuthContextValue } from './context/AuthContext';
-import type { Activity, ExampleTrip, Page, Trip, TripConflicts, User } from './types';
+import type { Activity, AdminUser, ExampleTrip, Page, Trip, TripConflicts, User } from './types';
 
 export const ANA: User = {
   id: 1,
@@ -10,6 +10,18 @@ export const ANA: User = {
   avatarId: null,
   registrationDate: '2026-10-01',
 };
+
+/** Builds a user as the administrator sees it: Ana, active, unless overridden. */
+export function adminUserOf(overrides: Partial<AdminUser> = {}): AdminUser {
+  return {
+    id: 5,
+    name: 'Ana',
+    email: 'ana@example.com',
+    status: 'ACTIVE',
+    registrationDate: '2026-10-01',
+    ...overrides,
+  };
+}
 
 /** Builds the value of the auth context for tests: logged in as `user` (or nobody) with spy actions. */
 export function authValue(

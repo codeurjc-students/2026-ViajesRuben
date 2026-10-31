@@ -111,14 +111,10 @@ test('renders the trip list at /trips with the header and footer', async () => {
   expect(screen.getByRole('link', { name: 'Mis viajes' })).toHaveAttribute('aria-current', 'page');
 });
 
-test.each([
-  ['/trips/7/ai-generator', 'Generador IA'],
-  ['/admin', 'Administración'],
-  ['/admin/users/2/edit', 'Editar usuario'],
-])('%s shows a placeholder page in the layout', (path, title) => {
-  renderAt(path);
+test('/trips/7/ai-generator shows a placeholder page in the layout', () => {
+  renderAt('/trips/7/ai-generator');
 
-  expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Generador IA' })).toBeInTheDocument();
   expect(screen.getByRole('contentinfo')).toBeInTheDocument();
 });
 
@@ -156,6 +152,32 @@ test('B2 an anonymous visitor opening a private screen is sent to /login', () =>
 
   expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
   expect(screen.queryByText('Trip 1')).not.toBeInTheDocument();
+});
+
+const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
+
+test.each(['/admin', '/admin/users'])('B7 %s shows its page to the administrator', (path) => {
+  renderAt(path, ADMIN);
+
+  expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+  expect(screen.queryByText('No tienes acceso a esta página')).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument();
+});
+
+test.each(['/admin', '/admin/users'])('B7 %s shows the 403 page to a regular user', (path) => {
+  renderAt(path);
+
+  expect(
+    screen.getByRole('heading', { name: 'No tienes acceso a esta página' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('navigation')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
+});
+
+test('B7 an anonymous visitor opening /admin/users is sent to /login', () => {
+  renderAt('/admin/users', null);
+
+  expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
 });
 
 test.each([

@@ -123,3 +123,23 @@ describe('B3 header and the profile', () => {
     await waitFor(() => expect(auth.logout).toHaveBeenCalledOnce());
   });
 });
+
+describe('B7 header link for the administrator', () => {
+  test('the administrator sees the Usuarios link to /admin/users', () => {
+    renderAt('/trips', authValue({ ...ANA, role: 'ADMIN' }));
+
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toHaveAttribute('href', '/admin/users');
+  });
+
+  test('a regular user does not see the Usuarios link', () => {
+    renderAt('/trips');
+
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
+  });
+
+  test('an anonymous visitor does not see the Usuarios link', () => {
+    renderAt('/', authValue(null));
+
+    expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
+  });
+});

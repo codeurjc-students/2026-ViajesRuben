@@ -1,0 +1,61 @@
+.admin-users__title {
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+}
+
+.admin-users__search,
+.admin-users__empty,
+.admin-user {
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.admin-users__search {
+  margin-bottom: 1.5rem;
+}
+
+.admin-users__search-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.admin-users__list {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-user {
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-user__info {
+  min-width: 0;
+}
+
+.admin-user__name {
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-user__meta {
+  margin-bottom: 0.125rem;
+  color: var(--tm-via);
+  overflow-wrap: anywhere;
+}
+
+.admin-user__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (width >= 768px) {
+  .admin-user {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}

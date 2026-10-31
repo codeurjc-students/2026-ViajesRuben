@@ -47,6 +47,11 @@ export default function AppHeader() {
                   Crear viaje
                 </Nav.Link>
                 <Nav.Link href="#">Generador IA</Nav.Link>
+                {user.role === 'ADMIN' && (
+                  <Nav.Link as={NavLink} to="/admin/users">
+                    Usuarios
+                  </Nav.Link>
+                )}
               </Nav>
               <div className="app-header__user">
                 <Link to="/profile" className="app-header__profile" aria-label="Mi perfil">

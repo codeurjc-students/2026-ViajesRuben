@@ -65,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B1: the example trips are the trips the administrator created, so the administrator manages them with the normal trip and itinerary pages. `GET /api/v1/trips/examples` (paginated, each trip with the first activity of its first three days, read in one query for the whole page), `GET /api/v1/trips/examples/{id}` and `GET /api/v1/trips/examples/{id}/activities` (paginated, `?date=` like B5) are public and read-only; a trip the administrator did not create is a 404, never a 403.
 - B1: the sample data gives the administrator three example trips (Rome, the Maldives and Tokyo) with a budget, a description, a cover photo from `backend/src/main/resources/sample_images/` and activities on every day of the trip. A sample trip that has no cover gets its photo when the application starts, so existing development databases get them too.
 - B1 tests: backend unit, integration and REST API tests (anonymous list, preview and pagination, a trip of a regular user is a 404, the write endpoints stay 401), frontend unit and client – server integration tests, and a Selenium flow (an anonymous visitor opens `/`, sees the example trips, pages through them, opens one and browses its days).
+- B7: user management for the administrator at `/api/v1/admin/users`: `GET` (regular users, paginated, `?search=` by name or email ignoring case, sort limited to `id`, `name`, `email` and `registrationDate`), `PUT /{id}` (name and email, with the registration rules and 409) and `PUT /{id}/status` (`BLOCKED` or `ACTIVE`). 401 anonymous, 403 for a regular user and for the administrator's own account, 404.
+- B7: a blocked user cannot log in and their open session is rejected on the next request; unblocking restores access.
+- B7: `/admin/users` page with search, the user list (name, email, registration date, status badge), "Más resultados", a modal to edit the name and email, and block or unblock with confirmation. "Usuarios" link in the header for the administrator.
+- B7 tests: backend unit, integration and REST API tests (401, 403, search, pagination, 409, block and unblock with login and an open session, the administrator's own account), frontend unit and client – server integration tests, and a Selenium flow (search a user, edit the name, block, unblock).
 
 ### Changed
 
@@ -91,6 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B1: only `GET /api/v1/trips/examples`, `GET /api/v1/trips/examples/{id}` and `GET /api/v1/trips/examples/{id}/activities` are public among the trip endpoints; everything else under `/api/` still needs a login.
 - B1: `DataLoader` runs after the administrator account is created and needs `AdminProperties`; the home page `/` replaces the placeholder.
 - B1: `ItinerarySection`, `DayActivities` and `useTrip` can read from another source (the example trips) and `ItinerarySection` has a read-only mode.
+- B7: `/admin` and `/admin/users` are only for the administrator (`RequireAdmin`); a regular user sees the 403 error page. The placeholder `/admin/users/:userId/edit` is removed because editing is a modal.
+- B7: the 403 error page no longer says that the content belongs to another user.
 
 ## [0.0.2] - 2026-10-19
 

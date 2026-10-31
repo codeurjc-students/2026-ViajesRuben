@@ -47,6 +47,7 @@ test('B4 shows the no-access message for a 403 from the API', async () => {
   expect(
     await screen.findByRole('heading', { name: 'No tienes acceso a esta página' }),
   ).toBeInTheDocument();
+  expect(screen.getByText(/No tienes permiso para ver este contenido/)).toBeInTheDocument();
 });
 
 test('B4 shows the expired-session message for a 401 from the API', async () => {

@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
 import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.common.error.ForbiddenException;
@@ -19,6 +21,7 @@ import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
 import com.ruben.backend.user.UserTestData;
+import com.ruben.backend.user.dto.AdminUserDTO;
 import com.ruben.backend.user.dto.ChangePasswordRequest;
 import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UpdateProfileRequest;
@@ -27,6 +30,7 @@ import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
 import com.ruben.backend.user.entity.UserStatus;
 import com.ruben.backend.user.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,12 +41,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @Tag("B2")
 @Tag("B3")
+@Tag("B7")
 @ExtendWith(MockitoExtension.class)
 class UserServiceUnitTest {
 
@@ -434,5 +444,159 @@ class UserServiceUnitTest {
     assertThatThrownBy(() -> userService.findAvatarContent(99L))
         .isInstanceOf(ResourceNotFoundException.class)
         .hasMessage("User not found");
+  }
+
+  // --- B7: user management by the administrator ---
+
+  private User existingUser(long id, String email) {
+    User user = UserTestData.user(id, email, Role.USER, UserStatus.ACTIVE);
+    when(userRepository.findById(id)).thenReturn(Optional.of(user));
+    return user;
+  }
+
+  private void existingAdministrator() {
+    User admin = UserTestData.user(1L, ADMIN_EMAIL, Role.ADMIN, UserStatus.ACTIVE);
+    when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
+  }
+
+  @Test
+  void findPageTrimsTheSearchAndMapsTheUsers() {
+    Pageable pageable = PageRequest.of(0, 10, Sort.by("name", "id"));
+    User ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.BLOCKED);
+    when(userRepository.searchUsers("ana", pageable))
+        .thenReturn(new PageImpl<>(List.of(ana), pageable, 1));
+
+    PageDTO<AdminUserDTO> page = userService.findPage("  ana ", pageable);
+
+    assertThat(page.content()).containsExactly(AdminUserDTO.from(ana));
+    assertThat(page.totalElements()).isEqualTo(1);
+    assertThat(page.last()).isTrue();
+  }
+
+  @Test
+  void findPageWithoutSearchTextListsEveryone() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(userRepository.searchUsers(null, pageable)).thenReturn(Page.empty(pageable));
+
+    assertThat(userService.findPage(null, pageable).content()).isEmpty();
+    assertThat(userService.findPage("   ", pageable).content()).isEmpty();
+    verify(userRepository, times(2)).searchUsers(null, pageable);
+  }
+
+  @Test
+  void findPageRejectsASortPropertyThatIsNotSortable() {
+    Pageable pageable = PageRequest.of(0, 10, Sort.by("password"));
+
+    assertThatThrownBy(() -> userService.findPage(null, pageable))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessage("Cannot sort by 'password'");
+    verifyNoInteractions(userRepository);
+  }
+
+  @Test
+  void updateByAdminSavesTheTrimmedNameAndTheNormalizedEmail() {
+    existingUser(7L, "ana@example.com");
+    when(userRepository.saveAndFlush(any(User.class))).thenAnswer(call -> call.getArgument(0));
+
+    AdminUserDTO result =
+        userService.updateByAdmin(7L, new UpdateProfileRequest("  Ana Ruiz ", " Ana.R@Mail.COM "));
+
+    assertThat(result.name()).isEqualTo("Ana Ruiz");
+    assertThat(result.email()).isEqualTo("ana.r@mail.com");
+    verify(userRepository).existsByEmailIgnoreCase("ana.r@mail.com");
+  }
+
+  @Test
+  void updateByAdminKeepingTheSameEmailDoesNotCheckIt() {
+    existingUser(7L, "ana@example.com");
+    when(userRepository.saveAndFlush(any(User.class))).thenAnswer(call -> call.getArgument(0));
+
+    userService.updateByAdmin(7L, new UpdateProfileRequest("Ana", "ANA@example.com"));
+
+    verify(userRepository, never()).existsByEmailIgnoreCase(any());
+  }
+
+  @Test
+  void updateByAdminRejectsAnEmailOfAnotherAccount() {
+    existingUser(7L, "ana@example.com");
+    when(userRepository.existsByEmailIgnoreCase("bob@example.com")).thenReturn(true);
+    UpdateProfileRequest request = new UpdateProfileRequest("Ana", "bob@example.com");
+
+    assertThatThrownBy(() -> userService.updateByAdmin(7L, request))
+        .isInstanceOf(ConflictException.class)
+        .hasMessage("Email is already registered");
+    verify(userRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void updateByAdminRejectsTheAdministratorEmail() {
+    existingUser(7L, "ana@example.com");
+    UpdateProfileRequest request = new UpdateProfileRequest("Ana", "ADMIN@tripmate.com");
+
+    assertThatThrownBy(() -> userService.updateByAdmin(7L, request))
+        .isInstanceOf(ConflictException.class);
+    verify(userRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void updateByAdminTurnsALostRaceOnTheUniqueEmailIntoAConflict() {
+    existingUser(7L, "ana@example.com");
+    when(userRepository.saveAndFlush(any(User.class)))
+        .thenThrow(new DataIntegrityViolationException("duplicate"));
+    UpdateProfileRequest request = new UpdateProfileRequest("Ana", "new@example.com");
+
+    assertThatThrownBy(() -> userService.updateByAdmin(7L, request))
+        .isInstanceOf(ConflictException.class);
+  }
+
+  @Test
+  void updateByAdminOfAMissingUserIsNotFound() {
+    when(userRepository.findById(99L)).thenReturn(Optional.empty());
+    UpdateProfileRequest request = new UpdateProfileRequest("Ana", "ana@example.com");
+
+    assertThatThrownBy(() -> userService.updateByAdmin(99L, request))
+        .isInstanceOf(ResourceNotFoundException.class);
+  }
+
+  @Test
+  void theAdministratorAccountCannotBeEditedByAdmin() {
+    existingAdministrator();
+    UpdateProfileRequest request = new UpdateProfileRequest("Boss", "boss@example.com");
+
+    assertThatThrownBy(() -> userService.updateByAdmin(1L, request))
+        .isInstanceOf(ForbiddenException.class)
+        .hasMessage("The administrator account is managed by the configuration");
+    verify(userRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  void changeStatusBlocksAndUnblocksTheUser() {
+    User ana = existingUser(7L, "ana@example.com");
+    when(userRepository.save(any(User.class))).thenAnswer(call -> call.getArgument(0));
+
+    assertThat(userService.changeStatus(7L, UserStatus.BLOCKED).status())
+        .isEqualTo(UserStatus.BLOCKED);
+    assertThat(ana.getStatus()).isEqualTo(UserStatus.BLOCKED);
+    assertThat(userService.changeStatus(7L, UserStatus.ACTIVE).status())
+        .isEqualTo(UserStatus.ACTIVE);
+    assertThat(ana.getStatus()).isEqualTo(UserStatus.ACTIVE);
+  }
+
+  @Test
+  void changeStatusOfAMissingUserIsNotFound() {
+    when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> userService.changeStatus(99L, UserStatus.BLOCKED))
+        .isInstanceOf(ResourceNotFoundException.class);
+  }
+
+  @Test
+  void theAdministratorAccountCannotBeBlocked() {
+    existingAdministrator();
+
+    assertThatThrownBy(() -> userService.changeStatus(1L, UserStatus.BLOCKED))
+        .isInstanceOf(ForbiddenException.class)
+        .hasMessage("The administrator account is managed by the configuration");
+    verify(userRepository, never()).save(any());
   }
 }
