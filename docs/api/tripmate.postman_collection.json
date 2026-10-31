@@ -2923,6 +2923,387 @@
       ]
     },
     {
+      "name": "List users (admin, paginated, search)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users?search=ana&page=0&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "search",
+              "value": "ana"
+            },
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Administrator only. Log in as the administrator first (`admin@tripmate.com` / `admin` in development). One page of the regular users (never the administrator's own account). `search` is optional: it keeps the users whose name or email contains the text, ignoring case. Paginated (`page`, `size`: 10 by default, 50 at most); sorted by name by default, and `sort` accepts `id`, `name`, `email` and `registrationDate`. Answers 200 with a page, 400 for an invalid page, size or sort, 401 if not logged in and 403 for a regular user."
+      },
+      "response": [
+        {
+          "name": "One page of users",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users?search=ana&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "ana"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 7,\n      \"name\": \"Ana Ruiz\",\n      \"email\": \"ana@example.com\",\n      \"status\": \"ACTIVE\",\n      \"registrationDate\": \"2026-10-24\"\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
+        },
+        {
+          "name": "Not the administrator",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users?search=ana&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "ana"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-31T10:15:30.123Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Access is denied\",\n  \"path\": \"/api/v1/admin/users\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Edit user (admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/7",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "7"
+          ]
+        },
+        "description": "Administrator only. Log in as the administrator first (`admin@tripmate.com` / `admin` in development). Replaces the name and email of a user, with the same rules as registration (the email is stored in lower case). Answers 200 with the user, 400 for invalid data, 401, 403 (a regular user, or the administrator's own account), 404 and 409 if the email belongs to another account or to the administrator. Replace 7 with the `id` of a listed user.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "User updated",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "7"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 7,\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\",\n  \"status\": \"ACTIVE\",\n  \"registrationDate\": \"2026-10-24\"\n}"
+        },
+        {
+          "name": "Email already registered",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "7"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana.ruiz@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-31T10:15:30.123Z\",\n  \"status\": 409,\n  \"error\": \"Conflict\",\n  \"message\": \"Email is already registered\",\n  \"path\": \"/api/v1/admin/users/7\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Block or unblock user (admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/users/7/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "7",
+            "status"
+          ]
+        },
+        "description": "Administrator only. Log in as the administrator first (`admin@tripmate.com` / `admin` in development). `BLOCKED` stops the user logging in (403 \"Account is blocked\") and rejects their open session on its next request (401); `ACTIVE` restores access. Sending the status the user already has changes nothing. Answers 200 with the user, 400 for a missing or unknown status, 401, 403 (a regular user, or the administrator's own account) and 404.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"BLOCKED\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": [
+        {
+          "name": "User blocked",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/7/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "7",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"BLOCKED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 7,\n  \"name\": \"Ana Ruiz\",\n  \"email\": \"ana@example.com\",\n  \"status\": \"BLOCKED\",\n  \"registrationDate\": \"2026-10-24\"\n}"
+        },
+        {
+          "name": "The administrator's own account",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/7/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "7",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"BLOCKED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-31T10:15:30.123Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"The administrator account is managed by the configuration\",\n  \"path\": \"/api/v1/admin/users/1/status\"\n}"
+        }
+      ]
+    },
+    {
       "name": "Upload image",
       "request": {
         "method": "POST",

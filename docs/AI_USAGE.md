@@ -310,3 +310,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `B1`.
 - **Human Validation:** The student reviewed and approved the plan, made the necessary changes, chose the photos and verified each stage before committing.
+
+#### Record 3.14 — User management by the administrator (B7)
+
+- **Date:** 31/10/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Help implement feature B7.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.316; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `B7`, and to write some parts of the code and tests across five stages, and the documentation (OpenAPI, Postman collection, development guide, changelog). The review subagents audited the tests and the diff against the project rules.
+  - The student approved the plan, set the commands to run the UI tests (preview on port 5174) and to format the code before each commit, and changed or rejected some of the generated code during review.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `B7`.
+- **Human Validation:** The student reviewed and approved the plan and verified each stage before committing.

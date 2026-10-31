@@ -278,4 +278,10 @@ class AdminUserApiE2ETest {
 
     as(adminToken).get(ME).then().statusCode(200).body("email", equalTo(ADMIN_EMAIL));
   }
+
+  @Test
+  void theForbiddenAnswerComesBeforeTheEmailConflict() {
+    // Ana's email is taken, but the target is the administrator: 403, not 409.
+    edit(adminToken, adminId, "Boss", "ana@example.com").then().statusCode(403);
+  }
 }
