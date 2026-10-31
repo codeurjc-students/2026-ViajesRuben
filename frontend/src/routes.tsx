@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router';
 import ActivityFormPage from './components/ActivityFormPage';
+import AdminUsersPage from './components/AdminUsersPage';
 import AppLayout from './components/AppLayout';
 import ErrorPage from './components/ErrorPage';
 import ExampleTripPage from './components/ExampleTripPage';
@@ -49,7 +50,7 @@ export const routes: RouteObject[] = [
                 element: <RequireAdmin />,
                 children: [
                   { path: '/admin', element: <PlaceholderPage title="Administración" /> },
-                  { path: '/admin/users', element: <PlaceholderPage title="Usuarios" /> },
+                  { path: '/admin/users', element: <AdminUsersPage /> },
                 ],
               },
             ],
