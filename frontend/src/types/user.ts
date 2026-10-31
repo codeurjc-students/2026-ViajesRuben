@@ -10,6 +10,18 @@ export interface User {
   registrationDate: string;
 }
 
+export type UserStatus = 'ACTIVE' | 'BLOCKED';
+
+/** Mirrors the backend AdminUserDTO: a user as the administrator manages them. */
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  status: UserStatus;
+  /** ISO date (`2026-10-24`). */
+  registrationDate: string;
+}
+
 export interface Credentials {
   email: string;
   password: string;

@@ -16,7 +16,7 @@ const NOT_FOUND: ErrorMessage = {
 
 const FORBIDDEN: ErrorMessage = {
   title: 'No tienes acceso a esta página',
-  detail: 'Este contenido pertenece a otro usuario. Vuelve al inicio para seguir.',
+  detail: 'No tienes permiso para ver este contenido. Vuelve al inicio para seguir.',
 };
 
 const SESSION_EXPIRED: ErrorMessage = {

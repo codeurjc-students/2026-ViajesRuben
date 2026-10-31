@@ -3,4 +3,12 @@ export type { BudgetConflict, OutsideDates, Overlap, TripConflicts } from './con
 export type { ImageInfo } from './image';
 export type { Page } from './page';
 export type { CoverChange, DayPreview, ExampleTrip, Trip, TripData } from './trip';
-export type { Credentials, PasswordChange, ProfileData, RegisterData, User } from './user';
+export type {
+  AdminUser,
+  Credentials,
+  PasswordChange,
+  ProfileData,
+  RegisterData,
+  User,
+  UserStatus,
+} from './user';
