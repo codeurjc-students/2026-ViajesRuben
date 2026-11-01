@@ -14,7 +14,10 @@ import ItinerarySection from './ItinerarySection';
 import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
-/** `/trips/:tripId`: the trip's summary and its itinerary. Participants will go in between (I3). */
+/**
+ * `/trips/:tripId`: the trip's summary and its itinerary. Participants will go in between (I3). The
+ * administrator reviewing another user's trip (B8) sees it read-only, with only a delete button.
+ */
 export default function TripDetailPage() {
   const { tripId } = useParams();
   const { user } = useAuth();
@@ -23,6 +26,8 @@ export default function TripDetailPage() {
   const { conflicts, reload: reloadConflicts } = useConflicts(trip?.id);
   const { cost, reload: reloadCost } = useTripCost(trip?.id);
   const [confirming, setConfirming] = useState(false);
+  const isCreator = trip !== undefined && user?.id === trip.creatorId;
+  const moderating = trip !== undefined && !isCreator && user?.role === 'ADMIN';
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
@@ -30,8 +35,8 @@ export default function TripDetailPage() {
   return (
     <Container as="main" className="app-main py-4">
       <p>
-        <Link to="/trips" className="trip-detail__back">
-          Volver a Mis viajes
+        <Link to={moderating ? '/admin/trips' : '/trips'} className="trip-detail__back">
+          {moderating ? 'Volver a Viajes' : 'Volver a Mis viajes'}
         </Link>
       </p>
       {!trip ? (
@@ -69,7 +74,14 @@ export default function TripDetailPage() {
               )}
             </dl>
             {trip.description && <p className="trip-detail__description">{trip.description}</p>}
-            {user?.id === trip.creatorId && (
+            {moderating && (
+              <div className="d-flex flex-wrap gap-2">
+                <Button variant="outline-danger" onClick={() => setConfirming(true)}>
+                  Eliminar viaje
+                </Button>
+              </div>
+            )}
+            {isCreator && (
               <div className="d-flex flex-wrap gap-2">
                 <Link to={`/trips/${trip.id}/edit`} className="btn btn-outline-primary">
                   Editar
@@ -84,17 +96,11 @@ export default function TripDetailPage() {
             trip={trip}
             show={confirming}
             onCancel={() => setConfirming(false)}
-            onDeleted={() => navigate('/trips')}
+            onDeleted={() => navigate(moderating ? '/admin/trips' : '/trips')}
           />
         </Card>
       )}
-      {trip && (
-        <ConflictAlert
-          tripId={trip.id}
-          conflicts={conflicts}
-          canEdit={user?.id === trip.creatorId}
-        />
-      )}
+      {trip && <ConflictAlert tripId={trip.id} conflicts={conflicts} canEdit={isCreator} />}
       {trip && (
         <ItinerarySection
           trip={trip}
