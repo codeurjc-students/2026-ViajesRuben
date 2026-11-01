@@ -19,6 +19,7 @@ import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
+import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
 import com.ruben.backend.trip.entity.Trip;
@@ -111,10 +112,12 @@ class TripServiceUnitTest {
     if (creator == ana) {
       lenient().when(tripAccessService.findForRead(id)).thenReturn(trip);
       lenient().when(tripAccessService.findForWrite(id)).thenReturn(trip);
+      lenient().when(tripAccessService.findForDelete(id)).thenReturn(trip);
     } else {
       ForbiddenException refusal = new ForbiddenException("Only the creator can access this trip");
       lenient().when(tripAccessService.findForRead(id)).thenThrow(refusal);
       lenient().when(tripAccessService.findForWrite(id)).thenThrow(refusal);
+      lenient().when(tripAccessService.findForDelete(id)).thenThrow(refusal);
     }
     return trip;
   }
@@ -260,6 +263,7 @@ class TripServiceUnitTest {
 
   @Test
   void deleteRemovesTheTripAndThenItsCoverImage() {
+    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
     Image cover = image();
     trip.setCoverImage(cover);
@@ -274,6 +278,7 @@ class TripServiceUnitTest {
 
   @Test
   void deleteRemovesTheActivitiesBeforeTheTripEvenWithoutCover() {
+    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
 
     tripService.delete(1L);
@@ -285,6 +290,7 @@ class TripServiceUnitTest {
 
   @Test
   void deleteOfATripWithoutCoverDoesNotTouchImages() {
+    anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
 
     tripService.delete(1L);
@@ -301,6 +307,65 @@ class TripServiceUnitTest {
     assertThatThrownBy(() -> tripService.delete(1L)).isInstanceOf(ForbiddenException.class);
     verify(tripRepository, never()).delete(any());
     verifyNoInteractions(imageService, activityService);
+  }
+
+  @Test
+  @Tag("B8")
+  void theAdministratorDeletesAnotherUsersTripWithItsActivitiesAndCover() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    when(authService.getCurrentUser()).thenReturn(UserDTO.from(admin));
+    Trip trip = newTrip(bob, 1L);
+    Image cover = image();
+    trip.setCoverImage(cover);
+    when(tripAccessService.findForDelete(1L)).thenReturn(trip);
+
+    tripService.delete(1L);
+
+    InOrder order = Mockito.inOrder(activityService, tripRepository, imageService);
+    order.verify(activityService).deleteAllByTrip(1L);
+    order.verify(tripRepository).delete(trip);
+    order.verify(imageService).delete(cover.getId());
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("B8")
+  void findAllPageSearchesEveryTripWithTheTrimmedText() {
+    Pageable pageable = PageRequest.of(0, 10, Sort.by("createdAt"));
+    Trip first = newTrip(ana, 1L);
+    Trip second = newTrip(bob, 2L);
+    when(tripRepository.searchAll("rome", pageable))
+        .thenReturn(new PageImpl<>(List.of(first, second), pageable, 2));
+
+    PageDTO<AdminTripDTO> page = tripService.findAllPage("  rome ", pageable);
+
+    assertThat(page.content()).extracting(AdminTripDTO::id).containsExactly(1L, 2L);
+    assertThat(page.content())
+        .extracting(AdminTripDTO::creatorEmail)
+        .containsExactly("ana@example.com", "bob@example.com");
+    assertThat(page.last()).isTrue();
+  }
+
+  @Test
+  @Tag("B8")
+  void findAllPageTreatsBlankOrMissingSearchAsEverything() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(tripRepository.searchAll(null, pageable)).thenReturn(new PageImpl<>(List.of()));
+
+    assertThat(tripService.findAllPage("   ", pageable).content()).isEmpty();
+    assertThat(tripService.findAllPage(null, pageable).content()).isEmpty();
+    verify(tripRepository, Mockito.times(2)).searchAll(null, pageable);
+  }
+
+  @Test
+  @Tag("B8")
+  void findAllPageRejectsASortThatIsNotWhitelisted() {
+    Pageable pageable = PageRequest.of(0, 10, Sort.by("creator.password"));
+
+    assertThatThrownBy(() -> tripService.findAllPage(null, pageable))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessage("Cannot sort by 'creator.password'");
+    verifyNoInteractions(tripRepository);
   }
 
   @Test

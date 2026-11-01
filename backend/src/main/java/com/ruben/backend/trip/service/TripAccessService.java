@@ -4,6 +4,7 @@ import com.ruben.backend.common.error.ForbiddenException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
+import com.ruben.backend.user.dto.UserDTO;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.service.AuthService;
 import org.springframework.stereotype.Service;
@@ -26,27 +27,40 @@ public class TripAccessService {
   }
 
   /**
-   * Who may see a trip. Today only its creator; participants (I3) are added here, in one place. 404
-   * comes before 403, so a missing trip is reported as missing to anyone.
+   * Who may see a trip: its creator, and the administrator, who reviews any trip (B8). Participants
+   * (I3) are added here, in one place. 404 comes before 403, so a missing trip is reported as
+   * missing to anyone.
    *
    * @throws ResourceNotFoundException no trip has that id
    * @throws ForbiddenException the user may not see the trip
    */
   @Transactional(readOnly = true)
   public Trip findForRead(Long id) {
-    return findCreatedByCurrentUser(id);
+    return find(id, true);
   }
 
   /**
-   * Who may change or delete a trip. Only its creator; the administrator may delete any trip once
-   * moderation exists (B8), and that rule is added here.
+   * Who may delete a trip: its creator, and the administrator, who removes inappropriate trips
+   * (B8). Editing is a different rule, {@link #findForWrite}.
+   *
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws ForbiddenException the user may not delete the trip
+   */
+  @Transactional(readOnly = true)
+  public Trip findForDelete(Long id) {
+    return find(id, true);
+  }
+
+  /**
+   * Who may change a trip or anything that belongs to it (its cover, its activities): only its
+   * creator, not even the administrator, who moderates but never edits other users' trips.
    *
    * @throws ResourceNotFoundException no trip has that id
    * @throws ForbiddenException the user may not change the trip
    */
   @Transactional(readOnly = true)
   public Trip findForWrite(Long id) {
-    return findCreatedByCurrentUser(id);
+    return find(id, false);
   }
 
   /**
@@ -62,12 +76,14 @@ public class TripAccessService {
         .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
   }
 
-  private Trip findCreatedByCurrentUser(Long id) {
+  private Trip find(Long id, boolean administratorAllowed) {
     Trip trip =
         tripRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
-    if (!trip.getCreator().getId().equals(authService.getCurrentUser().id())) {
+    UserDTO current = authService.getCurrentUser();
+    boolean isCreator = trip.getCreator().getId().equals(current.id());
+    if (!isCreator && !(administratorAllowed && current.role() == Role.ADMIN)) {
       throw new ForbiddenException("Only the creator can access this trip");
     }
     return trip;
