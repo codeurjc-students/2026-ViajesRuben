@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B3: `/profile` page with view and edit mode for the name and email, a separate form to change the password, and the avatar with upload, replace and delete. The header shows the avatar and name, links to `/profile` and is updated without reloading.
 - B3: the administrator's profile is read-only except for the avatar, because its details come from the configuration.
 - B3 tests: backend unit, integration and REST API tests, frontend unit and client – server integration tests, and a Selenium flow (register, edit the name, change the avatar and the password, log out, log in with the new password).
-- B4: every trip has a creator. Own trips can be created, read, edited and deleted (`POST /api/v1/trips` 201 with `Location`, `GET`, `PUT` and `DELETE /api/v1/trips/{id}`), and only the creator can use them: 403 for another user's trip (also for the administrator until trip moderation, B8), 404 for a missing one, 400 for invalid data (required name, destination and dates; the end date cannot be before the start date; optional budget and description with limits).
+- B4: every trip has a creator. Own trips can be created, read, edited and deleted (`POST /api/v1/trips` 201 with `Location`, `GET`, `PUT` and `DELETE /api/v1/trips/{id}`), and only the creator can use them: 403 for another user's trip, 404 for a missing one, 400 for invalid data (required name, destination and dates; the end date cannot be before the start date; optional budget and description with limits).
 - B4: trip cover stored in the database (`PUT`, `GET` and `DELETE /api/v1/trips/{id}/cover`), validated like any other image; replacing or deleting it, or deleting the trip, deletes the previous image. Trips without cover show the default image.
 - B4: `GET /api/v1/trips` can be sorted only by `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt` (400 otherwise).
 - B4: sample data now has three users (`ana@tripmate.com` with 12 trips, `carlos@tripmate.com` with 3 and `laura@tripmate.com` with 2, all with the password `Demo-2026`, which `SAMPLE_USERS_PASSWORD` can change), documented in the README and the development guide.
@@ -69,6 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B7: a blocked user cannot log in and their open session is rejected on the next request; unblocking restores access.
 - B7: `/admin/users` page with search, the user list (name, email, registration date, status badge), "Más resultados", a modal to edit the name and email, and block or unblock with confirmation. "Usuarios" link in the header for the administrator.
 - B7 tests: backend unit, integration and REST API tests (401, 403, search, pagination, 409, block and unblock with login and an open session, the administrator's own account), frontend unit and client – server integration tests, and a Selenium flow (search a user, edit the name, block, unblock).
+- B8: trip moderation for the administrator. `GET /api/v1/admin/trips` lists the trips of every user (paginated, newest first, `?search=` by trip name, destination or creator's email ignoring case, sort limited to `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt`); 401 anonymous, 403 for a regular user. The administrator can read any trip, its activities, cost and conflicts, and delete any trip with `DELETE /api/v1/trips/{id}` (204, with its activities, their images and its cover); the deletion is logged with ids only.
+- B8: `/admin/trips` page with search, the trip list (name, destination, dates, creator email), "Más resultados" and a link to each trip. "Viajes" link in the header for the administrator. On the trip detail page the administrator sees another user's trip read-only, with "Eliminar viaje" and confirmation, and goes back to the list after deleting.
+- B8 tests: backend unit, integration and REST API tests (401, 403, search, pagination, the administrator reads and deletes another user's trip with its activities and images, and still gets 403 on editing it or its activities), frontend unit and client – server integration tests, and a Selenium flow (search a trip, open it, delete it).
 
 ### Changed
 
@@ -97,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B1: `ItinerarySection`, `DayActivities` and `useTrip` can read from another source (the example trips) and `ItinerarySection` has a read-only mode.
 - B7: `/admin` and `/admin/users` are only for the administrator (`RequireAdmin`); a regular user sees the 403 error page. The placeholder `/admin/users/:userId/edit` is removed because editing is a modal.
 - B7: the 403 error page no longer says that the content belongs to another user.
+- B8: the administrator no longer gets 403 when reading or deleting another user's trip (`GET` of the trip, its cover, activities, cost and conflicts, and `DELETE`). `TripAccessService` has a new `findForDelete`; `findForWrite` stays creator-only, so editing is still refused with 403 for the administrator.
 
 ## [0.0.2] - 2026-10-19
 

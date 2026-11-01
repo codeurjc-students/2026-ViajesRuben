@@ -325,3 +325,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `B7`.
 - **Human Validation:** The student reviewed and approved the plan and verified each stage before committing.
+
+#### Record 3.15 — Trip moderation by the administrator (B8)
+
+- **Date:** 01/11/2026
+- **Phase:** Phase 3 (Basic functionality, B1–B8)
+- **Goal:** Help implement feature B8.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.316; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `B8`, and to write some parts of the code and tests across four stages (access rules and search, admin endpoint, admin pages, Selenium test), and the documentation (OpenAPI, Postman collection, development guide, changelog).
+  - The student approved the plan, changed or rejected some of the generated code during review, and did all the Git and GitHub work (commits and pull request).
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `B8`.
+- **Human Validation:** The student reviewed and approved the plan and verified each stage before committing.

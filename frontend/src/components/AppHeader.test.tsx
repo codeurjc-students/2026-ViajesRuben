@@ -143,3 +143,23 @@ describe('B7 header link for the administrator', () => {
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument();
   });
 });
+
+describe('B8 header link for trip moderation', () => {
+  test('the administrator sees the Viajes link to /admin/trips', () => {
+    renderAt('/trips', authValue({ ...ANA, role: 'ADMIN' }));
+
+    expect(screen.getByRole('link', { name: 'Viajes' })).toHaveAttribute('href', '/admin/trips');
+  });
+
+  test('a regular user does not see the Viajes link', () => {
+    renderAt('/trips');
+
+    expect(screen.queryByRole('link', { name: 'Viajes' })).not.toBeInTheDocument();
+  });
+
+  test('an anonymous visitor does not see the Viajes link', () => {
+    renderAt('/', authValue(null));
+
+    expect(screen.queryByRole('link', { name: 'Viajes' })).not.toBeInTheDocument();
+  });
+});

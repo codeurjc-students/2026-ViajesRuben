@@ -471,12 +471,14 @@ class ActivityApiE2ETest {
   }
 
   @Test
-  void theAdministratorCannotTouchAnotherUsersActivitiesYet() {
+  @Tag("B8")
+  void theAdministratorCanReadButNotChangeAnotherUsersActivities() {
     long id = createActivity("Museum", "2027-07-11");
 
-    as(adminToken).get(activities).then().statusCode(403);
-    as(adminToken).get(activities + "/" + id).then().statusCode(403);
+    as(adminToken).get(activities).then().statusCode(200);
+    as(adminToken).get(activities + "/" + id).then().statusCode(200);
     as(adminToken).delete(activities + "/" + id).then().statusCode(403);
+    as(anaToken).get(activities + "/" + id).then().statusCode(200);
   }
 
   @Test
@@ -666,7 +668,7 @@ class ActivityApiE2ETest {
   void costRequiresLoginAndTheTripToBeVisible() {
     given().get(activities + "/cost").then().statusCode(401);
     as(bobToken).get(activities + "/cost").then().statusCode(403);
-    as(adminToken).get(activities + "/cost").then().statusCode(403);
+    as(adminToken).get(activities + "/cost").then().statusCode(200);
     as(anaToken).get(TRIPS + "/999999/activities/cost").then().statusCode(404);
     as(bobToken).get(TRIPS + "/999999/activities/cost").then().statusCode(404);
     as(anaToken).get(TRIPS + "/abc/activities/cost").then().statusCode(400);

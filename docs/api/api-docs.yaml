@@ -297,8 +297,8 @@ paths:
         - activity-controller
       summary: Get an activity by id
       description:
-        "Only the trip's creator. `imageId` is null without picture; otherwise\
-        \ the picture is at `GET /api/v1/images/{imageId}`."
+        "The trip's creator, or the administrator (read only). `imageId`\
+        \ is null without picture; otherwise the picture is at `GET /api/v1/images/{imageId}`."
       operationId: getActivity
       parameters:
         - name: tripId
@@ -456,8 +456,9 @@ paths:
         - activity-controller
       summary: Get the bytes of an activity's picture
       description:
-        "Only the trip's creator. Not cached, because it changes when the\
-        \ picture is replaced; the SPA uses `GET /api/v1/images/{imageId}` instead."
+        "The trip's creator, or the administrator. Not cached, because\
+        \ it changes when the picture is replaced; the SPA uses `GET /api/v1/images/{imageId}`\
+        \ instead."
       operationId: getActivityImage
       parameters:
         - name: tripId
@@ -623,8 +624,8 @@ paths:
         - trip-controller
       summary: Get a trip by id
       description:
-        "Only the creator. `coverImageId` is null without cover; otherwise\
-        \ the picture is at `GET /api/v1/images/{coverImageId}`."
+        "The creator, or the administrator (read only). `coverImageId`\
+        \ is null without cover; otherwise the picture is at `GET /api/v1/images/{coverImageId}`."
       operationId: getTrip
       parameters:
         - name: id
@@ -723,7 +724,9 @@ paths:
       tags:
         - trip-controller
       summary: Delete a trip
-      description: Only the creator. The cover image is deleted with the trip.
+      description:
+        "The creator, or the administrator (trip moderation). The activities,\
+        \ their pictures and the cover image are deleted with the trip."
       operationId: deleteTrip
       parameters:
         - name: id
@@ -765,8 +768,9 @@ paths:
         - trip-controller
       summary: Get the bytes of a trip's cover
       description:
-        "Only the creator. Not cached, because it changes when the cover\
-        \ is replaced; the SPA uses `GET /api/v1/images/{coverImageId}` instead."
+        "The creator, or the administrator. Not cached, because it changes\
+        \ when the cover is replaced; the SPA uses `GET /api/v1/images/{coverImageId}`\
+        \ instead."
       operationId: getCover
       parameters:
         - name: id
@@ -1162,10 +1166,11 @@ paths:
         - activity-controller
       summary: List a trip's activities
       description:
-        "Only the trip's creator. Paginated: `?page=0&size=10` (50 at most),\
-        \ sorted by date and start time by default; activities without a start time\
-        \ come first on their day. `date=yyyy-MM-dd` keeps only the activities of\
-        \ that day. `sort` accepts `id`, `date`, `startTime`, `name`, `cost` and `createdAt`."
+        "The trip's creator, or the administrator (read only). Paginated:\
+        \ `?page=0&size=10` (50 at most), sorted by date and start time by default;\
+        \ activities without a start time come first on their day. `date=yyyy-MM-dd`\
+        \ keeps only the activities of that day. `sort` accepts `id`, `date`, `startTime`,\
+        \ `name`, `cost` and `createdAt`."
       operationId: getActivities
       parameters:
         - name: tripId
@@ -1400,12 +1405,12 @@ paths:
         - conflict-controller
       summary: List a trip's itinerary conflicts
       description:
-        "Only the trip's creator. Warnings, never errors: `overlaps` are\
-        \ pairs of activities of the same day whose times intersect (touching times\
-        \ do not; activities without start and end time are ignored), `outsideDates`\
-        \ are activities before the trip starts or after it ends, and `budget` is\
-        \ set only when the total cost is above the trip's budget (null otherwise).\
-        \ Not paginated: it is one small report."
+        "The trip's creator, or the administrator (read only). Warnings,\
+        \ never errors: `overlaps` are pairs of activities of the same day whose times\
+        \ intersect (touching times do not; activities without start and end time\
+        \ are ignored), `outsideDates` are activities before the trip starts or after\
+        \ it ends, and `budget` is set only when the total cost is above the trip's\
+        \ budget (null otherwise). Not paginated: it is one small report."
       operationId: getConflicts
       parameters:
         - name: tripId
@@ -1451,10 +1456,10 @@ paths:
         - activity-controller
       summary: Get what a trip's activities cost
       description:
-        "Only the trip's creator. `totalCost` is the sum of the costs of\
-        \ all the activities (0 without any cost) and `remainingBudget` is the trip's\
-        \ budget minus that total, negative when the activities cost more and null\
-        \ when the trip has no budget."
+        "The trip's creator, or the administrator (read only). `totalCost`\
+        \ is the sum of the costs of all the activities (0 without any cost) and `remainingBudget`\
+        \ is the trip's budget minus that total, negative when the activities cost\
+        \ more and null when the trip has no budget."
       operationId: getCost
       parameters:
         - name: tripId
@@ -1765,6 +1770,78 @@ paths:
                 $ref: "#/components/schemas/PageDTOAdminUserDTO"
         "400":
           description: "Invalid page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The caller is not the administrator
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/admin/trips:
+    get:
+      tags:
+        - admin-trip-controller
+      summary: List and search all the trips
+      description:
+        "Administrator only. The trips of every user. `search` keeps the\
+        \ trips whose name, destination or creator's email contains the text, ignoring\
+        \ case. Paginated: `?page=0&size=10` (10 per page by default, 50 at most).\
+        \ Newest first by default; `sort` accepts `id`, `name`, `destination`, `startDate`,\
+        \ `endDate` and `createdAt`."
+      operationId: getTrips_1
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "createdAt,DESC"
+              - "id,DESC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of trips
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOAdminTripDTO"
+        "400":
+          description: The `sort` parameter names a property that is not sortable
           content:
             "*/*":
               schema:
@@ -2198,6 +2275,45 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AdminUserDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
+    AdminTripDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        destination:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        creatorId:
+          type: integer
+          format: int64
+        creatorEmail:
+          type: string
+    PageDTOAdminTripDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminTripDTO"
         page:
           type: integer
           format: int32

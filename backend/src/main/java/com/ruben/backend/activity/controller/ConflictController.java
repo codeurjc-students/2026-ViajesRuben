@@ -25,7 +25,7 @@ public class ConflictController {
   @Operation(
       summary = "List a trip's itinerary conflicts",
       description =
-          "Only the trip's creator. Warnings, never errors: `overlaps` are pairs of activities of"
+          "The trip's creator, or the administrator (read only). Warnings, never errors: `overlaps` are pairs of activities of"
               + " the same day whose times intersect (touching times do not; activities without"
               + " start and end time are ignored), `outsideDates` are activities before the trip"
               + " starts or after it ends, and `budget` is set only when the total cost is above"

@@ -9,6 +9,7 @@ import com.ruben.backend.image.dto.ImageDTO;
 import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
+import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
 import com.ruben.backend.trip.entity.Trip;
@@ -60,16 +61,22 @@ public class TripService {
    * @throws BadRequestException the page asks to sort by a property that is not sortable
    */
   public PageDTO<TripDTO> findPage(Pageable pageable) {
-    pageable
-        .getSort()
-        .forEach(
-            order -> {
-              if (!SORTABLE.contains(order.getProperty())) {
-                throw new BadRequestException("Cannot sort by '" + order.getProperty() + "'");
-              }
-            });
+    checkSortable(pageable);
     Long userId = authService.getCurrentUser().id();
     return PageDTO.from(tripRepository.findByCreatorId(userId, pageable).map(TripDTO::from));
+  }
+
+  /**
+   * One page of every trip of every user, for the administrator; `search` matches the name, the
+   * destination or the creator's email, ignoring case, and a blank one lists everything.
+   *
+   * @throws BadRequestException the page asks to sort by a property that is not sortable
+   */
+  @Transactional(readOnly = true)
+  public PageDTO<AdminTripDTO> findAllPage(String search, Pageable pageable) {
+    checkSortable(pageable);
+    String text = search == null || search.isBlank() ? null : search.trim();
+    return PageDTO.from(tripRepository.searchAll(text, pageable).map(AdminTripDTO::from));
   }
 
   /** The current user becomes the creator. */
@@ -115,20 +122,23 @@ public class TripService {
   }
 
   /**
-   * Deletes the activities (with their pictures), then the trip, then its cover image, in this
-   * order because each points at the next. Features that add children of a trip (invitations,
-   * participations) delete them here first, explicitly, before the trip.
+   * The creator, or the administrator (B8), deletes the trip: its activities (with their pictures),
+   * then the trip, then its cover image, in this order because each points at the next. Features
+   * that add children of a trip (invitations, participations) delete them here first, explicitly,
+   * before the trip.
    */
   @Transactional
   public void delete(Long id) {
-    Trip trip = tripAccessService.findForWrite(id);
+    Trip trip = tripAccessService.findForDelete(id);
     Image cover = trip.getCoverImage();
+    Long creatorId = trip.getCreator().getId();
     activityService.deleteAllByTrip(id);
     tripRepository.delete(trip);
     if (cover != null) {
       imageService.delete(cover.getId());
     }
-    log.info("Trip {} deleted", id);
+    log.info(
+        "Trip {} of user {} deleted by user {}", id, creatorId, authService.getCurrentUser().id());
   }
 
   /** Stores the picture as the cover and deletes the previous one, so no image is left behind. */
@@ -170,6 +180,17 @@ public class TripService {
       throw new ResourceNotFoundException("The trip has no cover");
     }
     return imageService.findContent(cover.getId());
+  }
+
+  private static void checkSortable(Pageable pageable) {
+    pageable
+        .getSort()
+        .forEach(
+            order -> {
+              if (!SORTABLE.contains(order.getProperty())) {
+                throw new BadRequestException("Cannot sort by '" + order.getProperty() + "'");
+              }
+            });
   }
 
   private static void applyOptionalFields(Trip trip, TripRequest request) {

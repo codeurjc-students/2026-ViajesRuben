@@ -52,6 +52,11 @@ export default function AppHeader() {
                     Usuarios
                   </Nav.Link>
                 )}
+                {user.role === 'ADMIN' && (
+                  <Nav.Link as={NavLink} to="/admin/trips">
+                    Viajes
+                  </Nav.Link>
+                )}
               </Nav>
               <div className="app-header__user">
                 <Link to="/profile" className="app-header__profile" aria-label="Mi perfil">

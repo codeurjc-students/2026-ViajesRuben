@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
 import { deleteActivity, getActivities, getTripCost } from '../services/activityService';
@@ -6,6 +6,7 @@ import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { deleteTrip, getTrip } from '../services/tripService';
 import { activityOf, ANA, conflictsOf, pageOf, tripOf } from '../testHelpers';
+import type { User } from '../types';
 import TripDetailPage from './TripDetailPage';
 
 vi.mock('../services/tripService', () => ({ deleteTrip: vi.fn(), getTrip: vi.fn() }));
@@ -18,6 +19,7 @@ vi.mock('../services/conflictService', () => ({ getConflicts: vi.fn() }));
 
 const routes = [
   { path: '/trips', element: <p>Lista de viajes</p> },
+  { path: '/admin/trips', element: <p>Moderación de viajes</p> },
   { path: '/trips/:tripId', element: <TripDetailPage />, errorElement: <p>Página de error</p> },
 ];
 
@@ -311,5 +313,67 @@ describe('B4 TripDetailPage', () => {
       ),
     );
     expect(getTripCost).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('B8 TripDetailPage as the administrator', () => {
+  const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
+  const othersTrip = { ...trip, creatorId: ANA.id };
+
+  beforeEach(() => {
+    vi.mocked(getActivities)
+      .mockReset()
+      .mockResolvedValue(pageOf([activityOf({ id: 1, tripId: 5, name: 'Coliseo' })]));
+  });
+
+  test("shows another user's trip read-only: no edit buttons, only a delete button", async () => {
+    vi.mocked(getTrip).mockResolvedValue(othersTrip);
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    expect(await screen.findByRole('heading', { name: 'Verano en Roma' })).toBeInTheDocument();
+    expect(await screen.findByText('Coliseo')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar viaje' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+    const startsWithEditar = (name: string) => name.startsWith('Editar');
+    expect(screen.queryByRole('link', { name: startsWithEditar })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: startsWithEditar })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Nueva actividad' })).not.toBeInTheDocument();
+  });
+
+  test('links back to the moderation list', async () => {
+    vi.mocked(getTrip).mockResolvedValue(othersTrip);
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    expect(await screen.findByRole('link', { name: 'Volver a Viajes' })).toHaveAttribute(
+      'href',
+      '/admin/trips',
+    );
+  });
+
+  test('deleting asks first and then goes back to /admin/trips', async () => {
+    vi.mocked(getTrip).mockResolvedValue(othersTrip);
+    vi.mocked(deleteTrip).mockResolvedValue(undefined);
+    const router = renderRoutes(routes, '/trips/5', ADMIN);
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar viaje' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(deleteTrip).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar viaje' }));
+    const dialog = screen.getByRole('dialog', { name: 'Eliminar viaje' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar viaje' }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/trips'));
+    expect(deleteTrip).toHaveBeenCalledWith(5);
+    expect(await screen.findByText('Moderación de viajes')).toBeInTheDocument();
+  });
+
+  test("the administrator's own trip keeps the creator's buttons and the usual way back", async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ADMIN.id });
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    expect(await screen.findByRole('link', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver a Mis viajes' })).toBeInTheDocument();
   });
 });

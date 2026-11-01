@@ -95,7 +95,7 @@ public class TripController {
   @Operation(
       summary = "Get a trip by id",
       description =
-          "Only the creator. `coverImageId` is null without cover; otherwise the picture is at"
+          "The creator, or the administrator (read only). `coverImageId` is null without cover; otherwise the picture is at"
               + " `GET /api/v1/images/{coverImageId}`.")
   @ApiResponse(responseCode = "200", description = "The trip")
   @ApiResponse(
@@ -149,7 +149,9 @@ public class TripController {
 
   @Operation(
       summary = "Delete a trip",
-      description = "Only the creator. The cover image is deleted with the trip.")
+      description =
+          "The creator, or the administrator (trip moderation). The activities, their pictures and"
+              + " the cover image are deleted with the trip.")
   @ApiResponse(responseCode = "204", description = "The trip was deleted")
   @ApiResponse(
       responseCode = "400",
@@ -216,7 +218,7 @@ public class TripController {
   @Operation(
       summary = "Get the bytes of a trip's cover",
       description =
-          "Only the creator. Not cached, because it changes when the cover is replaced; the SPA"
+          "The creator, or the administrator. Not cached, because it changes when the cover is replaced; the SPA"
               + " uses `GET /api/v1/images/{coverImageId}` instead.")
   @ApiResponse(
       responseCode = "200",

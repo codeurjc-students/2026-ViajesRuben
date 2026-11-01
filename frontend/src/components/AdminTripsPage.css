@@ -1,0 +1,61 @@
+.admin-trips__title {
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+}
+
+.admin-trips__search,
+.admin-trips__empty,
+.admin-trip {
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.admin-trips__search {
+  margin-bottom: 1.5rem;
+}
+
+.admin-trips__search-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.admin-trips__list {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-trip {
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-trip__info {
+  min-width: 0;
+}
+
+.admin-trip__name {
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-trip__meta {
+  margin-bottom: 0.125rem;
+  color: var(--tm-via);
+  overflow-wrap: anywhere;
+}
+
+.admin-trip__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (width >= 768px) {
+  .admin-trip {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}

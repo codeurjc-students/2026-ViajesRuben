@@ -1,6 +1,15 @@
 import { vi } from 'vitest';
 import type { AuthContextValue } from './context/AuthContext';
-import type { Activity, AdminUser, ExampleTrip, Page, Trip, TripConflicts, User } from './types';
+import type {
+  Activity,
+  AdminTrip,
+  AdminUser,
+  ExampleTrip,
+  Page,
+  Trip,
+  TripConflicts,
+  User,
+} from './types';
 
 export const ANA: User = {
   id: 1,
@@ -19,6 +28,20 @@ export function adminUserOf(overrides: Partial<AdminUser> = {}): AdminUser {
     email: 'ana@example.com',
     status: 'ACTIVE',
     registrationDate: '2026-10-01',
+    ...overrides,
+  };
+}
+
+/** Builds a trip as the administrator's moderation list shows it: Escapada by Ana unless overridden. */
+export function adminTripOf(overrides: Partial<AdminTrip> = {}): AdminTrip {
+  return {
+    id: 1,
+    name: 'Escapada',
+    destination: 'Lisboa',
+    startDate: '2027-05-01',
+    endDate: '2027-05-05',
+    creatorId: 5,
+    creatorEmail: 'ana@example.com',
     ...overrides,
   };
 }

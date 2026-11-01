@@ -78,15 +78,46 @@ class TripAccessServiceUnitTest {
   }
 
   @Test
-  void theAdministratorHasNoAccessToAnotherUsersTripYet() {
+  @Tag("B8")
+  void theCreatorMayAlsoDeleteTheTrip() {
+    loggedInAs(ana);
+    Trip trip = tripOf(ana);
+
+    assertThat(tripAccessService.findForDelete(1L)).isSameAs(trip);
+  }
+
+  @Test
+  @Tag("B8")
+  void anotherUserMayNotDeleteTheTrip() {
+    loggedInAs(ana);
+    tripOf(bob);
+
+    assertThatThrownBy(() -> tripAccessService.findForDelete(1L))
+        .isInstanceOf(ForbiddenException.class)
+        .hasMessage("Only the creator can access this trip");
+  }
+
+  @Test
+  @Tag("B8")
+  void theAdministratorMayReadAndDeleteAnotherUsersTrip() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    loggedInAs(admin);
+    Trip trip = tripOf(bob);
+
+    assertThat(tripAccessService.findForRead(1L)).isSameAs(trip);
+    assertThat(tripAccessService.findForDelete(1L)).isSameAs(trip);
+  }
+
+  @Test
+  @Tag("B8")
+  void theAdministratorMayNotChangeAnotherUsersTrip() {
     User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
     loggedInAs(admin);
     tripOf(bob);
 
-    assertThatThrownBy(() -> tripAccessService.findForRead(1L))
-        .isInstanceOf(ForbiddenException.class);
     assertThatThrownBy(() -> tripAccessService.findForWrite(1L))
-        .isInstanceOf(ForbiddenException.class);
+        .isInstanceOf(ForbiddenException.class)
+        .hasMessage("Only the creator can access this trip");
   }
 
   @Test
@@ -94,6 +125,9 @@ class TripAccessServiceUnitTest {
     when(tripRepository.findById(99L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> tripAccessService.findForRead(99L))
+        .isInstanceOf(ResourceNotFoundException.class)
+        .hasMessage("Trip not found");
+    assertThatThrownBy(() -> tripAccessService.findForDelete(99L))
         .isInstanceOf(ResourceNotFoundException.class)
         .hasMessage("Trip not found");
     assertThatThrownBy(() -> tripAccessService.findForWrite(99L))
