@@ -57,7 +57,7 @@ public class ActivityController {
   @Operation(
       summary = "List a trip's activities",
       description =
-          "Only the trip's creator. Paginated: `?page=0&size=10` (50 at most), sorted by date and"
+          "The trip's creator, or the administrator (read only). Paginated: `?page=0&size=10` (50 at most), sorted by date and"
               + " start time by default; activities without a start time come first on their"
               + " day. `date=yyyy-MM-dd` keeps only the activities of that day. `sort` accepts"
               + " `id`, `date`, `startTime`, `name`, `cost` and `createdAt`.")
@@ -96,7 +96,7 @@ public class ActivityController {
   @Operation(
       summary = "Get what a trip's activities cost",
       description =
-          "Only the trip's creator. `totalCost` is the sum of the costs of all the activities (0"
+          "The trip's creator, or the administrator (read only). `totalCost` is the sum of the costs of all the activities (0"
               + " without any cost) and `remainingBudget` is the trip's budget minus that total,"
               + " negative when the activities cost more and null when the trip has no budget.")
   @ApiResponse(responseCode = "200", description = "The total cost and the remaining budget")
@@ -155,7 +155,7 @@ public class ActivityController {
   @Operation(
       summary = "Get an activity by id",
       description =
-          "Only the trip's creator. `imageId` is null without picture; otherwise the picture is at"
+          "The trip's creator, or the administrator (read only). `imageId` is null without picture; otherwise the picture is at"
               + " `GET /api/v1/images/{imageId}`.")
   @ApiResponse(responseCode = "200", description = "The activity")
   @ApiResponse(
@@ -279,7 +279,7 @@ public class ActivityController {
   @Operation(
       summary = "Get the bytes of an activity's picture",
       description =
-          "Only the trip's creator. Not cached, because it changes when the picture is replaced;"
+          "The trip's creator, or the administrator. Not cached, because it changes when the picture is replaced;"
               + " the SPA uses `GET /api/v1/images/{imageId}` instead.")
   @ApiResponse(
       responseCode = "200",
