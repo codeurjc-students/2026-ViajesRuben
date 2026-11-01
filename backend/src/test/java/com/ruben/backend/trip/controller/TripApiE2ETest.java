@@ -382,11 +382,12 @@ class TripApiE2ETest {
   }
 
   @Test
-  void theAdministratorCannotSeeAnotherUsersTripYet() {
+  @Tag("B8")
+  void theAdministratorCanSeeAnotherUsersTripButNotItsMissingCover() {
     long id = createTrip(anaToken);
 
-    as(adminToken).get(TRIPS + "/" + id).then().statusCode(403);
-    as(adminToken).get(TRIPS + "/" + id + "/cover").then().statusCode(403);
+    as(adminToken).get(TRIPS + "/" + id).then().statusCode(200);
+    as(adminToken).get(TRIPS + "/" + id + "/cover").then().statusCode(404);
   }
 
   @Test

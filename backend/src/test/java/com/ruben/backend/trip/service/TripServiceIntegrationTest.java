@@ -14,12 +14,15 @@ import com.ruben.backend.common.security.TripMateUserDetailsService;
 import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.repository.ImageRepository;
+import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.dto.RegisterRequest;
 import com.ruben.backend.user.dto.UserDTO;
+import com.ruben.backend.user.repository.UserRepository;
+import com.ruben.backend.user.service.AdminAccountInitializer;
 import com.ruben.backend.user.service.UserService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +41,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @Tag("B4")
+@Tag("B8")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class TripServiceIntegrationTest {
@@ -47,6 +52,8 @@ class TripServiceIntegrationTest {
   @Autowired private ImageRepository imageRepository;
   @Autowired private TripMateUserDetailsService userDetailsService;
   @Autowired private DatabaseCleaner databaseCleaner;
+  @Autowired private UserRepository userRepository;
+  @Autowired private AdminAccountInitializer adminAccountInitializer;
 
   private UserDTO ana;
   private UserDTO bob;
@@ -54,6 +61,7 @@ class TripServiceIntegrationTest {
   @BeforeEach
   void setUp() {
     databaseCleaner.clear();
+    adminAccountInitializer.run(new DefaultApplicationArguments());
     ana = userService.register(new RegisterRequest("Ana", "ana@example.com", "secret-pass"));
     bob = userService.register(new RegisterRequest("Bob", "bob@example.com", "secret-pass"));
     logInAs(ana);
@@ -218,6 +226,54 @@ class TripServiceIntegrationTest {
 
     assertThat(tripRepository.existsById(kept.id())).isTrue();
     assertThat(imageRepository.count()).isEqualTo(1);
+  }
+
+  @Test
+  void findAllPageSearchesEveryUsersTripsIgnoringCaseAndPages() {
+    tripService.create(request("Lisbon", 1));
+    tripService.create(
+        new TripRequest(
+            "Rome", "Sicily", LocalDate.of(2027, 3, 1), LocalDate.of(2027, 3, 3), null, null));
+    logInAs(bob);
+    tripService.create(request("Oslo", 2));
+    PageRequest newestFirst = PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+
+    PageDTO<AdminTripDTO> all = tripService.findAllPage(null, newestFirst);
+    assertThat(all.content()).extracting(AdminTripDTO::name).containsExactly("Oslo", "Rome");
+    assertThat(all.totalElements()).isEqualTo(3);
+    assertThat(all.last()).isFalse();
+    assertThat(all.content().get(0).creatorEmail()).isEqualTo("bob@example.com");
+
+    assertThat(tripService.findAllPage(" LISB ", newestFirst).content())
+        .extracting(AdminTripDTO::name)
+        .containsExactly("Lisbon");
+    assertThat(tripService.findAllPage("sicily", newestFirst).content())
+        .extracting(AdminTripDTO::name)
+        .containsExactly("Rome");
+    assertThat(tripService.findAllPage("ANA@EXAMPLE", newestFirst).content())
+        .extracting(AdminTripDTO::name)
+        .containsExactlyInAnyOrder("Lisbon", "Rome");
+    assertThat(tripService.findAllPage("zzz", newestFirst).content()).isEmpty();
+  }
+
+  @Test
+  void theAdministratorReadsAndDeletesAnotherUsersTripButCannotChangeIt() {
+    TripDTO created = tripService.create(request("Ana's", 1));
+    tripService.replaceCover(created.id(), png());
+    logInAs(UserDTO.from(userRepository.findByEmail("admin@test.tripmate.com").orElseThrow()));
+
+    assertThat(tripService.findById(created.id()).name()).isEqualTo("Ana's");
+    assertThatThrownBy(() -> tripService.update(created.id(), request("Mine now", 1)))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> tripService.replaceCover(created.id(), png()))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> tripService.deleteCover(created.id()))
+        .isInstanceOf(ForbiddenException.class);
+
+    tripService.delete(created.id());
+
+    assertThat(tripRepository.existsById(created.id())).isFalse();
+    assertThat(imageRepository.count()).isZero();
   }
 
   @Test

@@ -131,9 +131,9 @@ class ConflictApiE2ETest {
   }
 
   @Test
-  void anotherUserAndTheAdministratorAreRefusedWith403() {
+  void anotherUserIsRefusedWith403ButTheAdministratorMayRead() {
     as(bobToken).get(conflicts).then().statusCode(403);
-    as(adminToken).get(conflicts).then().statusCode(403);
+    as(adminToken).get(conflicts).then().statusCode(200);
   }
 
   @Test
