@@ -98,7 +98,7 @@
             "12"
           ]
         },
-        "description": "Only the creator. `coverImageId` is null without cover; otherwise the picture is at `GET /api/v1/images/{coverImageId}`. 400 for an id that is not a number, 401, 403 for another user's trip and 404 for a trip that does not exist."
+        "description": "The creator, or the administrator (read only). `coverImageId` is null without cover; otherwise the picture is at `GET /api/v1/images/{coverImageId}`. 400 for an id that is not a number, 401, 403 for another user's trip and 404 for a trip that does not exist."
       },
       "response": [
         {
@@ -459,7 +459,7 @@
             "12"
           ]
         },
-        "description": "Only the creator. Deletes the trip together with its cover image. 204, 400, 401, 403 or 404."
+        "description": "The creator, or the administrator (trip moderation). Deletes the trip together with its cover image. 204, 400, 401, 403 or 404."
       },
       "response": [
         {
@@ -3020,6 +3020,130 @@
                 {
                   "key": "search",
                   "value": "ana"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-10-31T10:15:30.123Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Access is denied\",\n  \"path\": \"/api/v1/admin/users\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "List trips (admin, paginated, search)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/trips?search=lisboa&page=0&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "trips"
+          ],
+          "query": [
+            {
+              "key": "search",
+              "value": "lisboa"
+            },
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Administrator only. Log in as the administrator first (`admin@tripmate.com` / `admin` in development). One page of the trips of every user. `search` is optional: it keeps the trips whose name, destination or creator's email contains the text, ignoring case. Paginated (`page`, `size`: 10 by default, 50 at most); newest first by default, and `sort` accepts `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt`. To review a trip, use `GET /api/v1/trips/{id}`; to remove it, `DELETE /api/v1/trips/{id}`: both accept the administrator for any trip. Answers 200 with a page, 400 for an invalid sort, 401 if not logged in and 403 for a regular user."
+      },
+      "response": [
+        {
+          "name": "One page of trips",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/trips?search=lisboa&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "trips"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "lisboa"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 12,\n      \"name\": \"Escapada a Lisboa\",\n      \"destination\": \"Lisboa\",\n      \"startDate\": \"2027-05-01\",\n      \"endDate\": \"2027-05-05\",\n      \"creatorId\": 7,\n      \"creatorEmail\": \"ana@example.com\"\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
+        },
+        {
+          "name": "Not the administrator",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/trips?search=lisboa&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "trips"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "lisboa"
                 },
                 {
                   "key": "page",

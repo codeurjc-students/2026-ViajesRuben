@@ -53,5 +53,6 @@ Open https://localhost/ (the browser warns about the self-signed certificate): t
 
 - **Phase 1 (definition of features and screens):** Claude (Anthropic, Claude Opus 5.5, chat) was used to compare instant messaging platforms (WhatsApp and Telegram) for the optional instant messaging part, to design the Telegram integration and to review this README against the TFG guidelines.
 - **Phase 2 (repository, tests and CI):** Claude (Anthropic, Claude Opus 5.5, chat) was used as a guide to set up the project structure, the automated tests, the CI workflows, static code analysis; and to restructure the documentation. All generated content was reviewed, understood and adapted before being added to the repository.
+- **Phase 3 (basic functionality, B1–B8):** Claude Code (Anthropic, Opus 5.5 for planning and Sonnet 5.5 for implementation) was used as a support agent to plan, write parts of the code and tests, and document each feature; the student approved each plan, reviewed and changed the generated code, and verified every stage before committing.
 
 Detailed information about each use of AI tools is available in [AI_USAGE.md](docs/AI_USAGE.md).
