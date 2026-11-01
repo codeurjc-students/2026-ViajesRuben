@@ -6,6 +6,7 @@ import App from './App';
 import { routes } from './routes';
 import { getActivities, getActivity, getTripCost } from './services/activityService';
 import { getExampleActivities, getExampleTrip, getExampleTrips } from './services/exampleService';
+import { getTrips as getAdminTrips } from './services/adminTripService';
 import { getTrip, getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
 import { getCurrentUser } from './services/authService';
@@ -26,6 +27,7 @@ vi.mock('./services/exampleService', () => ({
   getExampleTrip: vi.fn(),
   getExampleActivities: vi.fn(),
 }));
+vi.mock('./services/adminTripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
 
@@ -36,6 +38,7 @@ beforeEach(() => {
   vi.mocked(getExampleTrip).mockReset();
   vi.mocked(getExampleActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
 });
 
@@ -176,6 +179,27 @@ test.each(['/admin', '/admin/users'])('B7 %s shows the 403 page to a regular use
 
 test('B7 an anonymous visitor opening /admin/users is sent to /login', () => {
   renderAt('/admin/users', null);
+
+  expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+});
+
+test('B8 /admin/trips shows its page to the administrator', () => {
+  renderAt('/admin/trips', ADMIN);
+
+  expect(screen.getByRole('heading', { name: 'Viajes', level: 1 })).toBeInTheDocument();
+  expect(screen.queryByText('No tienes acceso a esta página')).not.toBeInTheDocument();
+});
+
+test('B8 /admin/trips shows the 403 page to a regular user', () => {
+  renderAt('/admin/trips');
+
+  expect(
+    screen.getByRole('heading', { name: 'No tienes acceso a esta página' }),
+  ).toBeInTheDocument();
+});
+
+test('B8 an anonymous visitor opening /admin/trips is sent to /login', () => {
+  renderAt('/admin/trips', null);
 
   expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
 });

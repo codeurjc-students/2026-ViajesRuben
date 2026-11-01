@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router';
 import ActivityFormPage from './components/ActivityFormPage';
+import AdminTripsPage from './components/AdminTripsPage';
 import AdminUsersPage from './components/AdminUsersPage';
 import AppLayout from './components/AppLayout';
 import ErrorPage from './components/ErrorPage';
@@ -15,7 +16,7 @@ import TripDetailPage from './components/TripDetailPage';
 import TripFormPage from './components/TripFormPage';
 import TripList from './components/TripList';
 
-/** One route per screen in docs/analysis.md; the home page, trips, profile, auth and user management are built so far. */
+/** One route per screen in docs/analysis.md; the home page, trips, profile, auth, user management and trip moderation are built so far. */
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -51,6 +52,7 @@ export const routes: RouteObject[] = [
                 children: [
                   { path: '/admin', element: <PlaceholderPage title="Administración" /> },
                   { path: '/admin/users', element: <AdminUsersPage /> },
+                  { path: '/admin/trips', element: <AdminTripsPage /> },
                 ],
               },
             ],

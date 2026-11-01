@@ -13,6 +13,17 @@ export interface Trip {
   coverImageId: string | null;
 }
 
+/** Mirrors the backend AdminTripDTO: a trip in the administrator's moderation list. */
+export interface AdminTrip {
+  id: number;
+  name: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  creatorId: number;
+  creatorEmail: string;
+}
+
 /** Mirrors the backend TripRequest: what the form sends to create or replace a trip. */
 export interface TripData {
   name: string;
