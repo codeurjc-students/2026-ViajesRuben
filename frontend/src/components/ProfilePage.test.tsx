@@ -223,6 +223,19 @@ describe('B3 ProfilePage password', () => {
     expect(changePassword).not.toHaveBeenCalled();
   });
 
+  test('refuses a new password longer than 72 characters', async () => {
+    await renderLoaded();
+
+    const tooLong = 'x'.repeat(73);
+    fillPasswords('old-secret', tooLong, tooLong);
+    click('Guardar contraseña');
+
+    expect(
+      await screen.findByText('La contraseña admite como máximo 72 caracteres.'),
+    ).toBeInTheDocument();
+    expect(changePassword).not.toHaveBeenCalled();
+  });
+
   test('changes the password, confirms it and clears the form', async () => {
     await renderLoaded();
     vi.mocked(changePassword).mockResolvedValue(undefined);

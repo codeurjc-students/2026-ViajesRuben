@@ -1,21 +1,21 @@
 import { test, expect, describe } from 'vitest';
 import { ApiError, NetworkError } from '../services/apiError';
-import { destinationAfterLogin, emailError, nameError, submitErrorMessage } from './authForm';
+import { destinationAfterLogin, emailError, nameError, submitErrorCode } from './authForm';
 
 describe('B2 authForm', () => {
-  test('emailError accepts a normal address and explains the problem otherwise', () => {
+  test('emailError accepts a normal address and returns a code otherwise', () => {
     expect(emailError('ana@example.com')).toBeUndefined();
-    expect(emailError('   ')).toBe('Escribe tu email.');
-    expect(emailError('ana@')).toMatch(/email válido/);
+    expect(emailError('   ')).toBe('required');
+    expect(emailError('ana@')).toBe('invalid');
   });
 
-  test('submitErrorMessage maps each failure to a Spanish text', () => {
-    expect(submitErrorMessage(new ApiError(401))).toBe('Email o contraseña incorrectos');
-    expect(submitErrorMessage(new ApiError(403))).toBe('Tu cuenta está bloqueada');
-    expect(submitErrorMessage(new ApiError(400))).toBe('Revisa los datos del formulario');
-    expect(submitErrorMessage(new NetworkError())).toMatch(/No se pudo conectar/);
-    expect(submitErrorMessage(new ApiError(500))).toMatch(/Algo ha fallado/);
-    expect(submitErrorMessage(new Error('x'))).toMatch(/Algo ha fallado/);
+  test('submitErrorCode maps each failure to a code', () => {
+    expect(submitErrorCode(new ApiError(401))).toBe('badCredentials');
+    expect(submitErrorCode(new ApiError(403))).toBe('blocked');
+    expect(submitErrorCode(new ApiError(400))).toBe('invalidData');
+    expect(submitErrorCode(new NetworkError())).toBe('network');
+    expect(submitErrorCode(new ApiError(500))).toBe('server');
+    expect(submitErrorCode(new Error('x'))).toBe('server');
   });
 
   test('destinationAfterLogin returns the page the visitor came from or the trip list', () => {
@@ -29,7 +29,7 @@ describe('B2 authForm', () => {
   test('B3 nameError asks for a name of at most 100 characters', () => {
     expect(nameError('Ana')).toBeUndefined();
     expect(nameError('x'.repeat(100))).toBeUndefined();
-    expect(nameError('   ')).toBe('Escribe tu nombre.');
-    expect(nameError('x'.repeat(101))).toMatch(/como máximo 100/);
+    expect(nameError('   ')).toBe('required');
+    expect(nameError('x'.repeat(101))).toBe('tooLong');
   });
 });

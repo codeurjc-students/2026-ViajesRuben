@@ -5,26 +5,62 @@ import Card from 'react-bootstrap/Card';
 import Form from 'react-bootstrap/Form';
 import { ApiError } from '../services/apiError';
 import { changePassword } from '../services/userService';
-import { MIN_PASSWORD_LENGTH } from '../utils/authForm';
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from '../utils/authForm';
 import {
-  profileErrorMessage,
+  profileErrorCode,
   validatePasswordChange,
-  type PasswordFieldMessages,
+  type PasswordFieldErrors,
+  type ProfileError,
 } from '../utils/profileForm';
+
+interface FieldMessages {
+  current?: string;
+  next?: string;
+  confirmation?: string;
+}
+
+const PASSWORD_MESSAGES = {
+  current: { required: 'Escribe tu contraseña actual.' },
+  next: {
+    required: 'Escribe la nueva contraseña.',
+    tooShort: `La contraseña necesita al menos ${MIN_PASSWORD_LENGTH} caracteres.`,
+    tooLong: `La contraseña admite como máximo ${MAX_PASSWORD_LENGTH} caracteres.`,
+  },
+  confirmation: {
+    required: 'Repite la nueva contraseña.',
+    mismatch: 'Las contraseñas no coinciden.',
+  },
+};
+
+const PROFILE_MESSAGES: Record<ProfileError, string> = {
+  sessionExpired: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
+  forbidden: 'No puedes modificar este perfil.',
+  network: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+  invalidData: 'Revisa los datos del formulario',
+  server: 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.',
+};
+
+function passwordMessages(errors: PasswordFieldErrors): FieldMessages {
+  return {
+    current: errors.current && PASSWORD_MESSAGES.current[errors.current],
+    next: errors.next && PASSWORD_MESSAGES.next[errors.next],
+    confirmation: errors.confirmation && PASSWORD_MESSAGES.confirmation[errors.confirmation],
+  };
+}
 
 /** Separate form to change the password: the current one, the new one and its confirmation. */
 export default function PasswordCard({ userId }: Readonly<{ userId: number }>) {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirmation, setConfirmation] = useState('');
-  const [messages, setMessages] = useState<PasswordFieldMessages>({});
+  const [messages, setMessages] = useState<FieldMessages>({});
   const [submitError, setSubmitError] = useState<string>();
   const [changed, setChanged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const found = validatePasswordChange(current, next, confirmation);
+    const found = passwordMessages(validatePasswordChange(current, next, confirmation));
     setMessages(found);
     setSubmitError(undefined);
     setChanged(false);
@@ -42,7 +78,7 @@ export default function PasswordCard({ userId }: Readonly<{ userId: number }>) {
         // The new password was already checked here, so the server can only be refusing the current one.
         setMessages({ current: 'La contraseña actual no es correcta.' });
       } else {
-        setSubmitError(profileErrorMessage(error));
+        setSubmitError(PROFILE_MESSAGES[profileErrorCode(error)]);
       }
     } finally {
       setSubmitting(false);

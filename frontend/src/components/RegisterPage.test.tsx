@@ -61,6 +61,17 @@ describe('B2 RegisterPage', () => {
     expect(auth.register).not.toHaveBeenCalled();
   });
 
+  test('a name longer than 100 characters is refused and nothing is sent', () => {
+    const auth = authValue(null);
+    renderRegister(auth);
+
+    fill('x'.repeat(101), 'lucia@example.com', 'secret-pass');
+    submit();
+
+    expect(screen.getByText('El nombre admite como máximo 100 caracteres.')).toBeInTheDocument();
+    expect(auth.register).not.toHaveBeenCalled();
+  });
+
   test('a password that is too short is rejected', () => {
     const auth = authValue(null);
     renderRegister(auth);

@@ -6,8 +6,27 @@ import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import { Link, Navigate, useLocation } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
-import { destinationAfterLogin, emailError, submitErrorMessage } from '../utils/authForm';
+import {
+  destinationAfterLogin,
+  emailError,
+  submitErrorCode,
+  type EmailError,
+  type SubmitError,
+} from '../utils/authForm';
 import './AuthPages.css';
+
+const EMAIL_MESSAGES: Record<EmailError, string> = {
+  required: 'Escribe tu email.',
+  invalid: 'Escribe un email válido, por ejemplo ana@correo.es.',
+};
+
+const SUBMIT_MESSAGES: Record<SubmitError, string> = {
+  network: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+  invalidData: 'Revisa los datos del formulario',
+  badCredentials: 'Email o contraseña incorrectos',
+  blocked: 'Tu cuenta está bloqueada',
+  server: 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.',
+};
 
 export default function LoginPage() {
   const { user, login } = useAuth();
@@ -24,7 +43,8 @@ export default function LoginPage() {
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextEmailMessage = emailError(email);
+    const emailCode = emailError(email);
+    const nextEmailMessage = emailCode && EMAIL_MESSAGES[emailCode];
     const nextPasswordMessage = password ? undefined : 'Escribe tu contraseña.';
     setEmailMessage(nextEmailMessage);
     setPasswordMessage(nextPasswordMessage);
@@ -35,7 +55,7 @@ export default function LoginPage() {
     try {
       await login({ email: email.trim(), password });
     } catch (error) {
-      setSubmitError(submitErrorMessage(error));
+      setSubmitError(SUBMIT_MESSAGES[submitErrorCode(error)]);
       setSubmitting(false);
     }
   }
