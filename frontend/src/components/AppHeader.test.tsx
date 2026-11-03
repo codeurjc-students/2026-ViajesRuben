@@ -1,9 +1,22 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router';
-import { test, expect, describe } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
+import { test, expect, describe, vi, beforeEach } from 'vitest';
 import AppHeader from './AppHeader';
+import AuthProvider from './AuthProvider';
+import RequireAuth from './RequireAuth';
 import { AuthContext, type AuthContextValue } from '../context/AuthContext';
+import * as authService from '../services/authService';
 import { ANA, authValue } from '../testHelpers';
+
+vi.mock('../services/authService');
+
+beforeEach(() => {
+  vi.resetAllMocks();
+});
+
+function CurrentPath() {
+  return <p data-testid="path">{useLocation().pathname}</p>;
+}
 
 function renderAt(path: string, auth: AuthContextValue = authValue(ANA)) {
   render(
@@ -81,6 +94,42 @@ describe('B2 header and the session', () => {
     await waitFor(() => expect(screen.getByText('Inicio publico')).toBeInTheDocument());
     expect(auth.logout).toHaveBeenCalledOnce();
   });
+});
+
+describe('logout from a private page', () => {
+  test.each(['/trips', '/profile'])(
+    'logging out from %s ends on the home page, not on the login page',
+    async (path) => {
+      vi.mocked(authService.getCurrentUser).mockResolvedValue(ANA);
+      vi.mocked(authService.logout).mockResolvedValue(undefined);
+      render(
+        <AuthProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <AppHeader />
+            <CurrentPath />
+            <Routes>
+              <Route path="/" element={<p>Inicio publico</p>} />
+              <Route path="/login" element={<p>Pagina login</p>} />
+              <Route element={<RequireAuth />}>
+                <Route path="/trips" element={<p>Lista privada</p>} />
+                <Route path="/profile" element={<p>Perfil privado</p>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </AuthProvider>,
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
+
+      await waitFor(() =>
+        expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId('path')).toHaveTextContent(/^\/$/);
+      expect(screen.getByText('Inicio publico')).toBeInTheDocument();
+      expect(screen.queryByText('Pagina login')).not.toBeInTheDocument();
+      expect(authService.logout).toHaveBeenCalledOnce();
+    },
+  );
 });
 
 describe('B3 header and the profile', () => {

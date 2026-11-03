@@ -8,13 +8,35 @@ import { Link, Navigate, useLocation } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { ApiError } from '../services/apiError';
 import {
+  MAX_NAME_LENGTH,
   MIN_PASSWORD_LENGTH,
   destinationAfterLogin,
   emailError,
   nameError,
-  submitErrorMessage,
+  submitErrorCode,
+  type EmailError,
+  type NameError,
+  type SubmitError,
 } from '../utils/authForm';
 import './AuthPages.css';
+
+const EMAIL_MESSAGES: Record<EmailError, string> = {
+  required: 'Escribe tu email.',
+  invalid: 'Escribe un email válido, por ejemplo ana@correo.es.',
+};
+
+const NAME_MESSAGES: Record<NameError, string> = {
+  required: 'Escribe tu nombre.',
+  tooLong: `El nombre admite como máximo ${MAX_NAME_LENGTH} caracteres.`,
+};
+
+const SUBMIT_MESSAGES: Record<SubmitError, string> = {
+  network: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+  invalidData: 'Revisa los datos del formulario',
+  badCredentials: 'Email o contraseña incorrectos',
+  blocked: 'Tu cuenta está bloqueada',
+  server: 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.',
+};
 
 interface FieldMessages {
   name?: string;
@@ -25,8 +47,10 @@ interface FieldMessages {
 
 function validate(name: string, email: string, password: string, confirmation: string) {
   const messages: FieldMessages = {};
-  messages.name = nameError(name);
-  messages.email = emailError(email);
+  const nameCode = nameError(name);
+  const emailCode = emailError(email);
+  if (nameCode) messages.name = NAME_MESSAGES[nameCode];
+  if (emailCode) messages.email = EMAIL_MESSAGES[emailCode];
   if (!password) messages.password = 'Escribe una contraseña.';
   else if (password.length < MIN_PASSWORD_LENGTH)
     messages.password = `La contraseña necesita al menos ${MIN_PASSWORD_LENGTH} caracteres.`;
@@ -63,7 +87,7 @@ export default function RegisterPage() {
       if (error instanceof ApiError && error.status === 409) {
         setMessages({ email: 'Ya existe una cuenta con ese email.' });
       } else {
-        setSubmitError(submitErrorMessage(error));
+        setSubmitError(SUBMIT_MESSAGES[submitErrorCode(error)]);
       }
       setSubmitting(false);
     }

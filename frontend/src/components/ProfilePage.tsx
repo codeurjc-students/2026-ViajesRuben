@@ -6,11 +6,19 @@ import Row from 'react-bootstrap/Row';
 import { useAuth } from '../hooks/useAuth';
 import { getProfile } from '../services/userService';
 import type { User } from '../types';
-import { profileErrorMessage } from '../utils/profileForm';
+import { profileErrorCode, type ProfileError } from '../utils/profileForm';
 import PasswordCard from './PasswordCard';
 import ProfileAvatarCard from './ProfileAvatarCard';
 import ProfileDetailsCard from './ProfileDetailsCard';
 import './ProfilePage.css';
+
+const PROFILE_MESSAGES: Record<ProfileError, string> = {
+  sessionExpired: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
+  forbidden: 'No puedes modificar este perfil.',
+  network: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+  invalidData: 'Revisa los datos del formulario',
+  server: 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.',
+};
 
 /** The logged-in user's own profile; every change is also pushed to the auth context. */
 export default function ProfilePage() {
@@ -27,7 +35,7 @@ export default function ProfilePage() {
         if (!cancelled) setProfile(loaded);
       })
       .catch((error) => {
-        if (!cancelled) setLoadError(profileErrorMessage(error));
+        if (!cancelled) setLoadError(PROFILE_MESSAGES[profileErrorCode(error)]);
       });
     return () => {
       cancelled = true;

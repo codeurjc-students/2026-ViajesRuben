@@ -6,8 +6,32 @@ import Form from 'react-bootstrap/Form';
 import { ApiError } from '../services/apiError';
 import { updateProfile } from '../services/userService';
 import type { User } from '../types';
-import { emailError, nameError } from '../utils/authForm';
-import { formatMemberSince, profileErrorMessage } from '../utils/profileForm';
+import {
+  MAX_NAME_LENGTH,
+  emailError,
+  nameError,
+  type EmailError,
+  type NameError,
+} from '../utils/authForm';
+import { formatMemberSince, profileErrorCode, type ProfileError } from '../utils/profileForm';
+
+const EMAIL_MESSAGES: Record<EmailError, string> = {
+  required: 'Escribe tu email.',
+  invalid: 'Escribe un email válido, por ejemplo ana@correo.es.',
+};
+
+const NAME_MESSAGES: Record<NameError, string> = {
+  required: 'Escribe tu nombre.',
+  tooLong: `El nombre admite como máximo ${MAX_NAME_LENGTH} caracteres.`,
+};
+
+const PROFILE_MESSAGES: Record<ProfileError, string> = {
+  sessionExpired: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
+  forbidden: 'No puedes modificar este perfil.',
+  network: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+  invalidData: 'Revisa los datos del formulario',
+  server: 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.',
+};
 
 interface FieldMessages {
   name?: string;
@@ -45,7 +69,12 @@ export default function ProfileDetailsCard({
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const found: FieldMessages = { name: nameError(name), email: emailError(email) };
+    const nameCode = nameError(name);
+    const emailCode = emailError(email);
+    const found: FieldMessages = {
+      name: nameCode && NAME_MESSAGES[nameCode],
+      email: emailCode && EMAIL_MESSAGES[emailCode],
+    };
     setMessages(found);
     setSubmitError(undefined);
     if (Object.values(found).some(Boolean)) return;
@@ -63,7 +92,7 @@ export default function ProfileDetailsCard({
       if (error instanceof ApiError && error.status === 409) {
         setMessages({ email: 'Ya existe una cuenta con ese email.' });
       } else {
-        setSubmitError(profileErrorMessage(error));
+        setSubmitError(PROFILE_MESSAGES[profileErrorCode(error)]);
       }
     } finally {
       setSubmitting(false);

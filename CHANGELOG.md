@@ -102,6 +102,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B7: the 403 error page no longer says that the content belongs to another user.
 - B8: the administrator no longer gets 403 when reading or deleting another user's trip (`GET` of the trip, its cover, activities, cost and conflicts, and `DELETE`). `TripAccessService` has a new `findForDelete`; `findForWrite` stays creator-only, so editing is still refused with 403 for the administrator.
 
+### Fixed
+
+- Logging out from a private page (for example `/trips` or `/profile`) now goes to the home page instead of the login page.
+
 ## [0.0.2] - 2026-10-19
 
 ### Added

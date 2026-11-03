@@ -16,8 +16,9 @@ export default function AppHeader() {
   async function handleLogout() {
     setLoggingOut(true);
     try {
+      // Leave the private page first: once the user is null, RequireAuth would send us to /login.
+      await navigate('/', { replace: true });
       await logout();
-      navigate('/', { replace: true });
     } finally {
       setLoggingOut(false);
     }

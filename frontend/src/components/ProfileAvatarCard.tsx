@@ -4,9 +4,17 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import { deleteAvatar, uploadAvatar } from '../services/userService';
 import type { User } from '../types';
-import { profileErrorMessage } from '../utils/profileForm';
+import { profileErrorCode, type ProfileError } from '../utils/profileForm';
 import ImageUpload from './ImageUpload';
 import UserAvatar from './UserAvatar';
+
+const PROFILE_MESSAGES: Record<ProfileError, string> = {
+  sessionExpired: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
+  forbidden: 'No puedes modificar este perfil.',
+  network: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+  invalidData: 'Revisa los datos del formulario',
+  server: 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.',
+};
 
 interface ProfileAvatarCardProps {
   profile: User;
@@ -29,7 +37,7 @@ export default function ProfileAvatarCard({
       await deleteAvatar(profile.id);
       onChanged({ ...profile, avatarId: null });
     } catch (failure) {
-      setError(profileErrorMessage(failure));
+      setError(PROFILE_MESSAGES[profileErrorCode(failure)]);
     } finally {
       setDeleting(false);
     }

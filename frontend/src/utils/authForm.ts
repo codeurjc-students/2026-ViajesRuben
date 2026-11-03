@@ -8,30 +8,32 @@ export const MAX_NAME_LENGTH = 100;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function emailError(email: string): string | undefined {
-  if (!email.trim()) return 'Escribe tu email.';
-  if (!EMAIL_PATTERN.test(email.trim()))
-    return 'Escribe un email válido, por ejemplo ana@correo.es.';
+/** Why a field or a request is wrong; the components turn each code into the Spanish message. */
+export type EmailError = 'required' | 'invalid';
+export type NameError = 'required' | 'tooLong';
+export type SubmitError = 'network' | 'invalidData' | 'badCredentials' | 'blocked' | 'server';
+
+export function emailError(email: string): EmailError | undefined {
+  if (!email.trim()) return 'required';
+  if (!EMAIL_PATTERN.test(email.trim())) return 'invalid';
   return undefined;
 }
 
-export function nameError(name: string): string | undefined {
-  if (!name.trim()) return 'Escribe tu nombre.';
-  if (name.trim().length > MAX_NAME_LENGTH)
-    return `El nombre admite como máximo ${MAX_NAME_LENGTH} caracteres.`;
+export function nameError(name: string): NameError | undefined {
+  if (!name.trim()) return 'required';
+  if (name.trim().length > MAX_NAME_LENGTH) return 'tooLong';
   return undefined;
 }
 
-/** Message for a failure that does not belong to a single field; the API texts are English. */
-export function submitErrorMessage(error: unknown): string {
-  if (error instanceof NetworkError)
-    return 'No se pudo conectar con el servidor. Inténtalo de nuevo.';
+/** Code for a failure that does not belong to a single field. */
+export function submitErrorCode(error: unknown): SubmitError {
+  if (error instanceof NetworkError) return 'network';
   if (error instanceof ApiError) {
-    if (error.status === 400) return 'Revisa los datos del formulario';
-    if (error.status === 401) return 'Email o contraseña incorrectos';
-    if (error.status === 403) return 'Tu cuenta está bloqueada';
+    if (error.status === 400) return 'invalidData';
+    if (error.status === 401) return 'badCredentials';
+    if (error.status === 403) return 'blocked';
   }
-  return 'Algo ha fallado en el servidor. Inténtalo de nuevo más tarde.';
+  return 'server';
 }
 
 /** The page a visitor was sent away from by RequireAuth, or the trip list. */
