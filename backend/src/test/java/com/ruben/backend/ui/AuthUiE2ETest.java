@@ -98,6 +98,21 @@ class AuthUiE2ETest {
   }
 
   @Test
+  void loggingOutFromAPrivatePageGoesToTheHomePage() {
+    fillAndSubmitRegistration("Lucía", email);
+    wait.until(ExpectedConditions.urlContains("/trips"));
+
+    driver.get(baseUrl + "/trips");
+    wait.until(ExpectedConditions.visibilityOfElementLocated(logoutButton()));
+    logOut();
+
+    wait.until(ExpectedConditions.visibilityOfElementLocated(loginLink()));
+    wait.until(ExpectedConditions.urlToBe(baseUrl + "/"));
+    assertThat(driver.getCurrentUrl()).isEqualTo(baseUrl + "/");
+    assertThat(driver.findElements(logoutButton())).isEmpty();
+  }
+
+  @Test
   void aPrivatePageSendsAnonymousVisitorsToLoginAndBackAfterwards() {
     fillAndSubmitRegistration("Lucía", email);
     wait.until(ExpectedConditions.visibilityOfElementLocated(logoutButton()));
