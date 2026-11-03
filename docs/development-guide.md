@@ -199,10 +199,10 @@ The tests are not run while building the image: they run in CI. The resulting im
 
 | File                            | Project        | `app` image                 | Use                                                    |
 | ------------------------------- | -------------- | --------------------------- | ------------------------------------------------------ |
-| `docker/docker-compose.yml`     | `tripmate`     | `rubenruiz7/tripmate:0.1.0` | Released version, downloaded from DockerHub            |
+| `docker/docker-compose.yml`     | `tripmate`     | `rubenruiz7/tripmate:0.1`   | Released version, downloaded from DockerHub            |
 | `docker/docker-compose-dev.yml` | `tripmate-dev` | `rubenruiz7/tripmate:dev`   | Image built locally, to test changes before publishing |
 
-The image tag in `docker/docker-compose.yml` is always the full version of the last release (`x.y.z`, see [Versioning](#versioning)). The files published by [continuous delivery](#continuous-delivery) have the tag of each publication instead.
+The image tag in `docker/docker-compose.yml` is always the `MAJOR.MINOR` tag of the last release (`0.1`, see [Versioning](#versioning)); the release workflow publishes that tag next to the full version. The files published by [continuous delivery](#continuous-delivery) have the tag of each publication instead.
 
 `app` waits for `db` to be healthy (`mysqladmin ping`) before starting. All settings are environment variables with the `${VAR:-default}` syntax, so `docker compose up` works without any configuration:
 
@@ -241,7 +241,7 @@ The application is then available at https://localhost/ (the browser warns about
 docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes
 ```
 
-Before running a file downloaded from a registry, `up` shows its variables and asks "Do you want to proceed with these variables?"; `--yes` answers yes. `down`, `logs` and `ps` do not ask. The tag is `latest` (last release), a version such as `0.1.0`, or `dev` (last version of `main`); the other commands of the table below work with the same `-f oci://…` instead of the file in `docker/`.
+Before running a file downloaded from a registry, `up` shows its variables and asks "Do you want to proceed with these variables?"; `--yes` answers yes. `down`, `logs` and `ps` do not ask. The tag is `latest` (last release), a release such as `0.1` (or its full version `0.1.0`), or `dev` (last version of `main`); the other commands of the table below work with the same `-f oci://…` instead of the file in `docker/`.
 
 | Goal                           | Command (use `docker/docker-compose-dev.yml` for the local image)                      |
 | ------------------------------ | -------------------------------------------------------------------------------------- |
@@ -579,51 +579,52 @@ Four more GitHub Actions workflows publish the application on DockerHub. They on
 | Workflow                                    | Trigger                                         | Image `rubenruiz7/tripmate` and artifact `rubenruiz7/tripmate-compose` tags    | Compose file published          |
 | ------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------- |
 | **Deliver dev** (`deliver-dev.yml`)         | Every push to `main`                            | `dev`                                                                          | `docker/docker-compose-dev.yml` |
-| **Deliver release** (`deliver-release.yml`) | A GitHub release is published                   | `x.y.z` and `latest` (a pre-release does not move `latest`)                    | `docker/docker-compose.yml`     |
+| **Deliver release** (`deliver-release.yml`) | A GitHub release is published                   | `x.y.0`, `x.y` and `latest` (a pre-release does not move `latest`)            | `docker/docker-compose.yml`     |
 | **Deliver manual** (`deliver-manual.yml`)   | Manually (_Actions → Run workflow_), any branch | `<branch>-<YYYYMMDD>-<short commit>`, for example `feature-x-20261023-abc1234` | `docker/docker-compose-dev.yml` |
 | **Publish Docker** (`publish-docker.yml`)   | Called by the three above (`workflow_call`)     | The tag it receives, plus optional aliases                                     | The file it receives            |
 
 `publish-docker.yml` does the work, always in the same way: it logs in to DockerHub, builds `docker/Dockerfile` and pushes the image, and publishes the Compose file as an OCI artifact (`docker compose publish`). The credentials are the repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a DockerHub access token with read and write permission); they are only used by the login step and never printed.
 
-**Which image the artifact runs.** The committed Compose files are never edited. The workflow copies the file to a temporary folder and changes only its `app` image line to `rubenruiz7/tripmate:<tag>`; everything else, including the `${VAR:-default}` expressions, stays as it is, so the artifact is as configurable as the original. It stops if more than one line changed and checks the result with `docker compose config --images`. After publishing, it reads every artifact back from DockerHub and checks the image again. The image inside an artifact is always an immutable tag (`dev`, the version, or the branch-date-commit tag): `rubenruiz7/tripmate-compose:latest` runs `rubenruiz7/tripmate:x.y.z`, not `latest`, so an artifact keeps running the same image.
+**Which image the artifact runs.** The committed Compose files are never edited. The workflow copies the file to a temporary folder and changes only its `app` image line to `rubenruiz7/tripmate:<tag>`; everything else, including the `${VAR:-default}` expressions, stays as it is, so the artifact is as configurable as the original. It stops if more than one line changed and checks the result with `docker compose config --images`. After publishing, it reads every artifact back from DockerHub and checks the image again. The image inside an artifact is always an immutable tag (`dev`, the version, or the branch-date-commit tag): `rubenruiz7/tripmate-compose:latest` and `:0.1` run `rubenruiz7/tripmate:0.1.0`, not `latest`, so an artifact keeps running the same image. The committed file names `rubenruiz7/tripmate:0.1`, which is why that tag is published too; the published copy replaces it with `0.1.0`.
 
 | Case          | Artifact tags     | Image run by the artifact                                   |
 | ------------- | ----------------- | ----------------------------------------------------------- |
 | Push to main  | `dev`             | `rubenruiz7/tripmate:dev`                                   |
-| Release 0.1.0 | `0.1.0`, `latest` | `rubenruiz7/tripmate:0.1.0`                                 |
+| Release 0.1   | `0.1.0`, `0.1`, `latest` | `rubenruiz7/tripmate:0.1.0`                          |
 | Manual run    | The branch tag    | `rubenruiz7/tripmate:feature-x-20261023-abc1234` (same tag) |
 
 **Docker Compose version.** `docker compose publish` and `-f oci://…` need Compose 2.34.0 or later (before that, `publish` was an alpha command). The runner image can change its Compose version without notice, so the workflow installs a pinned version with `docker/setup-compose-action` (`COMPOSE_VERSION` in `publish-docker.yml`) and fails if the installed version is different. Every `docker compose` command that talks to the registry runs with its input closed, `--yes` where Compose supports it, and a step timeout, so it cannot wait for a confirmation.
 
 **Manual tags.** Docker tags cannot contain `/` and are limited to 128 characters, so the branch name is converted to lower case, every character outside `a-z 0-9 _ . -` becomes `-` (`feature/x` becomes `feature-x`) and it is shortened if needed; the date is UTC.
 
-**Release gate.** The release workflow does not repeat the tests. Before publishing it checks that the version is `x.y.z` (a leading `v` is ignored), that the tagged commit is on `main`, and that the Basic quality run of that commit has succeeded; if that run is still in progress it waits for it (up to 15 minutes), and it fails if it did not succeed. This is enough because of the branch protection rules of `main`: **the gate assumes that `main` only receives pull requests with the full quality workflow passing** (_Require a pull request_ and required status checks), so a commit on `main` has already passed the whole test suite. If the protection is removed, the gate no longer guarantees it. The dev workflow and the manual workflow do not check anything: they publish development images.
+**Release gate.** The release workflow does not repeat the tests. Before publishing it checks that the release tag is `MAJOR.MINOR` (for example `0.1`; a `v` prefix or a third number is rejected), that the tagged commit is on `main`, and that the Basic quality run of that commit has succeeded; if that run is still in progress it waits for it (up to 15 minutes), and it fails if it did not succeed. This is enough because of the branch protection rules of `main`: **the gate assumes that `main` only receives pull requests with the full quality workflow passing** (_Require a pull request_ and required status checks), so a commit on `main` has already passed the whole test suite. If the protection is removed, the gate no longer guarantees it. The dev workflow and the manual workflow do not check anything: they publish development images.
 
 **Where to see the result.** The summary of each run lists the published image and artifact, and the DockerHub repositories [`rubenruiz7/tripmate`](https://hub.docker.com/r/rubenruiz7/tripmate) and [`rubenruiz7/tripmate-compose`](https://hub.docker.com/r/rubenruiz7/tripmate-compose) show the tags. To try a branch before merging, run _Deliver manual_ on it and use the tag printed in the summary: `docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:<tag> up -d --yes`.
 
 ### Versioning
 
-TripMate follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `MAJOR.MINOR.PATCH`. While the major version is `0`, the minor version changes with each release that adds functionality (the target of Phase 3 is `0.1.0`, with features B1–B8) and the patch version with fixes. Versions have three numbers and no prefix (`0.1.0`, not `0.1` or `v0.1.0`): the Git tag, the GitHub release, the Docker image and the Compose artifact use the same text, and the release workflow rejects anything else.
+TripMate follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `MAJOR.MINOR.PATCH`. While the major version is `0`, the minor version changes with each release that adds functionality (the target of Phase 3 is `0.1.0`, with features B1–B8) and the patch version with fixes. A release is named with two numbers, `MAJOR.MINOR` (`0.1`, no `v` prefix), and its version is `MAJOR.MINOR.0` (`0.1.0`): the Git tag and the GitHub release are `0.1`, the files and the image use `0.1.0`, and the image and the Compose artifact are also published as `0.1` so that the committed Compose file resolves. The release workflow rejects any other tag.
 
 | Place                         | Value                                                |
 | ----------------------------- | ---------------------------------------------------- |
-| Git tag and GitHub release    | `x.y.z`                                              |
-| `backend/pom.xml`             | `x.y.z` in a release, `x.y+1.0-SNAPSHOT` after it    |
-| `frontend/package.json`       | `x.y.z` in a release, `x.y+1.0` after it             |
-| `rubenruiz7/tripmate`         | `x.y.z` and `latest`, never `x.y`                    |
-| `docker/docker-compose.yml`   | Image `rubenruiz7/tripmate:x.y.z` (the full version) |
-| `CHANGELOG.md`                | A section `## [x.y.z] - date`                        |
+| Git tag and GitHub release    | `x.y`                                                |
+| `backend/pom.xml`             | `x.y.0` in a release, `x.y+1.0-SNAPSHOT` after it    |
+| `frontend/package.json`       | `x.y.0` in a release, `x.y+1.0` after it             |
+| `rubenruiz7/tripmate`         | `x.y.0`, `x.y` and `latest`                          |
+| `rubenruiz7/tripmate-compose` | `x.y.0`, `x.y` and `latest` (all run the image `x.y.0`) |
+| `docker/docker-compose.yml`   | Image `rubenruiz7/tripmate:x.y`                      |
+| `CHANGELOG.md`                | A section `## [x.y.0] - date`                        |
 | `main` (after the first push) | Image and Compose artifact `dev`                     |
 
-**Releasing a version `x.y.z`:**
+**Releasing a version `x.y`** (for example `0.1`, whose version is `0.1.0`):
 
-1. Check that `main` is green (CI and SonarQube Cloud quality gate) and create a branch `release/x.y.z`.
-2. Set the version `x.y.z` in `backend/pom.xml` and `frontend/package.json` (with its lockfile).
-3. Set the full version `x.y.z` in `docker/docker-compose.yml` (`rubenruiz7/tripmate:x.y.z`).
-4. In `CHANGELOG.md`, move the "Unreleased" entries to `## [x.y.z] - <date>` and update the comparison links.
+1. Check that `main` is green (CI and SonarQube Cloud quality gate) and create a branch `release/x.y`.
+2. Set the version `x.y.0` in `backend/pom.xml` and `frontend/package.json` (with its lockfile).
+3. Set the `x.y` tag in `docker/docker-compose.yml` (`rubenruiz7/tripmate:x.y`).
+4. In `CHANGELOG.md`, move the "Unreleased" entries to `## [x.y.0] - <date>` and update the comparison links.
 5. Merge the pull request into `main` (it needs the full quality workflow to pass).
-6. On GitHub, create the release (**Releases → Draft a new release**) with a new tag `x.y.z` on `main` and the notes of that version from the changelog, and publish it. _Deliver release_ publishes the image and the Compose artifact (`x.y.z` and `latest`); check the run and the tags on DockerHub.
-7. In another pull request, move the development versions to the next ones (`backend/pom.xml` to `x.y+1.0-SNAPSHOT`, `frontend/package.json` and the image of `docker/docker-compose.yml` to the full next version) and add an empty "Unreleased" section to the changelog.
+6. On GitHub, create the release (**Releases → Draft a new release**) with a new tag `x.y` on `main` and the notes of that version from the changelog, and publish it. _Deliver release_ publishes the image and the Compose artifact (`x.y.0`, `x.y` and `latest`); check the run and the tags on DockerHub.
+7. In another pull request, move the development versions to the next ones (`backend/pom.xml` to `x.y+1.0-SNAPSHOT`, `frontend/package.json` to `x.y+1.0` and the image of `docker/docker-compose.yml` to `x.y+1`) and add an empty "Unreleased" section to the changelog.
 
 Releases:
 
@@ -817,7 +818,7 @@ cd frontend && npm run lint && npm run format:check
 
 ### Creating a release
 
-Releases are created from GitHub (**Releases → Draft a new release**), with a tag named after the full version (for example, `0.1.0`), and with the notes of that version taken from [`CHANGELOG.md`](../CHANGELOG.md). Publishing the release makes [continuous delivery](#continuous-delivery) publish the Docker image and the Compose artifact. The steps, including the version updates in `pom.xml`, `package.json` and `docker/docker-compose.yml`, are in [Versioning](#versioning).
+Releases are created from GitHub (**Releases → Draft a new release**), with a tag named `MAJOR.MINOR` (for example, `0.1`, which releases the version `0.1.0`), and with the notes of that version taken from [`CHANGELOG.md`](../CHANGELOG.md). Publishing the release makes [continuous delivery](#continuous-delivery) publish the Docker image and the Compose artifact. The steps, including the version updates in `pom.xml`, `package.json` and `docker/docker-compose.yml`, are in [Versioning](#versioning).
 
 ## Design decisions
 
@@ -845,6 +846,7 @@ Relevant technical decisions taken during the development, with their reasons.
 | Oct 2026 | Docker Compose pinned in the delivery workflow (`docker/setup-compose-action`)                                                                        | The version installed in the runner image                                          | `publish` needs Compose 2.34.0 or later and the runner image changes its version without notice                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Oct 2026 | The release workflow checks that the commit is on `main` and that Basic quality passed (waiting up to 15 minutes), instead of running the tests again | Re-running every test; no check                                                    | The tests already ran in the pull request (branch protection on `main`) and the full workflow cannot be reused; the check also covers a release created on a commit whose analysis is still running                                                                                                                                                                                                                                                                                                                                  |
 | Oct 2026 | Releases publish `x.y.z` and `latest`, never `x.y`                                                                                                    | Also a moving `x.y` tag                                                            | One exact tag per release and no tag that changes under the user; the Compose file of the release names the full version                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Nov 2026 | Releases are tagged `MAJOR.MINOR` (`0.1`) and publish `x.y.0`, `x.y` and `latest`; the committed Compose file names `rubenruiz7/tripmate:x.y` (replaces "never `x.y`" above) | Tag `x.y.z` with only `x.y.z` and `latest` | The TFG guide asks for releases named `0.1` and a Compose file that resolves `rubenruiz7/tripmate:0.1`. The artifact still runs the immutable `x.y.0`, so it never changes under the user |
 | Oct 2026 | `.dockerignore` as an allowlist                                                                                                                       | A list of excluded folders                                                         | Nothing enters the build context unless the build needs it, so private files, `.git` and documentation cannot end up in an image                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Oct 2026 | The administrator's own profile is read-only except the avatar (changing its name, email or password answers 403)                                     | Letting the administrator edit its profile like any other user                     | The administrator's name, email and password hash come from the configuration and are written to the database on every start-up: a name or password changed through the API would be lost on the next restart, and a changed email would make the next start-up create a second administrator account with the configured email and demote the edited one. The avatar is not in the configuration, so it can be changed                                                                                                              |
 | Oct 2026 | Avatars are shown through the public `GET /api/v1/images/{id}` (the `avatarId` of the user), while `GET /api/v1/users/{id}/avatar` requires login     | Serving avatars only from the user URL; making the user URL public                 | The image URL is a random UUID that cannot be guessed or enumerated (the same as the rest of the images), works in `<img>` tags and can be cached forever because a new upload gets a new id. The user URL is guessable (sequential ids), so it requires login, and its content changes when the avatar is replaced, so it is sent with `no-cache`. The trade-off is that anyone who obtains an avatar's UUID can see that picture without logging in; avatars are not sensitive data, and the UUID is only given to logged-in users |

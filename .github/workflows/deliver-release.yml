@@ -1,8 +1,9 @@
 name: Deliver release
 
-# Publishing a GitHub release x.y.z publishes rubenruiz7/tripmate:x.y.z and :latest, and the Compose artifact
-# rubenruiz7/tripmate-compose:x.y.z and :latest (both pointing to the image x.y.z). A pre-release does not move
-# latest. The release must be on main and its commit must have passed Basic quality.
+# A GitHub release is tagged MAJOR.MINOR (for example 0.1) and means the version MAJOR.MINOR.0 (0.1.0). Publishing
+# it publishes rubenruiz7/tripmate:0.1.0, :0.1 and :latest, and the Compose artifact
+# rubenruiz7/tripmate-compose:0.1.0, :0.1 and :latest (all pointing to the image 0.1.0). A pre-release does not
+# move latest. The release must be on main and its commit must have passed Basic quality.
 on:
   release:
     types: [published]
@@ -32,13 +33,13 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          version="${RELEASE_TAG#v}"
-          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Release tag '$RELEASE_TAG' is not a version x.y.z"
+          if ! [[ "$RELEASE_TAG" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tag '$RELEASE_TAG' is not MAJOR.MINOR (for example 0.1)"
             exit 1
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          if [ "$PRERELEASE" = "true" ]; then echo "aliases=" >> "$GITHUB_OUTPUT"; else echo "aliases=latest" >> "$GITHUB_OUTPUT"; fi
+          echo "version=$RELEASE_TAG.0" >> "$GITHUB_OUTPUT"
+          # 0.1 is always an alias, because docker/docker-compose.yml names rubenruiz7/tripmate:0.1.
+          if [ "$PRERELEASE" = "true" ]; then echo "aliases=$RELEASE_TAG" >> "$GITHUB_OUTPUT"; else echo "aliases=$RELEASE_TAG latest" >> "$GITHUB_OUTPUT"; fi
 
       - name: Check that the release commit is on main
         run: |
