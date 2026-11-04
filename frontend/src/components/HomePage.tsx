@@ -48,7 +48,6 @@ export default function HomePage() {
             )}
           </div>
         </div>
-        <img src="/trip_background_image.jpg" alt="" className="home-hero__photo" />
       </section>
 
       <ExampleTrips />
