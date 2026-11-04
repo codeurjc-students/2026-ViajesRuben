@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-04
+
+First GitHub release (tag `0.1`): the basic functionality B1–B8, the Docker image and continuous delivery.
+
 ### Added
 
+- Documentation of version 0.1: a README with the summary of the version, screenshots, video and the next versions; the features page with the version 0.1 screens and the implementation status of every feature; `docs/execution.md` (requirements, running a published version, sample data, with and without sample data, deployment on an external server); and the development guide updated with the types of tests, the traceability between tests and features, the test statistics, the code size and the development process.
 - Security base with Spring Security: login (`POST /api/v1/auth/login`), logout (`POST /api/v1/auth/logout`) and current user (`GET /api/v1/auth/me`) with a JWT stored in an `HttpOnly`, `Secure`, `SameSite=Strict` cookie.
 - `User` entity with roles (`USER`, `ADMIN`) and status (`ACTIVE`, `BLOCKED`); blocked users cannot log in, and a user blocked after logging in is rejected on the next request.
 - Single administrator defined in the configuration (`ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD_HASH` with a BCrypt hash) and synchronized into the database on start-up.
-- Access rules: `/api/v1/admin/**` requires the administrator, and the rest of `/api/**` requires a logged-in user, except login, logout and `GET /api/v1/trips`.
+- Access rules: `/api/v1/admin/**` requires the administrator, and the rest of `/api/**` requires a logged-in user, except login, logout, registration, reading an image and the public example trips (`GET /api/v1/trips/examples/**`).
 - Common JSON error body (`timestamp`, `status`, `error`, `message`, `path`) for validation and security errors.
 - HTTPS on port 443 with a self-signed development keystore; port, keystore and token settings are configurable with environment variables.
 - Tests for the security base: backend unit, integration and REST API system tests.
@@ -102,6 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - B7: the 403 error page no longer says that the content belongs to another user.
 - B8: the administrator no longer gets 403 when reading or deleting another user's trip (`GET` of the trip, its cover, activities, cost and conflicts, and `DELETE`). `TripAccessService` has a new `findForDelete`; `findForWrite` stays creator-only, so editing is still refused with 403 for the administrator.
 
+- Releases are named `MAJOR.MINOR`: a GitHub release tagged `0.1` is the version `0.1.0` and publishes the image and the Compose artifact as `0.1.0`, `0.1` and `latest` (any other tag is rejected). `docker/docker-compose.yml` now uses `rubenruiz7/tripmate:0.1`, and the `/release` steps and the versioning documentation follow the same rule.
+
 ### Fixed
 
 - Logging out from a private page (for example `/trips` or `/profile`) now goes to the home page instead of the login page.
@@ -149,6 +156,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial development methodology, project timeline, and Gantt chart.
 - AI usage tracking documentation in `AI_USAGE.md`.
 
-[Unreleased]: https://github.com/<org>/2026-ViajesRuben/compare/0.0.2...HEAD
-[0.0.2]: https://github.com/<org>/2026-ViajesRuben/compare/0.0.1...0.0.2
-[0.0.1]: https://github.com/<org>/2026-ViajesRuben/releases/tag/0.0.1
+[Unreleased]: https://github.com/codeurjc-students/2026-ViajesRuben/compare/0.1...HEAD
+[0.1.0]: https://github.com/codeurjc-students/2026-ViajesRuben/releases/tag/0.1
