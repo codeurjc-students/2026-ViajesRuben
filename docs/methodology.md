@@ -2,7 +2,7 @@
 
 # Methodology
 
-The project follows an iterative and incremental process based on the principles of the Agile Manifesto, applying some Extreme Programming (XP) and Kanban practices. Tasks are managed as GitHub Issues on a GitHub Project Kanban board. The code is managed with Git following GitHub Flow: each feature or fix is developed in its own branch and merged into `main` through a pull request. A new version (release) is published at the end of each development phase.
+The project follows an iterative and incremental process based on the principles of the Agile Manifesto, applying some Extreme Programming (XP) and Kanban practices. Tasks are managed as GitHub Issues on a GitHub Project Kanban board. The code is managed with Git following GitHub Flow: each feature or fix is developed in its own branch and merged into `main` through a pull request. A new version (release) is published at the end of each development phase. The practices actually used and the metrics are in the [Development process](development-guide.md#development-process) of the development guide.
 
 - **Phase 1:** Definition of the application's features and screens, described in the [Detailed features](functionalities.md) and [Analysis](analysis.md) sections.
 - **Phase 2:** Setup of the development technologies and tools, with quality controls that run periodically (automated tests, continuous integration, and static code analysis). Described in the [Development guide](development-guide.md).

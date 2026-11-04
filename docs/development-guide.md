@@ -12,11 +12,19 @@ This guide describes the current technical state of TripMate: how it is built, h
 - [Architecture](#architecture)
   - [Deployment](#deployment)
     - [Docker deployment](#docker-deployment)
+  - [Domain model](#domain-model)
+  - [Server architecture](#server-architecture)
+  - [Client architecture](#client-architecture)
+  - [Security](#security)
   - [REST API](#rest-api)
   - [Frontend routing and error page](#frontend-routing-and-error-page)
 - [Quality control](#quality-control)
+  - [Types of tests](#types-of-tests)
   - [Automated tests](#automated-tests)
+  - [Traceability between tests and features](#traceability-between-tests-and-features)
+  - [Test statistics](#test-statistics)
   - [Static code analysis](#static-code-analysis)
+  - [Code size](#code-size)
   - [Code style](#code-style)
 - [Development process](#development-process)
   - [Task management](#task-management)
@@ -47,10 +55,10 @@ The application has three parts that run as independent processes:
 | Aspect                  | Description                                                                                                                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Type**                | Web SPA with a REST API backend (modular monolith)                                                                                                                                                                                                                    |
-| **Technologies**        | Backend: Java 21, Spring Boot, Spring Data JPA, MySQL. Frontend: React, React Bootstrap, TypeScript, Vite                                                                                                                                                             |
+| **Technologies**        | Backend: Java 21, Spring Boot, Spring Security, Spring Data JPA, MySQL. Frontend: React, React Router, React Bootstrap, TypeScript, Vite                                                                                                                              |
 | **Tools**               | Visual Studio Code, Maven, npm, Docker, Postman, Git, GitHub                                                                                                                                                                                                          |
 | **Quality control**     | Unit, integration and system tests for backend and frontend (JUnit, Mockito, Testcontainers, Rest Assured, Selenium, Vitest, Testing Library); test coverage (JaCoCo, Vitest); static code analysis (SonarQube Cloud); code style checks (Spotless, ESLint, Prettier) |
-| **Deployment**          | Docker image served by Spring Boot over HTTPS and Docker Compose with MySQL (see [Deployment](#deployment)). Deployment to a server will be done in Phase 4                                                                                                           |
+| **Deployment**          | One Docker image (Spring Boot serving the React application over HTTPS) published on DockerHub, run with Docker Compose next to MySQL (see [Deployment](#deployment)). Deployment to a public server will be done in Phase 4                                          |
 | **Development process** | Iterative and incremental; Git with GitHub Flow; continuous integration with GitHub Actions; tasks managed with GitHub Issues and GitHub Projects                                                                                                                     |
 
 ## Technologies
@@ -72,6 +80,11 @@ https://spring.io/projects/spring-boot
 Spring module that simplifies data access with JPA (Java Persistence API). The application's entities are mapped to database tables, and repositories provide the database queries without writing SQL for the common operations.
 https://spring.io/projects/spring-data-jpa
 
+### Spring Security
+
+Spring module for authentication and authorization. In TripMate it checks the JWT that comes in a cookie (OAuth2 resource server), loads the user on every request and protects the URLs by role (see [Security](#security)). Passwords are stored with BCrypt.
+https://spring.io/projects/spring-security
+
 ### springdoc-openapi
 
 Library that generates the OpenAPI specification of the REST API from the Spring controllers and serves an interactive Swagger UI to explore it.
@@ -86,6 +99,11 @@ https://www.mysql.com/
 
 JavaScript library for building user interfaces from reusable components. It is used to implement the SPA client.
 https://react.dev/
+
+### React Router
+
+Routing library of the SPA: it maps every URL (`/trips`, `/trips/:id`, `/admin/users`...) to a screen and keeps the navigation history without reloading the page.
+https://reactrouter.com/
 
 ### React Bootstrap
 
@@ -126,6 +144,11 @@ https://www.npmjs.com/
 Container platform. During development it runs the MySQL database and, through Testcontainers, a real MySQL instance for the integration and system tests. It also packages the application as an image, which Docker Compose runs together with MySQL.
 https://www.docker.com/
 
+### Docker Compose and DockerHub
+
+Docker Compose runs the application and its database together from one file. DockerHub is the registry where the image `rubenruiz7/tripmate` and the Compose file (as the OCI artifact `rubenruiz7/tripmate-compose`) are published by [continuous delivery](#continuous-delivery).
+https://docs.docker.com/compose/ · https://hub.docker.com/
+
 ### Postman
 
 Tool to send HTTP requests and test REST APIs. The repository includes a Postman collection with example requests for every operation of the API.
@@ -160,7 +183,9 @@ https://github.com/diffplug/spotless · https://eslint.org/ · https://prettier.
 
 ### Deployment
 
-During development, TripMate runs as three independent processes:
+TripMate has two deployment architectures: the development one, with three processes started by the developer, and the packaged one, with two containers. The processes and the protocols between them are the following.
+
+**Development.** TripMate runs as three independent processes:
 
 ```mermaid
 flowchart LR
@@ -168,13 +193,13 @@ flowchart LR
   S -- "JDBC" --> D[("MySQL<br/>Docker container<br/>:3307 → 3306")]
 ```
 
-- The **browser** loads the React application from the Vite development server and calls the REST API using JSON payloads. During development, Vite proxies the `/api` requests to the backend, so the browser only talks to `http://localhost:5173`.
+- The **browser** loads the React application from the Vite development server and calls the REST API using JSON payloads. During development, Vite proxies the `/api` requests to the backend, so the browser only talks to `http://localhost:5173` (HTTP to Vite, then HTTPS from Vite to the backend).
 - The **Spring Boot server** serves HTTPS on port 443, authenticates the requests (see [Security](#security)), handles them, applies the business logic and accesses the database through JDBC (using Spring Data JPA).
 - The **MySQL database** runs in a Docker container. The container's port 3306 is published on port 3307 of the host.
 
 #### Docker deployment
 
-The whole application is packaged as a single Docker image (`rubenruiz7/tripmate`) that contains the Spring Boot server and the built React application, which Spring serves as static resources. It runs with Docker Compose next to a standard MySQL container:
+**Packaged application.** The whole application is one Docker image (`rubenruiz7/tripmate`) that contains the client and the server: the Spring Boot server and the built React application, which Spring serves as static resources. It runs with Docker Compose next to a standard MySQL container, and the image and the Compose file are published on DockerHub ([`rubenruiz7/tripmate`](https://hub.docker.com/r/rubenruiz7/tripmate) and [`rubenruiz7/tripmate-compose`](https://hub.docker.com/r/rubenruiz7/tripmate-compose)). The user guide is [Execution](execution.md):
 
 ```mermaid
 flowchart LR
@@ -197,28 +222,28 @@ The tests are not run while building the image: they run in CI. The resulting im
 
 **Compose files.** Both files are self-contained (no `build` section, bind mounts or `env_file`), so they can be published as OCI artifacts. They only differ in the project name and the image tag:
 
-| File                            | Project        | `app` image                 | Use                                                    |
-| ------------------------------- | -------------- | --------------------------- | ------------------------------------------------------ |
-| `docker/docker-compose.yml`     | `tripmate`     | `rubenruiz7/tripmate:0.1`   | Released version, downloaded from DockerHub            |
-| `docker/docker-compose-dev.yml` | `tripmate-dev` | `rubenruiz7/tripmate:dev`   | Image built locally, to test changes before publishing |
+| File                            | Project        | `app` image               | Use                                                    |
+| ------------------------------- | -------------- | ------------------------- | ------------------------------------------------------ |
+| `docker/docker-compose.yml`     | `tripmate`     | `rubenruiz7/tripmate:0.1` | Released version, downloaded from DockerHub            |
+| `docker/docker-compose-dev.yml` | `tripmate-dev` | `rubenruiz7/tripmate:dev` | Image built locally, to test changes before publishing |
 
 The image tag in `docker/docker-compose.yml` is always the `MAJOR.MINOR` tag of the last release (`0.1`, see [Versioning](#versioning)); the release workflow publishes that tag next to the full version. The files published by [continuous delivery](#continuous-delivery) have the tag of each publication instead.
 
 `app` waits for `db` to be healthy (`mysqladmin ping`) before starting. All settings are environment variables with the `${VAR:-default}` syntax, so `docker compose up` works without any configuration:
 
-| Variable                                | Default                                  | Used by | Description                                                 |
-| --------------------------------------- | ---------------------------------------- | ------- | ----------------------------------------------------------- |
-| `MYSQL_ROOT_PASSWORD`                   | `password`                               | `db`    | Password of the MySQL `root` user                           |
-| `MYSQL_DATABASE`                        | `tripmate`                               | `db`    | Database created on the first start (also used in `DB_URL`) |
-| `DB_URL`                                | `jdbc:mysql://db:3306/${MYSQL_DATABASE}` | `app`   | Fixed by the Compose file, pointing to the `db` service     |
-| `DB_USERNAME`                           | `root`                                   | `app`   | Database user                                               |
-| `DB_PASSWORD`                           | `${MYSQL_ROOT_PASSWORD}`                 | `app`   | Database password                                           |
+| Variable                                | Default                                  | Used by | Description                                                                                      |
+| --------------------------------------- | ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `MYSQL_ROOT_PASSWORD`                   | `password`                               | `db`    | Password of the MySQL `root` user                                                                |
+| `MYSQL_DATABASE`                        | `tripmate`                               | `db`    | Database created on the first start (also used in `DB_URL`)                                      |
+| `DB_URL`                                | `jdbc:mysql://db:3306/${MYSQL_DATABASE}` | `app`   | Fixed by the Compose file, pointing to the `db` service                                          |
+| `DB_USERNAME`                           | `root`                                   | `app`   | Database user                                                                                    |
+| `DB_PASSWORD`                           | `${MYSQL_ROOT_PASSWORD}`                 | `app`   | Database password                                                                                |
 | `SAMPLE_DATA`                           | `true`                                   | `app`   | Loads the 3 sample users with their 17 trips and the administrator's 3 example trips at start-up |
-| `SAMPLE_USERS_PASSWORD`                 | `Demo-2026`                              | `app`   | Password of the sample users (development only)             |
-| `ADMIN_EMAIL`, `ADMIN_NAME`             | `admin@tripmate.com`, `Administrator`    | `app`   | The administrator                                           |
-| `ADMIN_PASSWORD_HASH`                   | BCrypt hash of the password `admin`      | `app`   | BCrypt hash of the administrator password                   |
-| `JWT_SECRET`                            | development key                          | `app`   | Base64 key that signs the tokens (at least 32 bytes)        |
-| `SSL_KEYSTORE`, `SSL_KEYSTORE_PASSWORD` | `classpath:keystore.p12`, `password`     | `app`   | Keystore with the self-signed development certificate       |
+| `SAMPLE_USERS_PASSWORD`                 | `Demo-2026`                              | `app`   | Password of the sample users (development only)                                                  |
+| `ADMIN_EMAIL`, `ADMIN_NAME`             | `admin@tripmate.com`, `Administrator`    | `app`   | The administrator                                                                                |
+| `ADMIN_PASSWORD_HASH`                   | BCrypt hash of the password `admin`      | `app`   | BCrypt hash of the administrator password                                                        |
+| `JWT_SECRET`                            | development key                          | `app`   | Base64 key that signs the tokens (at least 32 bytes)                                             |
+| `SSL_KEYSTORE`, `SSL_KEYSTORE_PASSWORD` | `classpath:keystore.p12`, `password`     | `app`   | Keystore with the self-signed development certificate                                            |
 
 The defaults are for development only: **outside development, `ADMIN_PASSWORD_HASH`, `JWT_SECRET`, `MYSQL_ROOT_PASSWORD` and the keystore must be replaced** (see [Running the application](#running-the-application) to create them). To change a value, set the variable before the command, for example `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`.
 
@@ -235,7 +260,7 @@ docker compose -f docker/docker-compose-dev.yml up -d
 
 The application is then available at https://localhost/ (the browser warns about the self-signed certificate) and the REST API at https://localhost/api/v1/. Log in as `admin@tripmate.com` with the password `admin`, or as one of the [sample users](#sample-data).
 
-**Running from the OCI artifact.** Without cloning the repository, Compose (2.34.0 or later) can run the file published on DockerHub (see [Continuous delivery](#continuous-delivery)):
+**Running from the OCI artifact.** Without cloning the repository, Compose (2.34.0 or later) can run the file published on DockerHub, which is how a user runs the application (see [Execution](execution.md) and [Continuous delivery](#continuous-delivery)):
 
 ```bash
 docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes
@@ -243,15 +268,195 @@ docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes
 
 Before running a file downloaded from a registry, `up` shows its variables and asks "Do you want to proceed with these variables?"; `--yes` answers yes. `down`, `logs` and `ps` do not ask. The tag is `latest` (last release), a release such as `0.1` (or its full version `0.1.0`), or `dev` (last version of `main`); the other commands of the table below work with the same `-f oci://…` instead of the file in `docker/`.
 
-| Goal                           | Command (use `docker/docker-compose-dev.yml` for the local image)                      |
-| ------------------------------ | -------------------------------------------------------------------------------------- |
+| Goal                                  | Command (use `docker/docker-compose-dev.yml` for the local image)                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
 | Start with the sample users and trips | `docker compose -f docker/docker-compose.yml up -d`                                    |
-| Start with an empty database   | `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`                  |
-| See the logs                   | `docker compose -f docker/docker-compose.yml logs -f app`                              |
-| Stop, keeping the data         | `docker compose -f docker/docker-compose.yml down` (the next `up` finds the same data) |
-| Stop and delete all data       | `docker compose -f docker/docker-compose.yml down -v` (removes the `db-data` volume)   |
+| Start with an empty database          | `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`                  |
+| See the logs                          | `docker compose -f docker/docker-compose.yml logs -f app`                              |
+| Stop, keeping the data                | `docker compose -f docker/docker-compose.yml down` (the next `up` finds the same data) |
+| Stop and delete all data              | `docker compose -f docker/docker-compose.yml down -v` (removes the `db-data` volume)   |
 
 `SAMPLE_DATA` is read when the application starts. Uploaded images are stored in the database, so they follow the same rules as the rest of the data: they survive `down` and `up` and disappear with `down -v`. To go from sample data to an empty database, reset the data first with `down -v`.
+
+### Domain model
+
+The persistent entities are `User`, `Trip`, `Activity` and `Image`. The trip's creator and the activity's author are required; the three links to an image are optional and each image belongs to at most one entity (`unique` foreign key). Deleting a trip also deletes its activities and images.
+
+```mermaid
+erDiagram
+  USER ||--o{ TRIP : "creates"
+  USER ||--o{ ACTIVITY : "authors"
+  TRIP ||--o{ ACTIVITY : "contains"
+  USER |o--o| IMAGE : "avatar"
+  TRIP |o--o| IMAGE : "cover"
+  ACTIVITY |o--o| IMAGE : "image"
+
+  USER {
+    Long id PK
+    String name
+    String email UK
+    String password
+    Role role "USER, ADMIN"
+    UserStatus status "ACTIVE, BLOCKED"
+    LocalDate registrationDate
+  }
+  TRIP {
+    Long id PK
+    String name
+    String destination
+    LocalDate startDate
+    LocalDate endDate
+    BigDecimal budget
+    String description
+    Instant createdAt
+  }
+  ACTIVITY {
+    Long id PK
+    String name
+    String description
+    String location
+    LocalDate date
+    LocalTime startTime
+    LocalTime endTime
+    BigDecimal cost
+    ActivityCategory category "SIGHTSEEING, FOOD, TRANSPORT, ACCOMMODATION, LEISURE, OTHER"
+    Instant createdAt
+  }
+  IMAGE {
+    UUID id PK
+    byte[] data
+    String contentType
+    Instant createdAt
+  }
+```
+
+### Server architecture
+
+The backend is organised in three layers (package-by-domain, each domain with its `controller`, `service` and `repository` subpackages). A controller only calls services and a service is the only one that uses repositories. The diagram shows the dependencies between controllers and services and between services and repositories; services also call each other (for example `TripService` uses `TripAccessService` and `ImageService`), and `AuthService` provides the logged-in user, which are not drawn to keep it readable.
+
+```mermaid
+classDiagram
+  direction LR
+  namespace Controllers {
+    class AuthController
+    class UserController
+    class AdminUserController
+    class TripController
+    class AdminTripController
+    class ExampleTripController
+    class ActivityController
+    class ConflictController
+    class ImageController
+  }
+  namespace Services {
+    class AuthService
+    class UserService
+    class TripService
+    class ExampleTripService
+    class TripAccessService
+    class ActivityService
+    class ConflictService
+    class ImageService
+  }
+  namespace Repositories {
+    class UserRepository
+    class TripRepository
+    class ActivityRepository
+    class ImageRepository
+  }
+  AuthController --> AuthService
+  UserController --> UserService
+  AdminUserController --> UserService
+  TripController --> TripService
+  AdminTripController --> TripService
+  ExampleTripController --> ExampleTripService
+  ExampleTripController --> ActivityService
+  ActivityController --> ActivityService
+  ConflictController --> ConflictService
+  ImageController --> ImageService
+  UserService --> UserRepository
+  TripService --> TripRepository
+  TripService --> UserRepository
+  ExampleTripService --> TripRepository
+  TripAccessService --> TripRepository
+  ActivityService --> ActivityRepository
+  ActivityService --> UserRepository
+  ConflictService --> ActivityRepository
+  ImageService --> ImageRepository
+```
+
+- **Controllers:** receive the HTTP requests under `/api/v1`, validate the input and return the response with its status code; they contain no business logic.
+- **Services:** apply the business rules and the owner and role checks, and decide the transactions.
+- **Repositories:** Spring Data JPA interfaces that access MySQL; filtering, sorting, pagination and aggregation are done in their queries.
+
+### Client architecture
+
+The frontend is a React application with two layers. Components render the screens and handle the user's actions; they get data through services and never call `fetch` themselves. The hooks in `src/hooks` (`useTrip`, `usePagedList`, `useAuth`...) and `ApiError`/`request()` in `src/services/apiError.ts` support both layers and are not drawn. Login and registration go through `AuthProvider`, which uses `authService`.
+
+```mermaid
+classDiagram
+  direction LR
+  namespace Components {
+    class AuthProvider
+    class ExampleTrips
+    class ExampleTripPage
+    class ItinerarySection
+    class TripList
+    class TripFormPage
+    class TripDetailPage
+    class DeleteTripModal
+    class ActivityFormPage
+    class DayActivities
+    class DeleteActivityModal
+    class ProfilePage
+    class ProfileDetailsCard
+    class PasswordCard
+    class ProfileAvatarCard
+    class ImageUpload
+    class StoredImage
+    class AdminUsersPage
+    class EditUserModal
+    class BlockUserModal
+    class AdminTripsPage
+  }
+  namespace Services {
+    class authService
+    class exampleService
+    class tripService
+    class activityService
+    class conflictService
+    class userService
+    class imageService
+    class adminUserService
+    class adminTripService
+  }
+  AuthProvider --> authService
+  ExampleTrips --> exampleService
+  ExampleTripPage --> exampleService
+  ItinerarySection --> exampleService
+  TripList --> tripService
+  TripFormPage --> tripService
+  TripDetailPage --> tripService
+  TripDetailPage --> activityService
+  TripDetailPage --> conflictService
+  DeleteTripModal --> tripService
+  ActivityFormPage --> activityService
+  DayActivities --> activityService
+  DeleteActivityModal --> activityService
+  ProfilePage --> userService
+  ProfileDetailsCard --> userService
+  PasswordCard --> userService
+  ProfileAvatarCard --> userService
+  ImageUpload --> imageService
+  StoredImage --> imageService
+  AdminUsersPage --> adminUserService
+  EditUserModal --> adminUserService
+  BlockUserModal --> adminUserService
+  AdminTripsPage --> adminTripService
+```
+
+- **Components:** React components in `src/components` that show the screens, the forms and the modals, manage their state and navigation (React Router), and show the errors to the user.
+- **Services:** modules in `src/services`, one per API area, that make all the HTTP calls to `/api/v1` and return the typed data (`src/types`).
 
 ### Security
 
@@ -275,45 +480,45 @@ The REST API is documented with OpenAPI. The specification is stored in [`docs/a
 
 Current operations:
 
-| Method | URL                           | Access    | Description                                                                                            |
-| ------ | ----------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/v1/trips/examples`      | Public    | Returns one page of the example trips (the administrator's), each with the first activity of its first three days (`?page=0&size=3`) |
-| GET    | `/api/v1/trips/examples/{id}` | Public    | Returns one example trip (404 for any trip the administrator did not create, never 403)                |
-| GET    | `/api/v1/trips/examples/{id}/activities` | Public | Returns one page of an example trip's activities, sorted by date and start time (`?date=yyyy-MM-dd&page=0&size=10`) |
-| GET    | `/api/v1/trips`               | Logged-in | Returns one page of the user's own trips (`?page=0&size=10&sort=startDate`)                            |
-| POST   | `/api/v1/trips`               | Logged-in | Creates a trip for the user; 201 with `Location`, 400 for invalid data or the end before the start     |
-| GET    | `/api/v1/trips/{id}`          | Creator, administrator | Returns one trip (403 for another regular user's trip, 404 if it does not exist)                               |
-| PUT    | `/api/v1/trips/{id}`          | Creator   | Replaces the details of the trip (not the cover); new dates may leave activities outside (see `/conflicts`) |
-| DELETE | `/api/v1/trips/{id}`          | Creator, administrator | Deletes the trip with its activities, their images and its cover; 204                                  |
-| PUT    | `/api/v1/trips/{id}/cover`    | Creator   | Uploads or replaces the cover (multipart `file`); 201 with `Location` the first time, 200 after       |
-| GET    | `/api/v1/trips/{id}/cover`    | Creator   | Returns the bytes of the cover (`no-cache`); 404 if there is none                                      |
-| DELETE | `/api/v1/trips/{id}/cover`    | Creator   | Deletes the cover (204, also when there was none)                                                      |
-| GET    | `/api/v1/trips/{tripId}/activities/cost`           | Creator   | Returns the total cost of the activities (a `SUM` in the query) and the remaining budget, which is the budget minus that total (negative when over, `null` without budget) |
-| GET    | `/api/v1/trips/{tripId}/activities`                | Creator   | Returns one page of the trip's activities, sorted by date and start time (`?date=yyyy-MM-dd&page=0&size=10`) |
-| POST   | `/api/v1/trips/{tripId}/activities`                | Creator   | Creates an activity (the date must be within the trip); 201 with `Location`, 400 for invalid data         |
-| GET    | `/api/v1/trips/{tripId}/activities/{id}`           | Creator   | Returns one activity (404 if it belongs to another trip)                                                |
-| PUT    | `/api/v1/trips/{tripId}/activities/{id}`           | Creator   | Replaces the details of the activity (not the image)                                                    |
-| DELETE | `/api/v1/trips/{tripId}/activities/{id}`           | Creator   | Deletes the activity and its image; 204                                                                 |
-| PUT    | `/api/v1/trips/{tripId}/activities/{id}/image`     | Creator   | Uploads or replaces the image (multipart `file`); 201 with `Location` the first time, 200 after        |
-| GET    | `/api/v1/trips/{tripId}/activities/{id}/image`     | Creator   | Returns the bytes of the image (`no-cache`); 404 if there is none                                       |
-| DELETE | `/api/v1/trips/{tripId}/activities/{id}/image`     | Creator   | Deletes the image (204, also when there was none)                                                       |
-| GET    | `/api/v1/trips/{tripId}/conflicts`                 | Creator   | Returns the warnings of the itinerary: overlapping activities, activities outside the trip's dates and the cost above the budget (`budget` is `null` if not) |
-| POST   | `/api/v1/images`              | Logged-in | Uploads an image (multipart `file`); 201 with `Location`                                               |
-| GET    | `/api/v1/images/{id}`         | Public    | Returns the bytes of an image with its `Content-Type`                                                  |
-| POST   | `/api/v1/users`               | Public    | Registers a regular user (`name`, `email`, `password`); 201 with `Location`, 409 if the email is taken |
-| POST   | `/api/v1/auth/login`          | Public    | Logs in with email and password and sets the `AuthToken` cookie                                        |
-| POST   | `/api/v1/auth/logout`         | Public    | Clears the `AuthToken` cookie                                                                          |
-| GET    | `/api/v1/auth/me`             | Logged-in | Returns the logged-in user (`id`, `name`, `email`, `role`, `avatarId`, `registrationDate`)             |
-| GET    | `/api/v1/users/{id}`          | Own user  | Returns one's own profile (403 for another user, 404 if it does not exist)                             |
-| PUT    | `/api/v1/users/{id}`          | Own user  | Edits the name and email (409 if the email is taken); the session stays open                           |
-| PUT    | `/api/v1/users/{id}/password` | Own user  | Changes the password (`currentPassword`, `newPassword`); 400 if the current one is wrong               |
-| PUT    | `/api/v1/users/{id}/avatar`   | Own user  | Uploads or replaces the avatar (multipart `file`); 201 with `Location` the first time, 200 after       |
-| GET    | `/api/v1/users/{id}/avatar`   | Logged-in | Returns the bytes of a user's avatar (`no-cache`); 404 if there is none                                |
-| DELETE | `/api/v1/users/{id}/avatar`   | Own user  | Deletes the avatar (204, also when there was none)                                                     |
-| GET    | `/api/v1/admin/users`         | Administrator | Returns one page of the regular users (`?search=&page=0&size=10`); `search` matches the name or the email, ignoring case |
-| PUT    | `/api/v1/admin/users/{id}`    | Administrator | Edits a user's name and email (409 if the email is taken); 403 for the administrator's own account |
-| PUT    | `/api/v1/admin/users/{id}/status` | Administrator | Blocks (`BLOCKED`) or unblocks (`ACTIVE`) a user; 403 for the administrator's own account |
-| GET    | `/api/v1/admin/trips`         | Administrator | Returns one page of the trips of every user, newest first (`?search=&page=0&size=10`); `search` matches the name, the destination or the creator's email, ignoring case |
+| Method | URL                                            | Access                 | Description                                                                                                                                                                |
+| ------ | ---------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/trips/examples`                       | Public                 | Returns one page of the example trips (the administrator's), each with the first activity of its first three days (`?page=0&size=3`)                                       |
+| GET    | `/api/v1/trips/examples/{id}`                  | Public                 | Returns one example trip (404 for any trip the administrator did not create, never 403)                                                                                    |
+| GET    | `/api/v1/trips/examples/{id}/activities`       | Public                 | Returns one page of an example trip's activities, sorted by date and start time (`?date=yyyy-MM-dd&page=0&size=10`)                                                        |
+| GET    | `/api/v1/trips`                                | Logged-in              | Returns one page of the user's own trips (`?page=0&size=10&sort=startDate`)                                                                                                |
+| POST   | `/api/v1/trips`                                | Logged-in              | Creates a trip for the user; 201 with `Location`, 400 for invalid data or the end before the start                                                                         |
+| GET    | `/api/v1/trips/{id}`                           | Creator, administrator | Returns one trip (403 for another regular user's trip, 404 if it does not exist)                                                                                           |
+| PUT    | `/api/v1/trips/{id}`                           | Creator                | Replaces the details of the trip (not the cover); new dates may leave activities outside (see `/conflicts`)                                                                |
+| DELETE | `/api/v1/trips/{id}`                           | Creator, administrator | Deletes the trip with its activities, their images and its cover; 204                                                                                                      |
+| PUT    | `/api/v1/trips/{id}/cover`                     | Creator                | Uploads or replaces the cover (multipart `file`); 201 with `Location` the first time, 200 after                                                                            |
+| GET    | `/api/v1/trips/{id}/cover`                     | Creator                | Returns the bytes of the cover (`no-cache`); 404 if there is none                                                                                                          |
+| DELETE | `/api/v1/trips/{id}/cover`                     | Creator                | Deletes the cover (204, also when there was none)                                                                                                                          |
+| GET    | `/api/v1/trips/{tripId}/activities/cost`       | Creator                | Returns the total cost of the activities (a `SUM` in the query) and the remaining budget, which is the budget minus that total (negative when over, `null` without budget) |
+| GET    | `/api/v1/trips/{tripId}/activities`            | Creator                | Returns one page of the trip's activities, sorted by date and start time (`?date=yyyy-MM-dd&page=0&size=10`)                                                               |
+| POST   | `/api/v1/trips/{tripId}/activities`            | Creator                | Creates an activity (the date must be within the trip); 201 with `Location`, 400 for invalid data                                                                          |
+| GET    | `/api/v1/trips/{tripId}/activities/{id}`       | Creator                | Returns one activity (404 if it belongs to another trip)                                                                                                                   |
+| PUT    | `/api/v1/trips/{tripId}/activities/{id}`       | Creator                | Replaces the details of the activity (not the image)                                                                                                                       |
+| DELETE | `/api/v1/trips/{tripId}/activities/{id}`       | Creator                | Deletes the activity and its image; 204                                                                                                                                    |
+| PUT    | `/api/v1/trips/{tripId}/activities/{id}/image` | Creator                | Uploads or replaces the image (multipart `file`); 201 with `Location` the first time, 200 after                                                                            |
+| GET    | `/api/v1/trips/{tripId}/activities/{id}/image` | Creator                | Returns the bytes of the image (`no-cache`); 404 if there is none                                                                                                          |
+| DELETE | `/api/v1/trips/{tripId}/activities/{id}/image` | Creator                | Deletes the image (204, also when there was none)                                                                                                                          |
+| GET    | `/api/v1/trips/{tripId}/conflicts`             | Creator                | Returns the warnings of the itinerary: overlapping activities, activities outside the trip's dates and the cost above the budget (`budget` is `null` if not)               |
+| POST   | `/api/v1/images`                               | Logged-in              | Uploads an image (multipart `file`); 201 with `Location`                                                                                                                   |
+| GET    | `/api/v1/images/{id}`                          | Public                 | Returns the bytes of an image with its `Content-Type`                                                                                                                      |
+| POST   | `/api/v1/users`                                | Public                 | Registers a regular user (`name`, `email`, `password`); 201 with `Location`, 409 if the email is taken                                                                     |
+| POST   | `/api/v1/auth/login`                           | Public                 | Logs in with email and password and sets the `AuthToken` cookie                                                                                                            |
+| POST   | `/api/v1/auth/logout`                          | Public                 | Clears the `AuthToken` cookie                                                                                                                                              |
+| GET    | `/api/v1/auth/me`                              | Logged-in              | Returns the logged-in user (`id`, `name`, `email`, `role`, `avatarId`, `registrationDate`)                                                                                 |
+| GET    | `/api/v1/users/{id}`                           | Own user               | Returns one's own profile (403 for another user, 404 if it does not exist)                                                                                                 |
+| PUT    | `/api/v1/users/{id}`                           | Own user               | Edits the name and email (409 if the email is taken); the session stays open                                                                                               |
+| PUT    | `/api/v1/users/{id}/password`                  | Own user               | Changes the password (`currentPassword`, `newPassword`); 400 if the current one is wrong                                                                                   |
+| PUT    | `/api/v1/users/{id}/avatar`                    | Own user               | Uploads or replaces the avatar (multipart `file`); 201 with `Location` the first time, 200 after                                                                           |
+| GET    | `/api/v1/users/{id}/avatar`                    | Logged-in              | Returns the bytes of a user's avatar (`no-cache`); 404 if there is none                                                                                                    |
+| DELETE | `/api/v1/users/{id}/avatar`                    | Own user               | Deletes the avatar (204, also when there was none)                                                                                                                         |
+| GET    | `/api/v1/admin/users`                          | Administrator          | Returns one page of the regular users (`?search=&page=0&size=10`); `search` matches the name or the email, ignoring case                                                   |
+| PUT    | `/api/v1/admin/users/{id}`                     | Administrator          | Edits a user's name and email (409 if the email is taken); 403 for the administrator's own account                                                                         |
+| PUT    | `/api/v1/admin/users/{id}/status`              | Administrator          | Blocks (`BLOCKED`) or unblocks (`ACTIVE`) a user; 403 for the administrator's own account                                                                                  |
+| GET    | `/api/v1/admin/trips`                          | Administrator          | Returns one page of the trips of every user, newest first (`?search=&page=0&size=10`); `search` matches the name, the destination or the creator's email, ignoring case    |
 
 #### Pagination
 
@@ -351,7 +556,7 @@ To report a new error from a service, throw `ResourceNotFoundException` or `Conf
 
 ### Frontend routing and error page
 
-The frontend uses React Router. `src/routes.tsx` lists one route per screen of [the analysis](analysis.md#screens-and-navigation); only `/trips` (My Trips) is built so far, and the rest show `PlaceholderPage`. Every route renders inside `AppLayout` (header, page, footer).
+The frontend uses React Router. `src/routes.tsx` lists one route per screen of [the analysis](analysis.md#screens-and-navigation). The screens of version 0.1 are built (home, example trip, login, registration, My Trips, trip form, trip detail with the itinerary, activity form, profile, `/admin/users` and `/admin/trips`); only the AI generator (`/trips/:tripId/ai-generator`) and the `/admin` index still show `PlaceholderPage`, because they belong to later versions. Every route renders inside `AppLayout` (header, page, footer).
 
 - **Unknown URLs** match the `*` route and show `ErrorPage` with the 404 message.
 - **Failures while loading data**: services use `request()` (`src/services/apiError.ts`), which throws `ApiError` (non-2xx answer, with the status) or `NetworkError` (no answer). A component that cannot load its data rethrows the error and the route's `errorElement` shows `ErrorPage` inside the same layout, with a message for 404, 5xx or no connection and a button back to the home page.
@@ -359,20 +564,24 @@ The frontend uses React Router. `src/routes.tsx` lists one route per screen of [
 
 ## Quality control
 
+### Types of tests
+
+Every feature has automated tests of six types, three for the backend and three for the frontend. They are selected by the suffix of the class or file name, which is what the CI workflows run, so a new test must use the same suffix.
+
+| Type                        | Side     | What it checks                                                                                    | Tools                                     | Files                                      | Command                                 |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------ | --------------------------------------- |
+| Backend unit                | Backend  | One class in isolation, with its collaborators mocked                                             | JUnit 5, Mockito, AssertJ                 | `*UnitTest.java`                           | `./mvnw test -Dtest='*UnitTest'`        |
+| Backend integration         | Backend  | A service together with a real MySQL database (queries, transactions, BCrypt)                     | JUnit 5, Spring Boot Test, Testcontainers | `*IntegrationTest.java`                    | `./mvnw test -Dtest='*IntegrationTest'` |
+| Backend system (REST API)   | Backend  | The whole backend through its HTTPS REST API, with MySQL in a container                           | JUnit 5, Rest Assured, Testcontainers     | `*ApiE2ETest.java`                         | `./mvnw test -Dtest='*ApiE2ETest'`      |
+| Frontend unit               | Frontend | A component, hook or function with a virtual DOM and the HTTP calls mocked                        | Vitest, Testing Library                   | `*.test.ts`, `*.test.tsx`                  | `npm run test:coverage`                 |
+| Client – server integration | Frontend | The frontend services and components against the real REST API                                    | Vitest, Testing Library                   | `*.int.test.ts`, `*.int.test.tsx`          | `npm run test:int`                      |
+| Frontend system (UI)        | Frontend | The application in a real browser, through the screens, with the backend and the database running | JUnit 5, Selenium (headless Chrome)       | `*UiE2ETest.java` (in the backend project) | `./mvnw test -Dtest='*UiE2ETest'`       |
+
+The UI tests need the whole application: see [Running the tests](#running-the-tests).
+
 ### Automated tests
 
-The application has automated tests at every level for both the backend and the frontend. Each test is traced to the functionality it verifies. At this stage, the implemented functionality is the **minimum functionality of Phase 2 (MF)**: listing the sample trips stored in the database on the home page, which is the first step towards feature B1.
-
-| Test                         | Location                          | Type                                     | Tools                                   | What it verifies                                                                             | Functionality |
-| ---------------------------- | --------------------------------- | ---------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- | ------------- |
-| `TripServiceUnitTest`        | `backend/src/test/.../service`    | Backend unit                             | JUnit, Mockito                          | The service returns the list of trips, with the repository mocked                            | MF            |
-| `TripServiceIntegrationTest` | `backend/src/test/.../service`    | Backend integration (service – database) | JUnit, Spring Boot Test, Testcontainers | The service returns the trips previously stored in a real MySQL database                     | MF            |
-| `TripApiE2ETest`             | `backend/src/test/.../controller` | Backend system (REST API)                | JUnit, Rest Assured, Testcontainers     | The trips endpoints (see feature B4 below)                                                   | MF, B4        |
-| `TripUiE2ETest`              | `backend/src/test/.../ui`         | Frontend system (UI)                     | JUnit, Selenium (headless Chrome)       | The trip screens in the browser (see feature B4 below)                                       | MF, B4        |
-| `TripList.test.tsx`          | `frontend/src/components`         | Frontend unit (component)                | Vitest, Testing Library                 | The component renders the list of trips, with the service mocked and a virtual DOM           | MF            |
-| `tripService.test.tsx`       | `frontend/src/services`           | Frontend unit (service)                  | Vitest                                  | The service requests the trips from the REST API and returns them, with the HTTP call mocked | MF            |
-| `App.test.tsx`               | `frontend/src`                    | Frontend unit (component)                | Vitest, Testing Library                 | The main component renders the trip list                                                     | MF            |
-| `TripList.int.test.tsx`      | `frontend/src/components`         | Client – server integration              | Vitest, Testing Library                 | The component renders the trips obtained from the real REST API                              | MF            |
+Each test is traced to the feature it verifies. The tables below list them by feature; the [traceability matrix](#traceability-between-tests-and-features) summarizes them, and the [statistics](#test-statistics) give the numbers.
 
 Support classes (not tests): `TestcontainersConfiguration` defines the MySQL container shared by the backend integration and system tests, and `TestBackendApplication` starts the backend locally using that container as its database.
 
@@ -415,118 +624,166 @@ Support classes (not tests): `TestcontainersConfiguration` defines the MySQL con
 
 **Trips (B4).** A registered user creates, reads, edits and deletes their own trips at `/api/v1/trips`. Every trip has a creator; only the creator can read, change or delete it, and the cover (`/api/v1/trips/{id}/cover`) follows the same rule (another user's trip is a 403, a missing one a 404, and 404 is checked before 403, so a missing trip is reported as missing to anyone). The administrator is a user like any other for their own trips; on other users' trips they can only read and delete (trip moderation, B8), never edit. The body is validated before the service runs (400): `name` and `destination` are required (up to 100 characters), the dates are required and the end must not be before the start (the same day is a one-day trip), `budget` is optional (up to 2 decimals, not negative) and `description` optional (up to 2000 characters). `GET /api/v1/trips` returns only the trips of the logged-in user, paginated and sorted in the query; `sort` accepts only `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt`. The cover is an `Image` linked to the trip, validated like any other image; a trip without cover has `coverImageId: null` and the application shows its default image (the API answers 404 to `GET /cover`). Replacing or deleting a cover, and deleting a trip, delete the image they stop using.
 
-| Test                                                                                                                      | Type                        | What it verifies                                                                                                                                                                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TripServiceUnitTest`, `TripControllerUnitTest`, `TripRequestUnitTest`, `TripDTOUnitTest`, `DataLoaderUnitTest`            | Backend unit                | Creator rules (404 before 403, nothing written on 403), sort whitelist, trimming, delete order (trip, then cover), first cover (201) and replacement (200), every validation rule, the mapping, and the sample data and its password |
-| `TripServiceIntegrationTest`, `DataLoaderIntegrationTest`                                                                  | Backend integration         | With MySQL: only the user's trips, paginated and sorted; persisted budget scale; the image rows are deleted with the cover and the trip; the sample users log in with the documented password and loading twice adds nothing    |
-| `TripApiE2ETest`                                                                                                           | Backend system              | Over HTTPS, every endpoint: 401 anonymous, 403 for another user (and for the administrator), 404, 400 (invalid data, end before start, malformed JSON, bad sort), cover type and size (400, 413), 201/200/204 and `Location`       |
-| `tripService.test.tsx`, `usePagedList.test.tsx`, `useTrip.test.tsx`, `tripForm.test.ts`, `tripFormat.test.ts`              | Frontend unit               | The calls to the trip endpoints, list reload, loading one trip, the validation codes and the formatting of dates and budget                                                                                                       |
-| `TripForm.test.tsx`, `TripFormPage.test.tsx`, `TripDetailPage.test.tsx`, `TripList.test.tsx`, `TripCard.test.tsx`, `DeleteTripModal.test.tsx`, `ConfirmModal.test.tsx`, `ImageUpload.test.tsx`, `ErrorPage.test.tsx`, `App.test.tsx` | Frontend unit (component)   | Create and edit with one form, the Spanish messages, the cover (choose, discard, remove, partial failure), creator-only actions, the confirmation modal, the 403/401/404 pages, and that an anonymous visitor never asks for trips |
-| `tripService.int.test.tsx`, `TripList.int.test.tsx`                                                                        | Client – server integration | Against the real API: 401, 403 for another user, 404, 400, the cover upload, replacement and deletion deleting the old pictures, and the list paging only the user's trips                                                       |
-| `TripUiE2ETest`                                                                                                            | Frontend system (UI)        | As a sample user: create a trip with a cover, see it in the list, edit it, cancel and confirm the deletion; Ana's two pages; Laura sees only her trips; end before start; a bad or too large cover; another user's trip; an anonymous visit |
+| Test                                                                                                                                                                                                                                 | Type                        | What it verifies                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TripServiceUnitTest`, `TripControllerUnitTest`, `TripRequestUnitTest`, `TripDTOUnitTest`, `DataLoaderUnitTest`                                                                                                                      | Backend unit                | Creator rules (404 before 403, nothing written on 403), sort whitelist, trimming, delete order (trip, then cover), first cover (201) and replacement (200), every validation rule, the mapping, and the sample data and its password        |
+| `TripServiceIntegrationTest`, `DataLoaderIntegrationTest`                                                                                                                                                                            | Backend integration         | With MySQL: only the user's trips, paginated and sorted; persisted budget scale; the image rows are deleted with the cover and the trip; the sample users log in with the documented password and loading twice adds nothing                |
+| `TripApiE2ETest`                                                                                                                                                                                                                     | Backend system              | Over HTTPS, every endpoint: 401 anonymous, 403 for another user (and for the administrator), 404, 400 (invalid data, end before start, malformed JSON, bad sort), cover type and size (400, 413), 201/200/204 and `Location`                |
+| `tripService.test.tsx`, `usePagedList.test.tsx`, `useTrip.test.tsx`, `tripForm.test.ts`, `tripFormat.test.ts`                                                                                                                        | Frontend unit               | The calls to the trip endpoints, list reload, loading one trip, the validation codes and the formatting of dates and budget                                                                                                                 |
+| `TripForm.test.tsx`, `TripFormPage.test.tsx`, `TripDetailPage.test.tsx`, `TripList.test.tsx`, `TripCard.test.tsx`, `DeleteTripModal.test.tsx`, `ConfirmModal.test.tsx`, `ImageUpload.test.tsx`, `ErrorPage.test.tsx`, `App.test.tsx` | Frontend unit (component)   | Create and edit with one form, the Spanish messages, the cover (choose, discard, remove, partial failure), creator-only actions, the confirmation modal, the 403/401/404 pages, and that an anonymous visitor never asks for trips          |
+| `tripService.int.test.tsx`, `TripList.int.test.tsx`                                                                                                                                                                                  | Client – server integration | Against the real API: 401, 403 for another user, 404, 400, the cover upload, replacement and deletion deleting the old pictures, and the list paging only the user's trips                                                                  |
+| `TripUiE2ETest`                                                                                                                                                                                                                      | Frontend system (UI)        | As a sample user: create a trip with a cover, see it in the list, edit it, cancel and confirm the deletion; Ana's two pages; Laura sees only her trips; end before start; a bad or too large cover; another user's trip; an anonymous visit |
 
 **Itinerary (B5).** The creator of a trip creates, reads, edits and deletes its activities at `/api/v1/trips/{tripId}/activities`, with an optional image, and browses the itinerary one day at a time on the trip page. Access goes through `TripAccessService`, so it follows the same 404 before 403 rule as the trip; an activity of another trip is a 404, and the date of an activity must be within the trip's dates (400). Deleting a trip deletes its activities and their images. Changing the trip's dates so that an activity falls outside them is allowed and shows up as a conflict (B6). The trip page also shows the remaining budget below the budget, from `GET /api/v1/trips/{tripId}/activities/cost`.
 
-| Test                                                                                                                                                      | Type                        | What it verifies                                                                                                                                                                                   |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test                                                                                                                                                                                                        | Type                        | What it verifies                                                                                                                                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TripAccessServiceUnitTest`, `ActivityServiceUnitTest`, `ActivityControllerUnitTest`, `ActivityRequestUnitTest`, `ActivityDTOUnitTest`, `TripServiceUnitTest`, `ImageServiceUnitTest`, `DataLoaderUnitTest` | Backend unit                | 404 before 403 and nothing written on a refusal, an activity of another trip, the date inside the trip, end after start, the sort whitelist, the order of deleting activities, images and trip, trip dates saved without looking at the activities, 201 with `Location`, the sample itineraries |
-| `ActivityServiceIntegrationTest`, `DataLoaderIntegrationTest`                                                                                             | Backend integration         | With MySQL: filter by day, order by time (activities without time first), paging, deleting a trip removes its activities and all their images, a trip date edit that leaves an activity outside is accepted, the sample itineraries once |
-| `ActivityApiE2ETest`, `TripApiE2ETest`                                                                                                                    | Backend system              | Over HTTPS, every endpoint: 401 anonymous, 403 another user and the administrator, 404 trip, activity and activity of another trip, 400 body, ids, dates and times, the filter by day, the image (201, 200, bytes, 400, 413), deleting a trip, a trip date edit that leaves an activity outside |
-| `activityService.test.tsx`, `useActivity.test.tsx`, `tripDays.test.ts`, `activityForm.test.ts`, `tripFormat.test.ts`                                      | Frontend unit               | The calls to the activity endpoints, the ids of the URL, every day of a trip (month, year and clock changes), the validation codes and the request body                                           |
-| `ItinerarySection.test.tsx`, `ActivityCard.test.tsx`, `ActivityForm.test.tsx`, `ActivityFormPage.test.tsx`, `TripDetailPage.test.tsx`, `TripFormPage.test.tsx`, `App.test.tsx` | Frontend unit (component)   | A tab per day, previous and next, the day in the URL, time order, empty and loading states, "More results", creator-only buttons, create and edit flows, the image failure path, 400/401/403/404 messages, the delete confirmation |
-| `activityService.int.test.tsx`                                                                                                                            | Client – server integration | Against the real API: 401, CRUD, the filter by day, 400 for a date outside the trip, 404 for another trip's activity, 403, the image, deleting a trip, a trip date edit that leaves an activity outside |
-| `ActivityUiE2ETest`                                                                                                                                       | Frontend system (UI)        | As a sample user: browse the days of a trip, create an activity with an image on the empty day, edit it and delete it; a day outside the trip and an end before the start; the day kept in the URL; the phone layout |
+| `ActivityServiceIntegrationTest`, `DataLoaderIntegrationTest`                                                                                                                                               | Backend integration         | With MySQL: filter by day, order by time (activities without time first), paging, deleting a trip removes its activities and all their images, a trip date edit that leaves an activity outside is accepted, the sample itineraries once                                                        |
+| `ActivityApiE2ETest`, `TripApiE2ETest`                                                                                                                                                                      | Backend system              | Over HTTPS, every endpoint: 401 anonymous, 403 another user and the administrator, 404 trip, activity and activity of another trip, 400 body, ids, dates and times, the filter by day, the image (201, 200, bytes, 400, 413), deleting a trip, a trip date edit that leaves an activity outside |
+| `activityService.test.tsx`, `useActivity.test.tsx`, `tripDays.test.ts`, `activityForm.test.ts`, `tripFormat.test.ts`                                                                                        | Frontend unit               | The calls to the activity endpoints, the ids of the URL, every day of a trip (month, year and clock changes), the validation codes and the request body                                                                                                                                         |
+| `ItinerarySection.test.tsx`, `ActivityCard.test.tsx`, `ActivityForm.test.tsx`, `ActivityFormPage.test.tsx`, `TripDetailPage.test.tsx`, `TripFormPage.test.tsx`, `App.test.tsx`                              | Frontend unit (component)   | A tab per day, previous and next, the day in the URL, time order, empty and loading states, "More results", creator-only buttons, create and edit flows, the image failure path, 400/401/403/404 messages, the delete confirmation                                                              |
+| `activityService.int.test.tsx`                                                                                                                                                                              | Client – server integration | Against the real API: 401, CRUD, the filter by day, 400 for a date outside the trip, 404 for another trip's activity, 403, the image, deleting a trip, a trip date edit that leaves an activity outside                                                                                         |
+| `ActivityUiE2ETest`                                                                                                                                                                                         | Frontend system (UI)        | As a sample user: browse the days of a trip, create an activity with an image on the empty day, edit it and delete it; a day outside the trip and an end before the start; the day kept in the URL; the phone layout                                                                            |
 
 **Conflicts (B6).** The creator of a trip sees three kinds of warning on its page, above the itinerary: activities of the same day whose times overlap (times that only touch do not, and activities without start and end time are ignored), activities outside the trip's dates, and a total cost above the budget (equal is fine, and without budget there is none). They come from `GET /api/v1/trips/{tripId}/conflicts`, which follows the same 404 before 403 rule as the trip, and they never block saving.
 
-| Test | Type | What it verifies |
-| ---- | ---- | ---------------- |
-| `ConflictServiceUnitTest`, `ConflictControllerUnitTest`, `TripServiceUnitTest` | Backend unit | 404 and 403 before any query, the three kinds assembled, the budget comparison (above, equal, below, no budget, no cost) and trip dates saved without refusal |
-| `ConflictServiceIntegrationTest`, `ActivityServiceIntegrationTest` | Backend integration | With MySQL: intersecting times, touching times, other days, activities without times, each pair once and in order, dates outside after shortening the trip, the sum with empty costs, equal to the budget, no budget, other trips not mixed in |
-| `ConflictApiE2ETest`, `TripApiE2ETest` | Backend system | Over HTTPS: 401 anonymous, 403 another user and the administrator, 404, 400, an empty answer, each kind, and saving never refused because of a conflict |
-| `conflictService.test.tsx`, `useConflicts.test.tsx`, `ConflictAlert.test.tsx`, `TripDetailPage.test.tsx`, `TripFormPage.test.tsx` | Frontend unit | The call, the hook (reload, another trip's answer ignored, a failure shows nothing), the Spanish texts of the three kinds, edit links only for the creator, nothing shown without conflicts, and the warning refreshed after deleting an activity |
-| `conflictService.int.test.tsx`, `activityService.int.test.tsx` | Client – server integration | Against the real API: 401, overlap and touching, editing clears it, shortening the trip is accepted and reports the activity, over and equal to the budget, no budget, 403 and 404 |
-| `ConflictUiE2ETest` | Frontend system (UI) | As a sample user: two overlapping activities show the warning with both names, editing one so that they only touch removes it |
+| Test                                                                                                                              | Type                        | What it verifies                                                                                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ConflictServiceUnitTest`, `ConflictControllerUnitTest`, `TripServiceUnitTest`                                                    | Backend unit                | 404 and 403 before any query, the three kinds assembled, the budget comparison (above, equal, below, no budget, no cost) and trip dates saved without refusal                                                                                     |
+| `ConflictServiceIntegrationTest`, `ActivityServiceIntegrationTest`                                                                | Backend integration         | With MySQL: intersecting times, touching times, other days, activities without times, each pair once and in order, dates outside after shortening the trip, the sum with empty costs, equal to the budget, no budget, other trips not mixed in    |
+| `ConflictApiE2ETest`, `TripApiE2ETest`                                                                                            | Backend system              | Over HTTPS: 401 anonymous, 403 another user and the administrator, 404, 400, an empty answer, each kind, and saving never refused because of a conflict                                                                                           |
+| `conflictService.test.tsx`, `useConflicts.test.tsx`, `ConflictAlert.test.tsx`, `TripDetailPage.test.tsx`, `TripFormPage.test.tsx` | Frontend unit               | The call, the hook (reload, another trip's answer ignored, a failure shows nothing), the Spanish texts of the three kinds, edit links only for the creator, nothing shown without conflicts, and the warning refreshed after deleting an activity |
+| `conflictService.int.test.tsx`, `activityService.int.test.tsx`                                                                    | Client – server integration | Against the real API: 401, overlap and touching, editing clears it, shortening the trip is accepted and reports the activity, over and equal to the budget, no budget, 403 and 404                                                                |
+| `ConflictUiE2ETest`                                                                                                               | Frontend system (UI)        | As a sample user: two overlapping activities show the warning with both names, editing one so that they only touch removes it                                                                                                                     |
 
 **Public home page (B1).** Anyone, logged in or not, sees the home page at `/` with the example trips, and opens one at `/examples/:tripId` to browse its itinerary day by day without being able to change anything. The example trips are the trips the administrator created, so the administrator manages them with the normal trip and itinerary pages; no table or flag marks them. They are read from three public, read-only endpoints under `/api/v1/trips/examples`, added to `SecurityConfig` as exact `GET` paths (every other trip endpoint still needs a login). `TripAccessService.findExample` answers 404, never 403, for a trip the administrator did not create. The home page shows three examples at a time (`?size=3`), each with the first activity of its first three days, which `ActivityRepository.findFirstOfFirstDays` reads for the whole page in one query.
 
-| Test | Type | What it verifies |
-| ---- | ---- | ---------------- |
-| `ExampleTripServiceUnitTest`, `ExampleTripControllerUnitTest`, `TripAccessServiceUnitTest`, `ActivityServiceUnitTest`, `DataLoaderUnitTest` | Backend unit | Only the administrator's trips, the day numbers of the preview, the sort whitelist, 404 for a trip that is not an example, the activities of an example read without a login, the sample example trips with their cover photos, a missing administrator, and a cover given to a trip that has none |
-| `ExampleTripServiceIntegrationTest`, `DataLoaderIntegrationTest` | Backend integration | With MySQL: only the administrator's trips and paging, the first activity of each of the first three days (activities without start time first, ties by id, the fourth day and other users' trips left out, trips not mixed), 404 for a regular user's trip, the administrator's example trips with covers and a removed cover restored |
-| `ExampleTripApiE2ETest` | Backend system | Over HTTPS, anonymous: the list by pages of three with the preview, one example and its activities of a day, 404 for another user's trip or a missing one on the three endpoints, 400 for a bad id, sort or date, and 401 for every other trip endpoint and for writing |
-| `exampleService.test.tsx`, `ExampleTripCard.test.tsx`, `ExampleTrips.test.tsx`, `HomePage.test.tsx`, `ExampleTripPage.test.tsx`, `useTrip.test.tsx`, `ItinerarySection.test.tsx`, `App.test.tsx` | Frontend unit | The calls, the card (facts, preview, link, no buttons), previous and next (only with more than three examples) with the loading, empty and error states, the hero for an anonymous and a logged-in user, the three steps, the read-only preview even for the creator, a loader other than `getTrip`, and the routes |
-| `exampleService.int.test.tsx` | Client – server integration | Against the real API, without a session: three examples at a time with a preview of at most three days, one example and a day of its itinerary, 404 for a missing trip and for a regular user's trip |
-| `HomeUiE2ETest` | Frontend system (UI) | As an anonymous visitor: the three example trips on the home page with no previous and next buttons, opening one and browsing each of its days with no edit buttons; the register button; a logged-in user on the same page; the phone layout |
+| Test                                                                                                                                                                                             | Type                        | What it verifies                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ExampleTripServiceUnitTest`, `ExampleTripControllerUnitTest`, `TripAccessServiceUnitTest`, `ActivityServiceUnitTest`, `DataLoaderUnitTest`                                                      | Backend unit                | Only the administrator's trips, the day numbers of the preview, the sort whitelist, 404 for a trip that is not an example, the activities of an example read without a login, the sample example trips with their cover photos, a missing administrator, and a cover given to a trip that has none                                      |
+| `ExampleTripServiceIntegrationTest`, `DataLoaderIntegrationTest`                                                                                                                                 | Backend integration         | With MySQL: only the administrator's trips and paging, the first activity of each of the first three days (activities without start time first, ties by id, the fourth day and other users' trips left out, trips not mixed), 404 for a regular user's trip, the administrator's example trips with covers and a removed cover restored |
+| `ExampleTripApiE2ETest`                                                                                                                                                                          | Backend system              | Over HTTPS, anonymous: the list by pages of three with the preview, one example and its activities of a day, 404 for another user's trip or a missing one on the three endpoints, 400 for a bad id, sort or date, and 401 for every other trip endpoint and for writing                                                                 |
+| `exampleService.test.tsx`, `ExampleTripCard.test.tsx`, `ExampleTrips.test.tsx`, `HomePage.test.tsx`, `ExampleTripPage.test.tsx`, `useTrip.test.tsx`, `ItinerarySection.test.tsx`, `App.test.tsx` | Frontend unit               | The calls, the card (facts, preview, link, no buttons), previous and next (only with more than three examples) with the loading, empty and error states, the hero for an anonymous and a logged-in user, the three steps, the read-only preview even for the creator, a loader other than `getTrip`, and the routes                     |
+| `exampleService.int.test.tsx`                                                                                                                                                                    | Client – server integration | Against the real API, without a session: three examples at a time with a preview of at most three days, one example and a day of its itinerary, 404 for a missing trip and for a regular user's trip                                                                                                                                    |
+| `HomeUiE2ETest`                                                                                                                                                                                  | Frontend system (UI)        | As an anonymous visitor: the three example trips on the home page with no previous and next buttons, opening one and browsing each of its days with no edit buttons; the register button; a logged-in user on the same page; the phone layout                                                                                           |
 
 **User management (B7).** The administrator lists, searches, edits and blocks users at `/api/v1/admin/users`, and uses the `/admin/users` page (link "Usuarios" in the header, only for the administrator). The URLs are under `/api/v1/admin/**`, which `SecurityConfig` already restricts to the `ADMIN` role, so a regular user gets 403 and an anonymous visitor 401 without any check in the service, and `/api/v1/users/{id}` keeps meaning "one's own profile". The list shows regular users only (never the administrator) and is paginated; `search` is trimmed and matches the name or the email ignoring case inside the query, and `sort` accepts only `id`, `name`, `email` and `registrationDate` (400 otherwise; sorted by name by default). Editing uses the same body, validation, lower-casing and 409 rules as registration and the profile. Blocking is `PUT /api/v1/admin/users/{id}/status` with `{"status": "BLOCKED"}` (or `ACTIVE`), idempotent. The administrator's own account cannot be edited or blocked: the request is well formed, so it is a 403 (the same answer as when the administrator edits their own profile in B3), not a 400, and its details come from the configuration anyway. Checks run in this order: 404, 403, then the body rules (409). A blocked user cannot log in (403 "Account is blocked") and their open session stops working on the next request, because `ActiveUserJwtConverter` reloads the user on every request (the API answers 401 and clears the cookie, so the SPA sends them to log in again); unblocking makes the same token valid again until it expires. On the frontend, `RequireAdmin` guards `/admin*` inside `RequireAuth` and gives anyone else the 403 error page; editing is a modal on the list and blocking asks for confirmation with `ConfirmModal`.
 
-| Test | Type | What it verifies |
-| ---- | ---- | ---------------- |
-| `UserServiceUnitTest`, `AdminUserControllerUnitTest`, `AdminUserDTOUnitTest` | Backend unit | Blank and trimmed search, sort whitelist (400), edit normalisation and 409 (taken, administrator email, lost race), 404 and 403 for the administrator's account, block and unblock |
-| `UserServiceIntegrationTest` | Backend integration | With MySQL: search by name or email ignoring case without the administrator, paging and the last-page flag, a token issued before blocking is rejected until unblocking, an edit keeps the email unique |
-| `AdminUserApiE2ETest` | Backend system | Over HTTPS: 401 anonymous and 403 regular user on the three operations, search, pagination, 400 for a bad sort or status, edit then login with the new email, 409, 404, block gives login 403 and the old cookie 401 and unblock restores both, the administrator cannot block or edit themselves |
-| `adminUserService.test.tsx`, `AdminUsersPage.test.tsx`, `EditUserModal.test.tsx`, `BlockUserModal.test.tsx`, `RequireAdmin.test.tsx`, `AppHeader.test.tsx`, `ErrorPage.test.tsx`, `App.test.tsx` | Frontend unit | The calls, search and "Más resultados", status badges, empty states, edit validation and 409, confirmation before blocking, 403 page for a regular user, the header link only for the administrator |
-| `adminUserService.int.test.tsx` | Client – server integration | Against the real API: 401 and 403, search ignoring case, paging without the administrator, edit and 409, block gives login 403 and a dead session, unblock, the administrator's own account gives 403 |
-| `AdminUserUiE2ETest` | Frontend system (UI) | A new user is registered; the administrator logs in, opens "Usuarios", searches the email, edits the name, blocks and unblocks; a regular user opening `/admin/users` sees the no-access page |
+| Test                                                                                                                                                                                             | Type                        | What it verifies                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UserServiceUnitTest`, `AdminUserControllerUnitTest`, `AdminUserDTOUnitTest`                                                                                                                     | Backend unit                | Blank and trimmed search, sort whitelist (400), edit normalisation and 409 (taken, administrator email, lost race), 404 and 403 for the administrator's account, block and unblock                                                                                                                |
+| `UserServiceIntegrationTest`                                                                                                                                                                     | Backend integration         | With MySQL: search by name or email ignoring case without the administrator, paging and the last-page flag, a token issued before blocking is rejected until unblocking, an edit keeps the email unique                                                                                           |
+| `AdminUserApiE2ETest`                                                                                                                                                                            | Backend system              | Over HTTPS: 401 anonymous and 403 regular user on the three operations, search, pagination, 400 for a bad sort or status, edit then login with the new email, 409, 404, block gives login 403 and the old cookie 401 and unblock restores both, the administrator cannot block or edit themselves |
+| `adminUserService.test.tsx`, `AdminUsersPage.test.tsx`, `EditUserModal.test.tsx`, `BlockUserModal.test.tsx`, `RequireAdmin.test.tsx`, `AppHeader.test.tsx`, `ErrorPage.test.tsx`, `App.test.tsx` | Frontend unit               | The calls, search and "Más resultados", status badges, empty states, edit validation and 409, confirmation before blocking, 403 page for a regular user, the header link only for the administrator                                                                                               |
+| `adminUserService.int.test.tsx`                                                                                                                                                                  | Client – server integration | Against the real API: 401 and 403, search ignoring case, paging without the administrator, edit and 409, block gives login 403 and a dead session, unblock, the administrator's own account gives 403                                                                                             |
+| `AdminUserUiE2ETest`                                                                                                                                                                             | Frontend system (UI)        | A new user is registered; the administrator logs in, opens "Usuarios", searches the email, edits the name, blocks and unblocks; a regular user opening `/admin/users` sees the no-access page                                                                                                     |
 
 **Trip moderation (B8).** The administrator lists and searches every trip at `GET /api/v1/admin/trips` (under `/api/v1/admin/**`, so a regular user gets 403 and an anonymous visitor 401 from `SecurityConfig`), reviews any trip and deletes it. The list is paginated, newest first by default; `search` is trimmed and matches the trip name, the destination or the creator's email ignoring case inside the query (the creator is fetched in the same query, so the email costs no extra query per row), and `sort` accepts the same properties as the user's own list (400 otherwise). Viewing and deleting reuse the existing endpoints: `TripAccessService.findForRead` and the new `findForDelete` let the `ADMIN` role through, so `GET /api/v1/trips/{id}`, the cover, the activities, `/activities/cost` and `/conflicts` answer 200 and `DELETE /api/v1/trips/{id}` answers 204 for any trip, with the same cascade as B4/B5 (activities, their images and the cover). `findForWrite` is unchanged, so the administrator still gets 403 on `PUT` of the trip, on the cover and on creating, changing or deleting activities and their images. Other regular users still get 403 on someone else's trip. The deletion is logged with ids only (trip, creator and the user who deleted it). On the frontend, `/admin/trips` (link "Viajes" in the header, only for the administrator, inside `RequireAdmin`) has a search box, the list (name, destination, dates, creator email), "Más resultados" and a link to the trip. On the trip detail page `TripDetailPage` the administrator reviewing another user's trip sees it read-only (no "Editar", no "Nueva actividad", no activity buttons), a "Volver a Viajes" link and a single "Eliminar viaje" button that asks for confirmation (`ConfirmModal`) and returns to `/admin/trips`.
 
-| Test | Type | What it verifies |
-| ---- | ---- | ---------------- |
-| `TripAccessServiceUnitTest`, `TripServiceUnitTest`, `AdminTripControllerUnitTest`, `AdminTripDTOUnitTest` | Backend unit | The administrator passes `findForRead` and `findForDelete` but not `findForWrite`, another user passes none, 404 before 403; blank and trimmed search, sort whitelist (400), the delete cascade in order for the administrator |
-| `TripServiceIntegrationTest` | Backend integration | With MySQL: search by name, destination and creator email ignoring case across users, paging and the last-page flag, the administrator reads and deletes another user's trip with its cover (no image left) and cannot update it or change its cover |
-| `AdminTripApiE2ETest` (and the updated `TripApiE2ETest`, `ActivityApiE2ETest`, `ConflictApiE2ETest`) | Backend system | Over HTTPS: 401 anonymous, 403 regular user and 200 administrator on the list, search, newest first, pagination, 400 for a bad sort; the administrator reads another user's trip, activities, cost and conflicts, gets 403 on every edit, and deletes it (204) with its activities and images gone while other trips stay; a regular user still gets 403 |
-| `adminTripService.test.tsx`, `AdminTripsPage.test.tsx`, `TripDetailPage.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx` | Frontend unit | The call and its parameters, the list rows, search, "Más resultados" and the empty states, the read-only detail page for the administrator with the confirmed delete going back to the list, the header link and the 403 page |
-| `adminTripService.int.test.tsx` | Client – server integration | Against the real API: 401 and 403 on the list, search by name and creator email, paging, the administrator reads and deletes another user's trip but gets 403 on editing it, a regular user gets 403 on another user's trip |
-| `AdminTripUiE2ETest` | Frontend system (UI) | A new user creates a trip; the administrator logs in, opens "Viajes", searches the trip, opens it (read-only), deletes it with confirmation and finds it gone from the list; a regular user opening `/admin/trips` sees the no-access page |
+| Test                                                                                                                    | Type                        | What it verifies                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TripAccessServiceUnitTest`, `TripServiceUnitTest`, `AdminTripControllerUnitTest`, `AdminTripDTOUnitTest`               | Backend unit                | The administrator passes `findForRead` and `findForDelete` but not `findForWrite`, another user passes none, 404 before 403; blank and trimmed search, sort whitelist (400), the delete cascade in order for the administrator                                                                                                                           |
+| `TripServiceIntegrationTest`                                                                                            | Backend integration         | With MySQL: search by name, destination and creator email ignoring case across users, paging and the last-page flag, the administrator reads and deletes another user's trip with its cover (no image left) and cannot update it or change its cover                                                                                                     |
+| `AdminTripApiE2ETest` (and the updated `TripApiE2ETest`, `ActivityApiE2ETest`, `ConflictApiE2ETest`)                    | Backend system              | Over HTTPS: 401 anonymous, 403 regular user and 200 administrator on the list, search, newest first, pagination, 400 for a bad sort; the administrator reads another user's trip, activities, cost and conflicts, gets 403 on every edit, and deletes it (204) with its activities and images gone while other trips stay; a regular user still gets 403 |
+| `adminTripService.test.tsx`, `AdminTripsPage.test.tsx`, `TripDetailPage.test.tsx`, `AppHeader.test.tsx`, `App.test.tsx` | Frontend unit               | The call and its parameters, the list rows, search, "Más resultados" and the empty states, the read-only detail page for the administrator with the confirmed delete going back to the list, the header link and the 403 page                                                                                                                            |
+| `adminTripService.int.test.tsx`                                                                                         | Client – server integration | Against the real API: 401 and 403 on the list, search by name and creator email, paging, the administrator reads and deletes another user's trip but gets 403 on editing it, a regular user gets 403 on another user's trip                                                                                                                              |
+| `AdminTripUiE2ETest`                                                                                                    | Frontend system (UI)        | A new user creates a trip; the administrator logs in, opens "Viajes", searches the trip, opens it (read-only), deletes it with confirmation and finds it gone from the list; a regular user opening `/admin/trips` sees the no-access page                                                                                                               |
 
-**Statistics** (19/10/2026):
+### Traceability between tests and features
 
-| Metric               | Backend             | Frontend |
-| -------------------- | ------------------- | -------- |
-| Test classes / files | 4                   | 4        |
-| Number of tests      | 4                   | 4        |
-| Unit tests           | 1                   | 3        |
-| Integration tests    | 1                   | 1        |
-| System tests         | 2 (REST API and UI) | —        |
-| Line coverage        | 85%                 | 100%     |
+Each cell lists the main test classes of that type for the feature (the per-feature tables above describe what each one checks; helper classes shared by several features, such as `GlobalExceptionHandlerUnitTest`, are not repeated). The system tests are the REST API tests and the UI tests. Every feature has the six types.
+
+| Feature                | Backend unit                                                                                                                           | Backend integration                                         | Backend system (REST API)                  | Frontend unit                                                                                                    | Client – server integration                 | Frontend system (UI) |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------- |
+| B1 Public home page    | `ExampleTripServiceUnitTest`, `ExampleTripControllerUnitTest`                                                                          | `ExampleTripServiceIntegrationTest`                         | `ExampleTripApiE2ETest`                    | `exampleService.test`, `ExampleTripCard.test`, `ExampleTrips.test`, `HomePage.test`, `ExampleTripPage.test`      | `exampleService.int.test`                   | `HomeUiE2ETest`      |
+| B2 Register and log in | `UserServiceUnitTest`, `UserControllerUnitTest`, `AuthServiceUnitTest`, `AuthControllerUnitTest`, `SecurityConfigUnitTest`             | `UserServiceIntegrationTest`, `AuthServiceIntegrationTest`  | `UserApiE2ETest`, `AuthApiE2ETest`         | `authService.test`, `AuthProvider.test`, `RequireAuth.test`, `LoginPage.test`, `RegisterPage.test`               | `authService.int.test`                      | `AuthUiE2ETest`      |
+| B3 Profile             | `UserServiceUnitTest`, `UserDTOUnitTest`, `ImageServiceUnitTest`                                                                       | `UserServiceIntegrationTest`, `ImageServiceIntegrationTest` | `UserProfileApiE2ETest`, `ImageApiE2ETest` | `userService.test`, `UserAvatar.test`, `ProfilePage.test`, `profileForm.test`                                    | `userService.int.test`                      | `ProfileUiE2ETest`   |
+| B4 Trips               | `TripServiceUnitTest`, `TripControllerUnitTest`, `TripRequestUnitTest`, `TripDTOUnitTest`                                              | `TripServiceIntegrationTest`                                | `TripApiE2ETest`                           | `tripService.test`, `TripForm.test`, `TripFormPage.test`, `TripList.test`, `DeleteTripModal.test`                | `tripService.int.test`, `TripList.int.test` | `TripUiE2ETest`      |
+| B5 Itinerary           | `ActivityServiceUnitTest`, `ActivityControllerUnitTest`, `ActivityRequestUnitTest`, `ActivityDTOUnitTest`, `TripAccessServiceUnitTest` | `ActivityServiceIntegrationTest`                            | `ActivityApiE2ETest`                       | `activityService.test`, `ItinerarySection.test`, `ActivityForm.test`, `ActivityFormPage.test`, `tripDays.test`   | `activityService.int.test`                  | `ActivityUiE2ETest`  |
+| B6 Conflicts           | `ConflictServiceUnitTest`, `ConflictControllerUnitTest`                                                                                | `ConflictServiceIntegrationTest`                            | `ConflictApiE2ETest`                       | `conflictService.test`, `ConflictAlert.test`, `useConflicts.test`                                                | `conflictService.int.test`                  | `ConflictUiE2ETest`  |
+| B7 User management     | `UserServiceUnitTest`, `AdminUserControllerUnitTest`, `AdminUserDTOUnitTest`                                                           | `UserServiceIntegrationTest`                                | `AdminUserApiE2ETest`                      | `adminUserService.test`, `AdminUsersPage.test`, `EditUserModal.test`, `BlockUserModal.test`, `RequireAdmin.test` | `adminUserService.int.test`                 | `AdminUserUiE2ETest` |
+| B8 Trip moderation     | `TripAccessServiceUnitTest`, `TripServiceUnitTest`, `AdminTripControllerUnitTest`, `AdminTripDTOUnitTest`                              | `TripServiceIntegrationTest`                                | `AdminTripApiE2ETest`                      | `adminTripService.test`, `AdminTripsPage.test`                                                                   | `adminTripService.int.test`                 | `AdminTripUiE2ETest` |
+
+Cross-cutting tests that are not tied to one feature: `ErrorHandlingApiE2ETest`, `SpaForwardingApiE2ETest` and `ErrorPageUiE2ETest` (error bodies, serving the SPA and the error page), `AdminAccountInitializerUnitTest` and `AdminAccountInitializerIntegrationTest` (the configured administrator), `DataLoaderUnitTest` and `DataLoaderIntegrationTest` (the sample data) and the unit tests of the security and common classes.
+
+### Test statistics
+
+Results of running every suite on 03/11/2026 (all tests passed, with MySQL in Docker, the backend on https://localhost and the production build of the frontend served by `vite preview`):
+
+| Type                        | Test classes / files | Number of tests | Result  | Command                                       |
+| --------------------------- | -------------------- | --------------- | ------- | --------------------------------------------- |
+| Backend unit                | 42                   | 623             | ✅ pass | `./mvnw test -Dtest='*UnitTest'`              |
+| Backend integration         | 9                    | 83              | ✅ pass | `./mvnw test -Dtest='*IntegrationTest'`       |
+| Backend system (REST API)   | 12                   | 177             | ✅ pass | `./mvnw test -Dtest='*ApiE2ETest'`            |
+| Frontend unit               | 58                   | 567             | ✅ pass | `npm run test:coverage`                       |
+| Client – server integration | 10                   | 72              | ✅ pass | `npm run test:int`                            |
+| Frontend system (UI)        | 9                    | 36              | ✅ pass | `./mvnw test -Dtest='*UiE2ETest' -Dapp.url=…` |
+| **Total**                   | **140**              | **1,558**       |         |                                               |
+
+Line coverage, measured as the CI does it (the backend only from the unit tests, with a clean `jacoco.exec`):
+
+| Side     | Tool                     | Line coverage | Required |
+| -------- | ------------------------ | ------------- | -------- |
+| Backend  | JaCoCo, `*UnitTest` only | 96.9%         | ≥ 70%    |
+| Frontend | Vitest (V8), unit tests  | 98.2%         | ≥ 70%    |
 
 Backend tests (unit, integration and system):
 
-<img src="images/tests/phase2/backend-tests.png" alt="Backend test run" width="600"/>
+![Backend test run](images/tests/phase3/backend-tests.png)
 
 Backend coverage report (JaCoCo):
 
-<img src="images/tests/phase2/backend-coverage.png" alt="Backend coverage report" width="600"/>
+![Backend coverage report](images/tests/phase3/backend-coverage.png)
 
 Frontend unit tests with coverage (Vitest):
 
-<img src="images/tests/phase2/frontend-tests-coverage.png" alt="Frontend unit tests and coverage" width="600"/>
+![Frontend unit tests](images/tests/phase3/frontend-tests-coverage-1.png)
+
+![Frontend coverage](images/tests/phase3/frontend-tests-coverage-2.png)
 
 Client – server integration tests:
 
-<img src="images/tests/phase2/frontend-int-tests.png" alt="Client-server integration tests" width="600"/>
+![Client-server integration tests](images/tests/phase3/frontend-int-tests.png)
 
 UI system tests (Selenium):
 
-<img src="images/tests/phase2/ui-e2e-tests.png" alt="UI system tests" width="600"/>
+![UI system tests](images/tests/phase3/ui-e2e-tests.png)
 
 ### Static code analysis
 
-The code is analysed with [SonarQube Cloud](https://sonarcloud.io/summary/new_code?id=codeurjc-students_2026-ViajesRuben) on every push, as part of the basic quality workflow. The analysis includes the test coverage of both backend and frontend. The reported issues are reviewed and fixed during development.
+The code is analysed with [SonarQube Cloud](https://sonarcloud.io/summary/new_code?id=codeurjc-students_2026-ViajesRuben) on every push, as part of the basic quality workflow. The analysis includes the test coverage of both backend and frontend (the backend coverage comes from the unit tests only). A pull request cannot be merged while the quality gate fails, and the reported issues are reviewed and fixed during development (for example in the pull requests `fix/sonar-issues` and `fix/security-issue`).
 
-<img src="images/tests/phase2/sonar-overview.png" alt="SonarQube Cloud results" width="600"/>
+![SonarQube Cloud results](images/tests/phase3/sonar-overview.png)
 
-Code size metrics (19/10/2026, from SonarQube Cloud → _Measures → Size_):
+SonarQube Cloud results on `main` (date: 03/11/2026):
 
-| Metric               | Java (backend) | TypeScript (frontend) | Total |
-| -------------------- | -------------- | --------------------- | ----- |
-| Lines of code        | 138            | 44                    | 182   |
-| Files                | 7              | 4                     | 11    |
-| Classes / components | 7              | 0                     | 7     |
+| Metric            | Value  |
+| ----------------- | ------ |
+| Quality gate      | Passed |
+| Bugs              | 0      |
+| Vulnerabilities   | 0      |
+| Security hotspots | 0      |
+| Code smells       | 42     |
+| Coverage          | 97.6%  |
+| Duplicated lines  | 0.3%   |
 
-<img src="images/tests/phase2/sonar-size.png" alt="SonarQube Cloud code size" width="600"/>
+### Code size
+
+Computed from the source code on 03/11/2026 (lines of code are the lines that are neither blank nor comments; a test file is counted separately from the code it tests). Classes are the `class`, `interface`, `record` and `enum` declarations of the Java files (including nested ones), and components are the `.tsx` files, since each one defines React components.
+
+| Technology                     | Files   | Classes / components                          | Lines of code |
+| ------------------------------ | ------- | --------------------------------------------- | ------------- |
+| Java, application (`src/main`) | 78      | 81 classes                                    | 4,515         |
+| Java, tests (`src/test`)       | 77      | 77 classes                                    | 10,659        |
+| TypeScript, application        | 81      | 47 components (`.tsx`) and 34 modules (`.ts`) | 4,412         |
+| TypeScript, tests              | 68      | —                                             | 6,535         |
+| CSS (`frontend/src`)           | 22      | —                                             | 880           |
+| **Total**                      | **326** |                                               | **27,001**    |
+
+The application has 8,927 lines of Java and TypeScript, and the tests have 17,194: there are almost two lines of test for each line of application code. SonarQube Cloud reports 9,792 lines of code (Java, TypeScript and CSS, without tests) under _Measures → Size_, which matches the 9,807 counted here (8,927 plus 880 of CSS); the small difference is because it uses its own rules for what a line of code is.
+
+![SonarQube Cloud code size](images/tests/phase3/sonar-size.png)
 
 ### Code style
 
@@ -541,27 +798,36 @@ All the source code and comments are written in English.
 
 ## Development process
 
-The project follows an iterative and incremental process based on the principles of the Agile Manifesto, applying some practices from Extreme Programming (XP), such as automated testing, continuous integration and small releases, and from Kanban, such as visual task management and limiting work in progress.
+The project follows an iterative and incremental process based on the principles of the [Agile Manifesto](https://agilemanifesto.org/): the software is built in phases that each end with a working release (0.1, 0.2 and 1.0), the plan is adjusted as the work advances, working software is preferred to extensive documentation, and every feature is demonstrated with its tests before it is merged. It is not Scrum: there are no sprints, roles or ceremonies. It takes some practices from two methods:
+
+- **Extreme Programming (XP):**
+  - _Continuous integration_: every push runs the build, the code style checks, the unit tests and the static analysis, and every pull request runs the whole test suite (see [Continuous integration](#continuous-integration)).
+  - _Automated tests_: every feature is only done when it has its six types of tests (see [Types of tests](#types-of-tests)).
+  - _Small releases_: a release at the end of every phase, and every feature in a short branch merged by a small pull request.
+  - _Refactoring_: the code is reorganized when a feature needs it, for example when the access rule for trips moved to `TripAccessService` so that later features extend it in one place.
+- **Kanban:** the tasks are cards on a visual board, they flow through its columns, and the work in progress is limited (see [Task management](#task-management)).
 
 ### Task management
 
-Tasks are managed as GitHub Issues and organized on a Kanban board in [GitHub Projects](https://github.com/orgs/codeurjc-students/projects/46). Each phase is broken down into issues that move through the board columns as they progress. A task is only considered done when its automated tests are implemented and the quality controls pass.
+Tasks are managed as GitHub Issues and organized on a Kanban board in [GitHub Projects](https://github.com/orgs/codeurjc-students/projects/46). Each phase is broken down into issues that move through the board columns as they progress, and the number of tasks in progress at the same time is limited. A task is only considered done when its automated tests are implemented and the quality controls pass.
 
 ### Git
 
 The code is stored in a Git repository hosted on GitHub. The branching strategy is **GitHub Flow**:
 
 - `main` is the stable branch. It never receives direct commits, and its code is always ready to be deployed.
-- Each feature or fix is developed in its own short-lived branch, named `feature/<short-description>` or `fix/<short-description>` (for example, `feature/add-code-style-checks`).
+- Each feature or fix is developed in its own short-lived branch, named `feature/<ID>-<short-description>` (for example, `feature/B4-trip-crud`) or `feature/<short-description>` for technical work, `fix/<short-description>`, `refactor/...` or `docs/...`. A branch is deleted after its pull request is merged.
 - Branches are merged into `main` through pull requests, which can only be merged when the full quality workflow passes. Each pull request closes its related issues.
 
-Git metrics (19/10/2026):
+Git metrics (03/11/2026, from `git rev-list`, `git branch` and `git log`):
 
-| Metric               | Value |
-| -------------------- | ----- |
-| Commits on `main`    | 33    |
-| Branches             | 2     |
-| Pull requests merged | 6     |
+| Metric                                         | Value                                                |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| Commits on `main`                              | 151                                                  |
+| Pull requests merged into `main`               | 25 (#22 to #76)                                      |
+| Branches that are still open                   | 1 (`main`; the branches are deleted after the merge) |
+| Pull requests of a feature (`feature/B1`–`B8`) | 8                                                    |
+| Pull requests of fixes                         | 5                                                    |
 
 ### Continuous integration
 
@@ -579,7 +845,7 @@ Four more GitHub Actions workflows publish the application on DockerHub. They on
 | Workflow                                    | Trigger                                         | Image `rubenruiz7/tripmate` and artifact `rubenruiz7/tripmate-compose` tags    | Compose file published          |
 | ------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------- |
 | **Deliver dev** (`deliver-dev.yml`)         | Every push to `main`                            | `dev`                                                                          | `docker/docker-compose-dev.yml` |
-| **Deliver release** (`deliver-release.yml`) | A GitHub release is published                   | `x.y.0`, `x.y` and `latest` (a pre-release does not move `latest`)            | `docker/docker-compose.yml`     |
+| **Deliver release** (`deliver-release.yml`) | A GitHub release is published                   | `x.y.0`, `x.y` and `latest` (a pre-release does not move `latest`)             | `docker/docker-compose.yml`     |
 | **Deliver manual** (`deliver-manual.yml`)   | Manually (_Actions → Run workflow_), any branch | `<branch>-<YYYYMMDD>-<short commit>`, for example `feature-x-20261023-abc1234` | `docker/docker-compose-dev.yml` |
 | **Publish Docker** (`publish-docker.yml`)   | Called by the three above (`workflow_call`)     | The tag it receives, plus optional aliases                                     | The file it receives            |
 
@@ -587,11 +853,11 @@ Four more GitHub Actions workflows publish the application on DockerHub. They on
 
 **Which image the artifact runs.** The committed Compose files are never edited. The workflow copies the file to a temporary folder and changes only its `app` image line to `rubenruiz7/tripmate:<tag>`; everything else, including the `${VAR:-default}` expressions, stays as it is, so the artifact is as configurable as the original. It stops if more than one line changed and checks the result with `docker compose config --images`. After publishing, it reads every artifact back from DockerHub and checks the image again. The image inside an artifact is always an immutable tag (`dev`, the version, or the branch-date-commit tag): `rubenruiz7/tripmate-compose:latest` and `:0.1` run `rubenruiz7/tripmate:0.1.0`, not `latest`, so an artifact keeps running the same image. The committed file names `rubenruiz7/tripmate:0.1`, which is why that tag is published too; the published copy replaces it with `0.1.0`.
 
-| Case          | Artifact tags     | Image run by the artifact                                   |
-| ------------- | ----------------- | ----------------------------------------------------------- |
-| Push to main  | `dev`             | `rubenruiz7/tripmate:dev`                                   |
-| Release 0.1   | `0.1.0`, `0.1`, `latest` | `rubenruiz7/tripmate:0.1.0`                          |
-| Manual run    | The branch tag    | `rubenruiz7/tripmate:feature-x-20261023-abc1234` (same tag) |
+| Case         | Artifact tags            | Image run by the artifact                                   |
+| ------------ | ------------------------ | ----------------------------------------------------------- |
+| Push to main | `dev`                    | `rubenruiz7/tripmate:dev`                                   |
+| Release 0.1  | `0.1.0`, `0.1`, `latest` | `rubenruiz7/tripmate:0.1.0`                                 |
+| Manual run   | The branch tag           | `rubenruiz7/tripmate:feature-x-20261023-abc1234` (same tag) |
 
 **Docker Compose version.** `docker compose publish` and `-f oci://…` need Compose 2.34.0 or later (before that, `publish` was an alpha command). The runner image can change its Compose version without notice, so the workflow installs a pinned version with `docker/setup-compose-action` (`COMPOSE_VERSION` in `publish-docker.yml`) and fails if the installed version is different. Every `docker compose` command that talks to the registry runs with its input closed, `--yes` where Compose supports it, and a step timeout, so it cannot wait for a confirmation.
 
@@ -605,16 +871,16 @@ Four more GitHub Actions workflows publish the application on DockerHub. They on
 
 TripMate follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `MAJOR.MINOR.PATCH`. While the major version is `0`, the minor version changes with each release that adds functionality (the target of Phase 3 is `0.1.0`, with features B1–B8) and the patch version with fixes. A release is named with two numbers, `MAJOR.MINOR` (`0.1`, no `v` prefix), and its version is `MAJOR.MINOR.0` (`0.1.0`): the Git tag and the GitHub release are `0.1`, the files and the image use `0.1.0`, and the image and the Compose artifact are also published as `0.1` so that the committed Compose file resolves. The release workflow rejects any other tag.
 
-| Place                         | Value                                                |
-| ----------------------------- | ---------------------------------------------------- |
-| Git tag and GitHub release    | `x.y`                                                |
-| `backend/pom.xml`             | `x.y.0` in a release, `x.y+1.0-SNAPSHOT` after it    |
-| `frontend/package.json`       | `x.y.0` in a release, `x.y+1.0` after it             |
-| `rubenruiz7/tripmate`         | `x.y.0`, `x.y` and `latest`                          |
+| Place                         | Value                                                   |
+| ----------------------------- | ------------------------------------------------------- |
+| Git tag and GitHub release    | `x.y`                                                   |
+| `backend/pom.xml`             | `x.y.0` in a release, `x.y+1.0-SNAPSHOT` after it       |
+| `frontend/package.json`       | `x.y.0` in a release, `x.y+1.0` after it                |
+| `rubenruiz7/tripmate`         | `x.y.0`, `x.y` and `latest`                             |
 | `rubenruiz7/tripmate-compose` | `x.y.0`, `x.y` and `latest` (all run the image `x.y.0`) |
-| `docker/docker-compose.yml`   | Image `rubenruiz7/tripmate:x.y`                      |
-| `CHANGELOG.md`                | A section `## [x.y.0] - date`                        |
-| `main` (after the first push) | Image and Compose artifact `dev`                     |
+| `docker/docker-compose.yml`   | Image `rubenruiz7/tripmate:x.y`                         |
+| `CHANGELOG.md`                | A section `## [x.y.0] - date`                           |
+| `main` (after the first push) | Image and Compose artifact `dev`                        |
 
 **Releasing a version `x.y`** (for example `0.1`, whose version is `0.1.0`):
 
@@ -628,10 +894,13 @@ TripMate follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `MA
 
 Releases:
 
-| Version | Date       | Summary                                                                    |
-| ------- | ---------- | -------------------------------------------------------------------------- |
-| `0.0.1` | 15/09/2026 | Phase 1: project documentation                                             |
-| `0.0.2` | 19/10/2026 | Phase 2: minimum functionality, automated tests and continuous integration |
+| Version | Date                | Summary                                                                                                                             |
+| ------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `0.0.1` | 15/09/2026          | Phase 1: project documentation (milestone, no GitHub release)                                                                       |
+| `0.0.2` | 19/10/2026          | Phase 2: minimum functionality, automated tests and continuous integration (milestone, no GitHub release)                           |
+| `0.1`   | 04/11/2026          | Phase 3, the first GitHub release (tag `0.1`, version `0.1.0`): basic functionality B1–B8, the Docker image and continuous delivery |
+| `0.2`   | Planned: 01/12/2026 | Phase 4: intermediate functionality (I1–I6) and deployment                                                                          |
+| `1.0`   | Planned: 20/12/2026 | Phase 5: advanced functionality (A1–A6, AI and Telegram) and database migration                                                     |
 
 ## Running and editing the code
 
@@ -673,19 +942,19 @@ This section runs the application from the source code. To run the packaged appl
 
 2. **Check the security configuration.** The backend serves HTTPS on port 443 with a self-signed development certificate that is already in the repository (`backend/src/main/resources/keystore.p12`, password `password`, only for development). It also reads the administrator and the token settings from environment variables, with development defaults:
 
-   | Variable                | Default                                       | Description                                                                                  |
-   | ----------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-   | `SERVER_PORT`           | `443`                                         | HTTPS port of the backend                                                                    |
-   | `SSL_KEYSTORE`          | `classpath:keystore.p12`                      | PKCS12 keystore with the certificate (`file:/path/to/keystore.p12` for an external one)      |
-   | `SSL_KEYSTORE_PASSWORD` | `password`                                    | Keystore password                                                                            |
-   | `ADMIN_EMAIL`           | `admin@tripmate.com`                          | Email of the only administrator                                                              |
-   | `ADMIN_NAME`            | `Administrator`                               | Name of the administrator                                                                    |
-   | `ADMIN_PASSWORD_HASH`   | BCrypt hash of the password `admin`           | BCrypt hash of the administrator password. The application does not start with anything else |
-   | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                        |
-   | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                   |
+   | Variable                | Default                                       | Description                                                                                                                |
+   | ----------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+   | `SERVER_PORT`           | `443`                                         | HTTPS port of the backend                                                                                                  |
+   | `SSL_KEYSTORE`          | `classpath:keystore.p12`                      | PKCS12 keystore with the certificate (`file:/path/to/keystore.p12` for an external one)                                    |
+   | `SSL_KEYSTORE_PASSWORD` | `password`                                    | Keystore password                                                                                                          |
+   | `ADMIN_EMAIL`           | `admin@tripmate.com`                          | Email of the only administrator                                                                                            |
+   | `ADMIN_NAME`            | `Administrator`                               | Name of the administrator                                                                                                  |
+   | `ADMIN_PASSWORD_HASH`   | BCrypt hash of the password `admin`           | BCrypt hash of the administrator password. The application does not start with anything else                               |
+   | `JWT_SECRET`            | development key (in `application.properties`) | Base64 key used to sign the tokens, at least 32 bytes                                                                      |
+   | `JWT_EXPIRATION`        | `PT24H`                                       | Lifetime of the login cookie and token (ISO-8601 duration)                                                                 |
    | `SAMPLE_DATA`           | `true`                                        | Loads the sample users and trips, and the administrator's example trips, that are missing at start-up (`false` to disable) |
-   | `SAMPLE_USERS_PASSWORD` | `Demo-2026`                                   | Password of the sample users, encoded when they are created (development only)               |
-   | `IMAGE_MAX_SIZE`        | `5MB`                                         | Largest image accepted by `POST /api/v1/images`                                              |
+   | `SAMPLE_USERS_PASSWORD` | `Demo-2026`                                   | Password of the sample users, encoded when they are created (development only)                                             |
+   | `IMAGE_MAX_SIZE`        | `5MB`                                         | Largest image accepted by `POST /api/v1/images`                                                                            |
 
    **In production, `ADMIN_PASSWORD_HASH`, `JWT_SECRET` and the keystore must be replaced** with private values. To create a hash for the administrator password (the `$` characters must not be expanded by the shell, so use single quotes):
 
@@ -746,11 +1015,11 @@ To stop everything, press `Ctrl + C` in the backend and frontend terminals and r
 
 With `SAMPLE_DATA=true` (the default) the application creates, at start-up, three regular users and their trips, and the example trips of the administrator, if they do not exist yet. The accounts are for development and demos and all use the same password, so **a deployment that must not have known accounts has to set `SAMPLE_DATA=false`**.
 
-| User         | Email                 | Password    | Trips                                                      |
-| ------------ | --------------------- | ----------- | ---------------------------------------------------------- |
-| Ana García   | `ana@tripmate.com`    | `Demo-2026` | 12 (a second page of "More results" on "My trips")          |
-| Carlos Ruiz  | `carlos@tripmate.com` | `Demo-2026` | 3                                                          |
-| Laura Pérez  | `laura@tripmate.com`  | `Demo-2026` | 2                                                          |
+| User        | Email                 | Password    | Trips                                              |
+| ----------- | --------------------- | ----------- | -------------------------------------------------- |
+| Ana García  | `ana@tripmate.com`    | `Demo-2026` | 12 (a second page of "More results" on "My trips") |
+| Carlos Ruiz | `carlos@tripmate.com` | `Demo-2026` | 3                                                  |
+| Laura Pérez | `laura@tripmate.com`  | `Demo-2026` | 2                                                  |
 
 Some trips come with an itinerary (B5): Ana's "Lisbon getaway" (7 activities over its first three days, two with an image) and "Summer in Rome" (4), Carlos's "Andalusia route" (3) and Laura's "Weekend in Porto" (4 over two days; the third day is empty on purpose, because the Selenium test creates and deletes an activity there). The images are small PNGs generated at start-up. A trip that already has any activity is left as it is, so nothing is duplicated and what a user changed is kept.
 
@@ -785,18 +1054,19 @@ cd backend
 ./mvnw test -Dtest='*UnitTest'               # unit tests
 ./mvnw test -Dtest='*IntegrationTest'        # integration tests (service – database)
 ./mvnw test -Dtest='*ApiE2ETest'             # REST API system tests (over HTTPS, random port)
-./mvnw test -Dtest=TripUiE2ETest             # UI system tests (Selenium)
+./mvnw test -Dtest='*UiE2ETest'              # UI system tests (Selenium; need the whole application running)
+./mvnw test -Dtest=TripServiceUnitTest       # one class
 ```
 
 The coverage report is generated in `backend/target/site/jacoco/index.html`.
 
-The Selenium tests (`TripUiE2ETest`) open the web application in a headless Google Chrome, so they need **Chrome installed** and the **whole application running**: database, backend and frontend (see [Running the application](#running-the-application)). By default they use http://localhost:5173; another URL can be passed with `-Dapp.url`:
+The Selenium tests (`*UiE2ETest`) open the web application in a headless Google Chrome, so they need **Chrome installed** and the **whole application running**: database, backend and the frontend served on port 5173 (the development server, or the production build with `npm run build && npm run preview`, which is what CI uses; if the backend is not on port 443, start it with `BACKEND_URL=https://localhost:<port> npm run preview`). By default they use http://localhost:5173; another URL can be passed with `-Dapp.url`:
 
 ```bash
-./mvnw test -Dtest=TripUiE2ETest -Dapp.url=http://localhost:5173
+./mvnw test -Dtest='*UiE2ETest' -Dapp.url=http://localhost:5173
 ```
 
-Running `./mvnw test` without the application running makes `TripUiE2ETest` fail; to run only the tests that do not need it, use `./mvnw test -Dtest='!TripUiE2ETest'`.
+Running `./mvnw test` without the application running makes the UI tests fail; to run only the tests that do not need it, use `./mvnw test -Dtest='*UnitTest,*IntegrationTest,*ApiE2ETest'`.
 
 Frontend:
 
@@ -824,50 +1094,50 @@ Releases are created from GitHub (**Releases → Draft a new release**), with a 
 
 Relevant technical decisions taken during the development, with their reasons.
 
-| Date     | Decision                                                                                                                                              | Alternatives considered                                                            | Reason                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sep 2026 | Telegram as the instant messaging platform                                                                                                            | WhatsApp                                                                           | The Telegram Bot API is free and allows bots to manage groups (invite links, join request approval, removing members), which the trip group feature needs                                                                                                                                                                                                                                                                                                                                                                            |
-| Sep 2026 | Modular monolith organized by domain                                                                                                                  | Classic layered monolith                                                           | Makes it easier to split the application into independent services in TFG2                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Oct 2026 | Testcontainers with MySQL for integration and system tests                                                                                            | In-memory H2 database                                                              | Tests run against the same database engine used in production, avoiding SQL dialect differences                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| Oct 2026 | Code style checks in CI (Spotless, ESLint, Prettier)                                                                                                  | Only formatting on save                                                            | Guarantees a consistent style regardless of the editor and makes style errors visible in every push                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| Oct 2026 | `.gitattributes` forcing LF line endings                                                                                                              | Relying on each machine's Git configuration                                        | The project is developed on Windows and CI runs on Linux; the checks must behave the same in both                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Oct 2026 | MySQL container published on host port 3307                                                                                                           | Default port 3306                                                                  | Avoids conflicts with a local MySQL installation using port 3306                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Oct 2026 | JWT in an `HttpOnly` cookie, validated with Spring Security's own resource server (Nimbus)                                                            | Token in `localStorage` sent as a `Bearer` header; a JWT library such as jjwt      | JavaScript cannot read the cookie, which limits the damage of an XSS attack; no extra dependency is needed                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Oct 2026 | CSRF protection disabled in Spring Security (stateless API)                                                                                           | CSRF tokens (`CookieCsrfTokenRepository`)                                          | The API has no server session or form login; its only credential is the `AuthToken` cookie (`HttpOnly; Secure; SameSite=Strict`), which browsers never send on cross-site requests. Tokens would add a header to every mutation without closing a real gap                                                                                                                                                                                                                                                                           |
-| Oct 2026 | The user is loaded from the database on every authenticated request                                                                                   | Trusting the role stored in the token until it expires                             | A blocked user is rejected immediately and the role cannot become stale; the cost is one query by primary key per request                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Oct 2026 | The administrator is defined in the configuration and synchronized into the `users` table on start-up                                                 | Keeping the administrator only in memory                                           | Other entities (for example the sample trips created by the administrator) can reference it, and it still cannot be created or assigned through the API                                                                                                                                                                                                                                                                                                                                                                              |
-| Oct 2026 | HTTPS on port 443 by default, with a self-signed development keystore committed to the repository                                                     | HTTP in development and HTTPS only in production                                   | Development behaves like production (`Secure` cookie) and CI needs no extra setup; the keystore holds nothing private of the real deployment                                                                                                                                                                                                                                                                                                                                                                                         |
-| Oct 2026 | CI runs the backend on HTTPS port 8443 (`SERVER_PORT`)                                                                                                | Port 443                                                                           | The GitHub Actions runner cannot bind ports below 1024                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| Oct 2026 | One Docker image with the Spring Boot server serving the built React application                                                                      | A separate frontend container (for example nginx)                                  | The SPA and the API share the same origin (no CORS or proxy), there is one HTTPS endpoint and a single artifact to publish, as the guide asks                                                                                                                                                                                                                                                                                                                                                                                        |
-| Oct 2026 | The container listens on port 443 as the non-root user `tripmate`, with `sysctls: net.ipv4.ip_unprivileged_port_start: 0` in the Compose files        | The container on 8443 published as `443:8443`; running the container as root       | The guide asks for HTTPS on port 443. The sysctl lets a non-root process bind port 443 inside the container's own network namespace, so the process does not run as root; it was verified on Docker Desktop. If a platform rejects the sysctl, the fallback is to run the container as root                                                                                                                                                                                                                                          |
-| Oct 2026 | Two Compose files (release and `dev`) with different project names                                                                                    | One file with the image tag as a variable                                          | The guide asks for a released and a development file, each publishable as an OCI artifact; different project names keep their volumes and containers separate                                                                                                                                                                                                                                                                                                                                                                        |
-| Oct 2026 | The published Compose file is a copy of the committed one with only the `app` image line changed (`sed`)                                              | Writing it with `docker compose config`; `yq`; one file with the tag as a variable | `config` resolves every variable to its default and `yq` removes blank lines; changing one line keeps the file identical to the committed one and as configurable, and the result is checked with `config --images`                                                                                                                                                                                                                                                                                                                  |
-| Oct 2026 | A Compose artifact always points to an immutable image tag (`x.y.z`, `dev` or the branch tag), also the artifact tagged `latest`                      | An artifact `latest` that runs the image `latest`                                  | An artifact then keeps running the same image, and the version of the application it runs is always known                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Oct 2026 | Docker Compose pinned in the delivery workflow (`docker/setup-compose-action`)                                                                        | The version installed in the runner image                                          | `publish` needs Compose 2.34.0 or later and the runner image changes its version without notice                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| Oct 2026 | The release workflow checks that the commit is on `main` and that Basic quality passed (waiting up to 15 minutes), instead of running the tests again | Re-running every test; no check                                                    | The tests already ran in the pull request (branch protection on `main`) and the full workflow cannot be reused; the check also covers a release created on a commit whose analysis is still running                                                                                                                                                                                                                                                                                                                                  |
-| Oct 2026 | Releases publish `x.y.z` and `latest`, never `x.y`                                                                                                    | Also a moving `x.y` tag                                                            | One exact tag per release and no tag that changes under the user; the Compose file of the release names the full version                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Nov 2026 | Releases are tagged `MAJOR.MINOR` (`0.1`) and publish `x.y.0`, `x.y` and `latest`; the committed Compose file names `rubenruiz7/tripmate:x.y` (replaces "never `x.y`" above) | Tag `x.y.z` with only `x.y.z` and `latest` | The TFG guide asks for releases named `0.1` and a Compose file that resolves `rubenruiz7/tripmate:0.1`. The artifact still runs the immutable `x.y.0`, so it never changes under the user |
-| Oct 2026 | `.dockerignore` as an allowlist                                                                                                                       | A list of excluded folders                                                         | Nothing enters the build context unless the build needs it, so private files, `.git` and documentation cannot end up in an image                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Oct 2026 | The administrator's own profile is read-only except the avatar (changing its name, email or password answers 403)                                     | Letting the administrator edit its profile like any other user                     | The administrator's name, email and password hash come from the configuration and are written to the database on every start-up: a name or password changed through the API would be lost on the next restart, and a changed email would make the next start-up create a second administrator account with the configured email and demote the edited one. The avatar is not in the configuration, so it can be changed                                                                                                              |
-| Oct 2026 | Avatars are shown through the public `GET /api/v1/images/{id}` (the `avatarId` of the user), while `GET /api/v1/users/{id}/avatar` requires login     | Serving avatars only from the user URL; making the user URL public                 | The image URL is a random UUID that cannot be guessed or enumerated (the same as the rest of the images), works in `<img>` tags and can be cached forever because a new upload gets a new id. The user URL is guessable (sequential ids), so it requires login, and its content changes when the avatar is replaced, so it is sent with `no-cache`. The trade-off is that anyone who obtains an avatar's UUID can see that picture without logging in; avatars are not sensitive data, and the UUID is only given to logged-in users |
-| Oct 2026 | A trip is readable and editable only by its creator; 404 is checked before 403, in the service (`findTripForRead` / `findTripForWrite`)                | Checking ownership in the controller; answering 404 for another user's trip         | The two methods are the only place to extend when participants (I3) and trip moderation by the administrator (B8) arrive; a missing trip is reported as missing to anyone |
-| Oct 2026 | The administrator gets 403 on other users' trips until trip moderation (B8) exists                                                                    | Letting the administrator read and delete any trip now                              | "User permissions" gives that power to the moderation feature, not to trip management |
-| Nov 2026 | The administrator can read and delete any trip (B8) but never edit it: `findForRead` and `findForDelete` accept the `ADMIN` role, `findForWrite` stays creator-only | One `findForWrite` that lets the administrator through; an admin-only delete endpoint | Moderation is reviewing and removing. Editing another user's trip or activities would change their content. The rule stays in `TripAccessService`, and the existing endpoints and the cascade of B4/B5 are reused |
-| Oct 2026 | Trip covers are shown through the public `GET /api/v1/images/{id}`, while `GET /api/v1/trips/{id}/cover` is restricted to the creator                | Serving covers only from the trip URL                                               | Same trade-off as avatars: the image URL is a random UUID that only someone who can read the trip is given, and `<img>` tags need a plain URL |
-| Oct 2026 | Deleting a trip deletes its children explicitly in the service, then the trip, then its images; there are no database cascades                         | `ON DELETE CASCADE`; JPA `cascade = REMOVE`                                         | Stored images must be deleted too, which cascades do not do, and the order stays visible in one method that each later feature extends |
-| Oct 2026 | One form component and one page create and edit a trip; the cover is chosen in the form and sent after the trip is saved                               | Separate create and edit pages; uploading the cover as soon as it is chosen         | The trip does not exist when a new trip's cover is chosen, and one button saves everything |
-| Oct 2026 | The sample users' password is a property (`SAMPLE_USERS_PASSWORD`), encoded with the `PasswordEncoder` at start-up, with a test that its default matches the README | A BCrypt hash constant in the source (SonarQube flags it as a secret)               | No credential or hash in the code, the README credentials cannot drift, and the password can be changed without rebuilding |
-| Oct 2026 | The permission to read or change a trip lives in `TripAccessService` (`findForRead`, `findForWrite`), and every service that works on a trip or on something that belongs to it authorises through it (an update of the rule of B4 that put the two methods inside `TripService`) | Making the methods of `TripService` public; letting `ActivityService` read the creator itself | `ActivityService` needs the rule and `TripService` needs `ActivityService` (to delete the activities and to check the new dates), so the rule cannot live in either without a dependency cycle. Each service uses only its own repository, and participants (I3) and the administrator (B8) are added in one class |
-| Oct 2026 | Changing the dates of a trip so that an activity falls outside them is allowed and reported as a conflict (B6); B5 had refused it with a 409 | Refusing it; moving or deleting the activities automatically | The activities left outside stay visible and can be fixed from the warning's "Editar" links; deleting data silently is not acceptable. Creating or editing an activity still requires a date inside the trip (400) |
-| Oct 2026 | Conflicts (B6) are warnings computed in queries by `GET /api/v1/trips/{tripId}/conflicts`: overlaps by a self-join, dates outside by comparing with the trip, the cost by `SUM`; the endpoint is not paginated | Checking in the browser or in Java loops after loading every activity; refusing to save a conflicting activity; a paginated list | The project filters and aggregates in the database; the answer is one small report per trip, so paging it would only hide conflicts; a conflict is information for the user, never a reason to lose their data |
-| Oct 2026 | An activity lasts one day: the end time must be strictly after the start and there are no overnight activities | Allowing an end on the next day | The schedule is shown per day and conflict detection (B6) compares times of the same day; an activity that crosses midnight is entered as two |
-| Oct 2026 | The selected day of the itinerary is in the URL (`?day=yyyy-MM-dd`) | Component state | The form returns to the same day, the browser's Back button and a refresh keep it, and a day can be linked |
-| Oct 2026 | The itinerary list is paginated and filtered by day in the query (`?date=`), and the activities without a start time come first on their day | Loading the whole itinerary and grouping it in the browser; sorting them last | The rule of the project is to filter and page in the database; MySQL sorts nulls first, which puts the "all day" activities at the head of their day |
-| Oct 2026 | The example trips of the public home page (B1) are the trips the administrator created, read from public `GET /api/v1/trips/examples` endpoints | A flag or an `example` table; copying the trips into a separate table | The administrator already manages trips with the normal pages (B4, B5), so there is nothing new to keep in step; a trip of anyone else can never be exposed because the query is by the creator's role, and it is a 404, not a 403, for anything else |
-| Oct 2026 | The first activity of each of the first three days of the example trips is read in one query for the whole page (`findFirstOfFirstDays`) | Loading every activity of each trip and choosing in Java; one query per trip | The project filters and aggregates in the database, and the home page would otherwise load every itinerary of the page |
-| Oct 2026 | The text of the example trips (names, places, descriptions and activities) is written in Spanish in `DataLoader`; the rest of the sample data, the identifiers and the comments stay in English | English text, as the other sample trips | The home page shows the examples exactly as stored, to Spanish-speaking visitors, and there is no translation layer for data; it is content, not an identifier |
-| Oct 2026 | The home page shows the examples three at a time and, only when there are more than three, pages through them with previous and next buttons, not with "More results" | A button that appends the next page; always showing the buttons | The design asked for a fixed row of three cards that changes, so the page replaces the cards; with the three sample examples there is nothing to page, so the buttons stay hidden; the endpoint is the usual paginated one |
-| Oct 2026 | The category of an activity is a closed list (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`) | Free text | The spending chart by category (I5) and the AI proposals (A1) need values that can be grouped; the Spanish names are written in the frontend component |
+| Date     | Decision                                                                                                                                                                                                                                                                          | Alternatives considered                                                                                                          | Reason                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sep 2026 | Telegram as the instant messaging platform                                                                                                                                                                                                                                        | WhatsApp                                                                                                                         | The Telegram Bot API is free and allows bots to manage groups (invite links, join request approval, removing members), which the trip group feature needs                                                                                                                                                                                                                                                                                                                                                                            |
+| Sep 2026 | Modular monolith organized by domain                                                                                                                                                                                                                                              | Classic layered monolith                                                                                                         | Makes it easier to split the application into independent services in TFG2                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Oct 2026 | Testcontainers with MySQL for integration and system tests                                                                                                                                                                                                                        | In-memory H2 database                                                                                                            | Tests run against the same database engine used in production, avoiding SQL dialect differences                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Oct 2026 | Code style checks in CI (Spotless, ESLint, Prettier)                                                                                                                                                                                                                              | Only formatting on save                                                                                                          | Guarantees a consistent style regardless of the editor and makes style errors visible in every push                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Oct 2026 | `.gitattributes` forcing LF line endings                                                                                                                                                                                                                                          | Relying on each machine's Git configuration                                                                                      | The project is developed on Windows and CI runs on Linux; the checks must behave the same in both                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Oct 2026 | MySQL container published on host port 3307                                                                                                                                                                                                                                       | Default port 3306                                                                                                                | Avoids conflicts with a local MySQL installation using port 3306                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Oct 2026 | JWT in an `HttpOnly` cookie, validated with Spring Security's own resource server (Nimbus)                                                                                                                                                                                        | Token in `localStorage` sent as a `Bearer` header; a JWT library such as jjwt                                                    | JavaScript cannot read the cookie, which limits the damage of an XSS attack; no extra dependency is needed                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Oct 2026 | CSRF protection disabled in Spring Security (stateless API)                                                                                                                                                                                                                       | CSRF tokens (`CookieCsrfTokenRepository`)                                                                                        | The API has no server session or form login; its only credential is the `AuthToken` cookie (`HttpOnly; Secure; SameSite=Strict`), which browsers never send on cross-site requests. Tokens would add a header to every mutation without closing a real gap                                                                                                                                                                                                                                                                           |
+| Oct 2026 | The user is loaded from the database on every authenticated request                                                                                                                                                                                                               | Trusting the role stored in the token until it expires                                                                           | A blocked user is rejected immediately and the role cannot become stale; the cost is one query by primary key per request                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Oct 2026 | The administrator is defined in the configuration and synchronized into the `users` table on start-up                                                                                                                                                                             | Keeping the administrator only in memory                                                                                         | Other entities (for example the sample trips created by the administrator) can reference it, and it still cannot be created or assigned through the API                                                                                                                                                                                                                                                                                                                                                                              |
+| Oct 2026 | HTTPS on port 443 by default, with a self-signed development keystore committed to the repository                                                                                                                                                                                 | HTTP in development and HTTPS only in production                                                                                 | Development behaves like production (`Secure` cookie) and CI needs no extra setup; the keystore holds nothing private of the real deployment                                                                                                                                                                                                                                                                                                                                                                                         |
+| Oct 2026 | CI runs the backend on HTTPS port 8443 (`SERVER_PORT`)                                                                                                                                                                                                                            | Port 443                                                                                                                         | The GitHub Actions runner cannot bind ports below 1024                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Oct 2026 | One Docker image with the Spring Boot server serving the built React application                                                                                                                                                                                                  | A separate frontend container (for example nginx)                                                                                | The SPA and the API share the same origin (no CORS or proxy), there is one HTTPS endpoint and a single artifact to publish, as the guide asks                                                                                                                                                                                                                                                                                                                                                                                        |
+| Oct 2026 | The container listens on port 443 as the non-root user `tripmate`, with `sysctls: net.ipv4.ip_unprivileged_port_start: 0` in the Compose files                                                                                                                                    | The container on 8443 published as `443:8443`; running the container as root                                                     | The guide asks for HTTPS on port 443. The sysctl lets a non-root process bind port 443 inside the container's own network namespace, so the process does not run as root; it was verified on Docker Desktop. If a platform rejects the sysctl, the fallback is to run the container as root                                                                                                                                                                                                                                          |
+| Oct 2026 | Two Compose files (release and `dev`) with different project names                                                                                                                                                                                                                | One file with the image tag as a variable                                                                                        | The guide asks for a released and a development file, each publishable as an OCI artifact; different project names keep their volumes and containers separate                                                                                                                                                                                                                                                                                                                                                                        |
+| Oct 2026 | The published Compose file is a copy of the committed one with only the `app` image line changed (`sed`)                                                                                                                                                                          | Writing it with `docker compose config`; `yq`; one file with the tag as a variable                                               | `config` resolves every variable to its default and `yq` removes blank lines; changing one line keeps the file identical to the committed one and as configurable, and the result is checked with `config --images`                                                                                                                                                                                                                                                                                                                  |
+| Oct 2026 | A Compose artifact always points to an immutable image tag (`x.y.z`, `dev` or the branch tag), also the artifact tagged `latest`                                                                                                                                                  | An artifact `latest` that runs the image `latest`                                                                                | An artifact then keeps running the same image, and the version of the application it runs is always known                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Oct 2026 | Docker Compose pinned in the delivery workflow (`docker/setup-compose-action`)                                                                                                                                                                                                    | The version installed in the runner image                                                                                        | `publish` needs Compose 2.34.0 or later and the runner image changes its version without notice                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Oct 2026 | The release workflow checks that the commit is on `main` and that Basic quality passed (waiting up to 15 minutes), instead of running the tests again                                                                                                                             | Re-running every test; no check                                                                                                  | The tests already ran in the pull request (branch protection on `main`) and the full workflow cannot be reused; the check also covers a release created on a commit whose analysis is still running                                                                                                                                                                                                                                                                                                                                  |
+| Oct 2026 | Releases publish `x.y.z` and `latest`, never `x.y`                                                                                                                                                                                                                                | Also a moving `x.y` tag                                                                                                          | One exact tag per release and no tag that changes under the user; the Compose file of the release names the full version                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Nov 2026 | Releases are tagged `MAJOR.MINOR` (`0.1`) and publish `x.y.0`, `x.y` and `latest`; the committed Compose file names `rubenruiz7/tripmate:x.y` (replaces "never `x.y`" above)                                                                                                      | Tag `x.y.z` with only `x.y.z` and `latest`                                                                                       | The TFG guide asks for releases named `0.1` and a Compose file that resolves `rubenruiz7/tripmate:0.1`. The artifact still runs the immutable `x.y.0`, so it never changes under the user                                                                                                                                                                                                                                                                                                                                            |
+| Oct 2026 | `.dockerignore` as an allowlist                                                                                                                                                                                                                                                   | A list of excluded folders                                                                                                       | Nothing enters the build context unless the build needs it, so private files, `.git` and documentation cannot end up in an image                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Oct 2026 | The administrator's own profile is read-only except the avatar (changing its name, email or password answers 403)                                                                                                                                                                 | Letting the administrator edit its profile like any other user                                                                   | The administrator's name, email and password hash come from the configuration and are written to the database on every start-up: a name or password changed through the API would be lost on the next restart, and a changed email would make the next start-up create a second administrator account with the configured email and demote the edited one. The avatar is not in the configuration, so it can be changed                                                                                                              |
+| Oct 2026 | Avatars are shown through the public `GET /api/v1/images/{id}` (the `avatarId` of the user), while `GET /api/v1/users/{id}/avatar` requires login                                                                                                                                 | Serving avatars only from the user URL; making the user URL public                                                               | The image URL is a random UUID that cannot be guessed or enumerated (the same as the rest of the images), works in `<img>` tags and can be cached forever because a new upload gets a new id. The user URL is guessable (sequential ids), so it requires login, and its content changes when the avatar is replaced, so it is sent with `no-cache`. The trade-off is that anyone who obtains an avatar's UUID can see that picture without logging in; avatars are not sensitive data, and the UUID is only given to logged-in users |
+| Oct 2026 | A trip is readable and editable only by its creator; 404 is checked before 403, in the service (`findTripForRead` / `findTripForWrite`)                                                                                                                                           | Checking ownership in the controller; answering 404 for another user's trip                                                      | The two methods are the only place to extend when participants (I3) and trip moderation by the administrator (B8) arrive; a missing trip is reported as missing to anyone                                                                                                                                                                                                                                                                                                                                                            |
+| Oct 2026 | The administrator gets 403 on other users' trips until trip moderation (B8) exists                                                                                                                                                                                                | Letting the administrator read and delete any trip now                                                                           | "User permissions" gives that power to the moderation feature, not to trip management                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Nov 2026 | The administrator can read and delete any trip (B8) but never edit it: `findForRead` and `findForDelete` accept the `ADMIN` role, `findForWrite` stays creator-only                                                                                                               | One `findForWrite` that lets the administrator through; an admin-only delete endpoint                                            | Moderation is reviewing and removing. Editing another user's trip or activities would change their content. The rule stays in `TripAccessService`, and the existing endpoints and the cascade of B4/B5 are reused                                                                                                                                                                                                                                                                                                                    |
+| Oct 2026 | Trip covers are shown through the public `GET /api/v1/images/{id}`, while `GET /api/v1/trips/{id}/cover` is restricted to the creator                                                                                                                                             | Serving covers only from the trip URL                                                                                            | Same trade-off as avatars: the image URL is a random UUID that only someone who can read the trip is given, and `<img>` tags need a plain URL                                                                                                                                                                                                                                                                                                                                                                                        |
+| Oct 2026 | Deleting a trip deletes its children explicitly in the service, then the trip, then its images; there are no database cascades                                                                                                                                                    | `ON DELETE CASCADE`; JPA `cascade = REMOVE`                                                                                      | Stored images must be deleted too, which cascades do not do, and the order stays visible in one method that each later feature extends                                                                                                                                                                                                                                                                                                                                                                                               |
+| Oct 2026 | One form component and one page create and edit a trip; the cover is chosen in the form and sent after the trip is saved                                                                                                                                                          | Separate create and edit pages; uploading the cover as soon as it is chosen                                                      | The trip does not exist when a new trip's cover is chosen, and one button saves everything                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Oct 2026 | The sample users' password is a property (`SAMPLE_USERS_PASSWORD`), encoded with the `PasswordEncoder` at start-up, with a test that its default matches the README                                                                                                               | A BCrypt hash constant in the source (SonarQube flags it as a secret)                                                            | No credential or hash in the code, the README credentials cannot drift, and the password can be changed without rebuilding                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Oct 2026 | The permission to read or change a trip lives in `TripAccessService` (`findForRead`, `findForWrite`), and every service that works on a trip or on something that belongs to it authorises through it (an update of the rule of B4 that put the two methods inside `TripService`) | Making the methods of `TripService` public; letting `ActivityService` read the creator itself                                    | `ActivityService` needs the rule and `TripService` needs `ActivityService` (to delete the activities and to check the new dates), so the rule cannot live in either without a dependency cycle. Each service uses only its own repository, and participants (I3) and the administrator (B8) are added in one class                                                                                                                                                                                                                   |
+| Oct 2026 | Changing the dates of a trip so that an activity falls outside them is allowed and reported as a conflict (B6); B5 had refused it with a 409                                                                                                                                      | Refusing it; moving or deleting the activities automatically                                                                     | The activities left outside stay visible and can be fixed from the warning's "Editar" links; deleting data silently is not acceptable. Creating or editing an activity still requires a date inside the trip (400)                                                                                                                                                                                                                                                                                                                   |
+| Oct 2026 | Conflicts (B6) are warnings computed in queries by `GET /api/v1/trips/{tripId}/conflicts`: overlaps by a self-join, dates outside by comparing with the trip, the cost by `SUM`; the endpoint is not paginated                                                                    | Checking in the browser or in Java loops after loading every activity; refusing to save a conflicting activity; a paginated list | The project filters and aggregates in the database; the answer is one small report per trip, so paging it would only hide conflicts; a conflict is information for the user, never a reason to lose their data                                                                                                                                                                                                                                                                                                                       |
+| Oct 2026 | An activity lasts one day: the end time must be strictly after the start and there are no overnight activities                                                                                                                                                                    | Allowing an end on the next day                                                                                                  | The schedule is shown per day and conflict detection (B6) compares times of the same day; an activity that crosses midnight is entered as two                                                                                                                                                                                                                                                                                                                                                                                        |
+| Oct 2026 | The selected day of the itinerary is in the URL (`?day=yyyy-MM-dd`)                                                                                                                                                                                                               | Component state                                                                                                                  | The form returns to the same day, the browser's Back button and a refresh keep it, and a day can be linked                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Oct 2026 | The itinerary list is paginated and filtered by day in the query (`?date=`), and the activities without a start time come first on their day                                                                                                                                      | Loading the whole itinerary and grouping it in the browser; sorting them last                                                    | The rule of the project is to filter and page in the database; MySQL sorts nulls first, which puts the "all day" activities at the head of their day                                                                                                                                                                                                                                                                                                                                                                                 |
+| Oct 2026 | The example trips of the public home page (B1) are the trips the administrator created, read from public `GET /api/v1/trips/examples` endpoints                                                                                                                                   | A flag or an `example` table; copying the trips into a separate table                                                            | The administrator already manages trips with the normal pages (B4, B5), so there is nothing new to keep in step; a trip of anyone else can never be exposed because the query is by the creator's role, and it is a 404, not a 403, for anything else                                                                                                                                                                                                                                                                                |
+| Oct 2026 | The first activity of each of the first three days of the example trips is read in one query for the whole page (`findFirstOfFirstDays`)                                                                                                                                          | Loading every activity of each trip and choosing in Java; one query per trip                                                     | The project filters and aggregates in the database, and the home page would otherwise load every itinerary of the page                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Oct 2026 | The text of the example trips (names, places, descriptions and activities) is written in Spanish in `DataLoader`; the rest of the sample data, the identifiers and the comments stay in English                                                                                   | English text, as the other sample trips                                                                                          | The home page shows the examples exactly as stored, to Spanish-speaking visitors, and there is no translation layer for data; it is content, not an identifier                                                                                                                                                                                                                                                                                                                                                                       |
+| Oct 2026 | The home page shows the examples three at a time and, only when there are more than three, pages through them with previous and next buttons, not with "More results"                                                                                                             | A button that appends the next page; always showing the buttons                                                                  | The design asked for a fixed row of three cards that changes, so the page replaces the cards; with the three sample examples there is nothing to page, so the buttons stay hidden; the endpoint is the usual paginated one                                                                                                                                                                                                                                                                                                           |
+| Oct 2026 | The category of an activity is a closed list (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`)                                                                                                                                                            | Free text                                                                                                                        | The spending chart by category (I5) and the AI proposals (A1) need values that can be grouped; the Spanish names are written in the frontend component                                                                                                                                                                                                                                                                                                                                                                               |
 
 ## Problems and solutions
 
