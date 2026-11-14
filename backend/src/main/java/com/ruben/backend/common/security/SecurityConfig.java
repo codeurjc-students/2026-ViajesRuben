@@ -68,12 +68,12 @@ public class SecurityConfig {
                         "/api/v1/users")
                     .permitAll()
                     // Trips belong to their creator and need a login, except the read-only
-                    // example trips (the administrator's) of the public home page (B1).
+                    // public itineraries (the published trips) of the public home page (B1, I7).
                     .requestMatchers(
                         HttpMethod.GET,
-                        "/api/v1/trips/examples",
-                        "/api/v1/trips/examples/*",
-                        "/api/v1/trips/examples/*/activities")
+                        "/api/v1/trips/public",
+                        "/api/v1/trips/public/*",
+                        "/api/v1/trips/public/*/activities")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/images/*")
                     .permitAll()

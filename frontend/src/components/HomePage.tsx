@@ -3,8 +3,8 @@ import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import { Link } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
-import ExampleTrips from './ExampleTrips';
 import './HomePage.css';
+import PublicTripsCarousel from './PublicTripsCarousel';
 
 const STEPS = [
   { title: 'Crea un viaje', text: 'Indica el destino, las fechas y el presupuesto.' },
@@ -18,7 +18,7 @@ const STEPS = [
   },
 ];
 
-/** `/`: public home page. Introduces TripMate, shows the example trips and explains how it works. */
+/** `/`: public home page. Introduces TripMate, shows the public itineraries and explains how it works. */
 export default function HomePage() {
   const { user } = useAuth();
 
@@ -29,7 +29,7 @@ export default function HomePage() {
           <h1 className="home-hero__title text-white">Planifica tus viajes con TripMate</h1>
           <p className="home-hero__intro text-white">
             Crea tus viajes, organiza las actividades día a día y mantén el itinerario libre de
-            conflictos. Echa un vistazo a algunos itinerarios de ejemplo.
+            conflictos. Echa un vistazo a los itinerarios que otros viajeros han publicado.
           </p>
           <div className="d-flex flex-wrap gap-2">
             {user ? (
@@ -50,7 +50,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <ExampleTrips />
+      <PublicTripsCarousel />
 
       <section aria-labelledby="how-title" className="home-how">
         <h2 id="how-title" className="h3 mb-4">

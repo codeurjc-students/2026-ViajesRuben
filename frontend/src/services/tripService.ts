@@ -26,6 +26,14 @@ export function updateTrip(id: number, data: TripData): Promise<Trip> {
   return sendJson<Trip>('PUT', tripUrl(id), data);
 }
 
+/**
+ * Publishes (`true`) or unpublishes (`false`) the trip, which only its creator may do; answers 403
+ * (even for the administrator) or 404. Repeating the same value changes nothing.
+ */
+export function setPublication(id: number, published: boolean): Promise<Trip> {
+  return sendJson<Trip>('PUT', `${tripUrl(id)}/publication`, { published });
+}
+
 /** Deletes the trip with its cover; answers 403 or 404. */
 export function deleteTrip(id: number): Promise<void> {
   return request<void>(tripUrl(id), { method: 'DELETE' });

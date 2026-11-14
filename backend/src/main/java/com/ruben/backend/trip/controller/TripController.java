@@ -5,6 +5,7 @@ import com.ruben.backend.common.error.ErrorResponse;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
 import com.ruben.backend.image.dto.ImageResult;
+import com.ruben.backend.trip.dto.PublicationRequest;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
 import com.ruben.backend.trip.service.TripService;
@@ -145,6 +146,36 @@ public class TripController {
   @PutMapping("/{id}")
   public TripDTO updateTrip(@PathVariable Long id, @Valid @RequestBody TripRequest request) {
     return tripService.update(id, request);
+  }
+
+  @Operation(
+      summary = "Publish or unpublish a trip",
+      description =
+          "Only the creator, not even the administrator. `published: true` makes the trip a public"
+              + " itinerary (listed by `GET /api/v1/trips/public`) and sets `publishedAt`;"
+              + " `false` removes it from there and keeps the trip. Idempotent: repeating the"
+              + " same value changes nothing, and publishing again keeps the first date.")
+  @ApiResponse(responseCode = "200", description = "The trip with its new publication state")
+  @ApiResponse(
+      responseCode = "400",
+      description = "Missing `published`",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "401",
+      description = NOT_LOGGED_IN,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "403",
+      description = NOT_CREATOR,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = NO_TRIP,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @PutMapping("/{id}/publication")
+  public TripDTO changePublication(
+      @PathVariable Long id, @Valid @RequestBody PublicationRequest request) {
+    return tripService.changePublication(id, request.published());
   }
 
   @Operation(

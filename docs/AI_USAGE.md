@@ -340,3 +340,20 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `B8`.
 - **Human Validation:** The student reviewed and approved the plan and verified each stage before committing.
+
+### Phase 4: Intermediate functionality (I1–I10)
+
+#### Record 4.1 — Public itineraries: publishing trips and the home carousel (I7)
+
+- **Date:** 14/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I7.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.325; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I7`, and to write some parts of the code and tests, and the documentation (OpenAPI, Postman collection, development guide, changelog). It also fixed a bug that the REST API tests exposed: the publication date was returned with more precision than the database stores.
+  - The student approved the plan with two changes, reviewed and edited the generated code.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I7`.
+- **Human Validation:** The student reviewed and approved the plan, requested the two changes above, and reviewed the generated code.

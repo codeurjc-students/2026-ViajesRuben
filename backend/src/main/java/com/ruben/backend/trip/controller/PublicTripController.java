@@ -4,9 +4,9 @@ import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.ErrorResponse;
-import com.ruben.backend.trip.dto.ExampleTripDTO;
-import com.ruben.backend.trip.dto.TripDTO;
-import com.ruben.backend.trip.service.ExampleTripService;
+import com.ruben.backend.trip.dto.PublicTripDTO;
+import com.ruben.backend.trip.dto.PublicTripSummaryDTO;
+import com.ruben.backend.trip.service.PublicTripService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.time.LocalDate;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,64 +24,66 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** The public, read-only example trips of the home page: the trips the administrator created. */
+/** The public, read-only itineraries of the home page: the trips their creators published. */
 @RestController
-@RequestMapping("/api/v1/trips/examples")
-public class ExampleTripController {
+@RequestMapping("/api/v1/trips/public")
+public class PublicTripController {
 
-  private static final String NO_EXAMPLE = "No example trip has that id";
+  private static final String NO_PUBLIC_TRIP = "No published trip has that id";
 
-  private final ExampleTripService exampleTripService;
+  private final PublicTripService publicTripService;
   private final ActivityService activityService;
 
-  public ExampleTripController(
-      ExampleTripService exampleTripService, ActivityService activityService) {
-    this.exampleTripService = exampleTripService;
+  public PublicTripController(
+      PublicTripService publicTripService, ActivityService activityService) {
+    this.publicTripService = publicTripService;
     this.activityService = activityService;
   }
 
   @Operation(
-      summary = "List the example trips",
+      summary = "List the public trips",
       description =
-          "Public, no login. The trips the administrator created, each with the first activity of"
-              + " its first three days (`firstDays`; days without activities are left out)."
-              + " Paginated: `?page=0&size=10` (50 at most), sorted by start date by default;"
-              + " `sort` accepts `id`, `name`, `destination`, `startDate`, `endDate` and"
-              + " `createdAt`.")
-  @ApiResponse(responseCode = "200", description = "One page of example trips")
+          "Public, no login. The published trips of every user, each with the first activity of its"
+              + " first three days (`firstDays`; days without activities are left out) and the"
+              + " author's name, never an email. Paginated: `?page=0&size=10` (50 at most), the"
+              + " most recently published first by default; `sort` accepts `id`, `name`,"
+              + " `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`.")
+  @ApiResponse(responseCode = "200", description = "One page of public trips")
   @ApiResponse(
       responseCode = "400",
       description = "Invalid page, size or sort parameter",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @GetMapping
-  public PageDTO<ExampleTripDTO> getExamples(
+  public PageDTO<PublicTripSummaryDTO> getPublicTrips(
       @ParameterObject
           @PageableDefault(
               size = 10,
-              sort = {"startDate", "id"})
+              sort = {"publishedAt", "id"},
+              direction = Sort.Direction.DESC)
           Pageable pageable) {
-    return exampleTripService.findPage(pageable);
+    return publicTripService.findPage(pageable);
   }
 
   @Operation(
-      summary = "Get an example trip by id",
-      description = "Public, no login. Only trips the administrator created; any other id is 404.")
-  @ApiResponse(responseCode = "200", description = "The example trip")
+      summary = "Get a public trip by id",
+      description =
+          "Public, no login. Only published trips; an unpublished or unknown id is 404, never 403.")
+  @ApiResponse(responseCode = "200", description = "The public trip")
   @ApiResponse(
       responseCode = "400",
       description = "The id is not a number",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "404",
-      description = NO_EXAMPLE,
+      description = NO_PUBLIC_TRIP,
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @GetMapping("/{id}")
-  public TripDTO getExample(@PathVariable Long id) {
-    return exampleTripService.findById(id);
+  public PublicTripDTO getPublicTrip(@PathVariable Long id) {
+    return publicTripService.findById(id);
   }
 
   @Operation(
-      summary = "List an example trip's activities",
+      summary = "List a public trip's activities",
       description =
           "Public, no login. Paginated like `GET /api/v1/trips/{tripId}/activities`:"
               + " `?page=0&size=10`, sorted by date and start time by default, `date=yyyy-MM-dd`"
@@ -92,10 +95,10 @@ public class ExampleTripController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "404",
-      description = NO_EXAMPLE,
+      description = NO_PUBLIC_TRIP,
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @GetMapping("/{id}/activities")
-  public PageDTO<ActivityDTO> getExampleActivities(
+  public PageDTO<ActivityDTO> getPublicTripActivities(
       @PathVariable Long id,
       @Parameter(description = "Only the activities of this day, `yyyy-MM-dd`")
           @RequestParam(required = false)
@@ -106,6 +109,6 @@ public class ExampleTripController {
               size = 10,
               sort = {"date", "startTime", "id"})
           Pageable pageable) {
-    return activityService.findExamplePage(id, date, pageable);
+    return activityService.findPublicPage(id, date, pageable);
   }
 }

@@ -64,15 +64,15 @@ public class TripAccessService {
   }
 
   /**
-   * An example trip is public to read: one the administrator created. Any other trip is reported as
+   * A published trip is public to read, by anyone and without login. Any other trip is reported as
    * missing, never as forbidden, so the public endpoints reveal nothing about it.
    *
-   * @throws ResourceNotFoundException no example trip has that id
+   * @throws ResourceNotFoundException no published trip has that id
    */
   @Transactional(readOnly = true)
-  public Trip findExample(Long id) {
+  public Trip findPublished(Long id) {
     return tripRepository
-        .findByIdAndCreatorRole(id, Role.ADMIN)
+        .findByIdAndPublishedTrue(id)
         .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
   }
 

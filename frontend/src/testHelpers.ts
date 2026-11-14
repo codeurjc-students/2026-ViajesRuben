@@ -4,8 +4,8 @@ import type {
   Activity,
   AdminTrip,
   AdminUser,
-  ExampleTrip,
   Page,
+  PublicTripSummary,
   Trip,
   TripConflicts,
   User,
@@ -86,6 +86,8 @@ export function tripOf(overrides: Partial<Trip> = {}): Trip {
     budget: null,
     description: null,
     coverImageId: null,
+    published: false,
+    publishedAt: null,
     ...overrides,
   };
 }
@@ -120,18 +122,21 @@ export function activityOf(overrides: Partial<Activity> = {}): Activity {
   };
 }
 
-/** Builds an example trip of the home page for tests: 5 days in Roma with a preview of the first two. */
-export function exampleOf(overrides: Partial<ExampleTrip> = {}): ExampleTrip {
+/** Builds a public itinerary of the home page for tests: 5 days in Roma by Carlos, with a preview of the first two. */
+export function publicTripOf(overrides: Partial<PublicTripSummary> = {}): PublicTripSummary {
   return {
-    trip: tripOf({
+    trip: {
       id: 10,
-      creatorId: 99,
       name: 'Roma en cinco días',
       destination: 'Roma',
       startDate: '2027-05-10',
       endDate: '2027-05-14',
       budget: 1200,
-    }),
+      description: null,
+      coverImageId: null,
+      authorName: 'Carlos',
+      publishedAt: '2026-11-01T10:00:00Z',
+    },
     firstDays: [
       { day: 1, activityName: 'Coliseo' },
       { day: 2, activityName: 'Vaticano' },

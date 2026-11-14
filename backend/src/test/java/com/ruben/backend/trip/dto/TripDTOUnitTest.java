@@ -9,6 +9,7 @@ import com.ruben.backend.user.UserTestData;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.UserStatus;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Tag;
@@ -49,7 +50,21 @@ class TripDTOUnitTest {
                 LocalDate.of(2027, 7, 17),
                 new BigDecimal("300.00"),
                 "Ancient ruins",
+                null,
+                false,
                 null));
+  }
+
+  @Test
+  @Tag("I7")
+  void reportsWhetherAndWhenTheTripWasPublished() {
+    Trip trip = trip();
+    trip.publish(Instant.parse("2027-01-01T10:00:00Z"));
+
+    TripDTO dto = TripDTO.from(trip);
+
+    assertThat(dto.published()).isTrue();
+    assertThat(dto.publishedAt()).isEqualTo(Instant.parse("2027-01-01T10:00:00Z"));
   }
 
   @Test

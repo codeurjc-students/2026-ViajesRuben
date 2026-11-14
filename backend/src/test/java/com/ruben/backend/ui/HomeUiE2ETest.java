@@ -19,15 +19,16 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 /**
- * The public home page as an anonymous visitor uses it. The example trips are the ones the
- * application loads for the administrator with SAMPLE_DATA (see the README): Rome, the Maldives and
- * Tokyo, all on the first page of three, so the home page has no previous and next buttons.
+ * The public home page as an anonymous visitor uses it. The public itineraries are the sample trips
+ * the application publishes with SAMPLE_DATA (see the README): the administrator's Rome, Maldives
+ * and Tokyo on the first page of three, then Ana's Lisbon and Carlos's Andalusia on the second.
  */
 @Tag("B1")
+@Tag("I7")
 class HomeUiE2ETest {
 
   private static final String SAMPLE_PASSWORD = "Demo-2026";
-  private static final By CARDS = By.cssSelector("article.example-card");
+  private static final By CARDS = By.cssSelector("article.public-card");
 
   private WebDriver driver;
   private WebDriverWait wait;
@@ -82,7 +83,7 @@ class HomeUiE2ETest {
   // --- tests ---
 
   @Test
-  void anAnonymousVisitorSeesTheThreeExampleTripsAndBrowsesEveryDayOfOneItinerary() {
+  void anAnonymousVisitorSeesThePublicItinerariesPagesThemAndBrowsesEveryDayOfOne() {
     driver.get(baseUrl + "/");
 
     // The hero invites to register or log in.
@@ -92,8 +93,11 @@ class HomeUiE2ETest {
     assertThat(driver.findElements(link("Regístrate gratis"))).hasSize(1);
     assertThat(driver.findElements(link("Ya tengo cuenta"))).hasSize(1);
 
-    // Three cards with their key facts and the preview of the first days, and nothing to page.
+    // Three cards with their key facts, their author and the preview of the first days.
     List<WebElement> cards = waitForCards(3);
+    assertThat(driver.findElement(By.cssSelector("section.public-trips h2")).getText())
+        .isEqualTo("Itinerarios públicos");
+    assertThat(cards).allSatisfy(card -> assertThat(card.getText()).contains("Por "));
     assertThat(cards.get(0).findElement(By.tagName("h3")).getText())
         .isEqualTo("Roma en cinco días");
     assertThat(cards.get(0).getText())
@@ -107,14 +111,28 @@ class HomeUiE2ETest {
         .contains("Maldivas · 7 días", "Día 1 · Traslado en hidroavión al resort");
     assertThat(cards.get(2).findElement(By.tagName("h3")).getText()).isEqualTo("Lo mejor de Tokio");
     assertThat(cards.get(2).getText()).contains("Tokio, Japón · 7 días", "Día 1 · Templo Senso-ji");
-    assertThat(driver.findElements(By.cssSelector("article.example-card a.btn")))
+    assertThat(driver.findElements(By.cssSelector("article.public-card a.btn")))
         .extracting(WebElement::getText)
         .containsOnly("Ver itinerario completo");
-    assertThat(driver.findElements(By.cssSelector("button[aria-label^='Ejemplos']"))).isEmpty();
 
-    // Opening an example shows the trip and its first day, read-only.
+    // There are five public trips, so the carousel pages: the second page has the other two
+    // authors, and going back shows the first page again.
+    By next = By.cssSelector("button[aria-label='Itinerarios siguientes']");
+    By previous = By.cssSelector("button[aria-label='Itinerarios anteriores']");
+    assertThat(driver.findElement(previous).isEnabled()).isFalse();
+    click(next);
+    List<WebElement> second = waitForCards(2);
+    assertThat(second.get(0).findElement(By.tagName("h3")).getText()).isEqualTo("Lisbon getaway");
+    assertThat(second.get(0).getText()).contains("Por Ana García");
+    assertThat(second.get(1).findElement(By.tagName("h3")).getText()).isEqualTo("Andalusia route");
+    assertThat(second.get(1).getText()).contains("Por Carlos Ruiz");
+    assertThat(driver.findElement(next).isEnabled()).isFalse();
+    click(previous);
+    waitForCards(3);
+
+    // Opening a public itinerary shows the trip and its first day, read-only.
     click(openExample("Roma en cinco días"));
-    wait.until(ExpectedConditions.urlContains("/examples/"));
+    wait.until(ExpectedConditions.urlContains("/public/"));
     wait.until(
         ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Roma en cinco días"));
     waitForItineraryText("Visita guiada al Coliseo");
@@ -146,6 +164,18 @@ class HomeUiE2ETest {
     // The way back leads to the home page.
     click(link("Volver al inicio"));
     waitForCards(3);
+  }
+
+  @Test
+  void theSeeAllLinkOfTheCarouselOpensThePublicItinerariesPlaceholderUntilI8() {
+    driver.get(baseUrl + "/");
+    waitForCards(3);
+
+    click(link("Ver todos"));
+
+    wait.until(ExpectedConditions.urlMatches(".*/public$"));
+    wait.until(
+        ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Viajes públicos"));
   }
 
   @Test

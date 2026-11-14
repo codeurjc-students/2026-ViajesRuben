@@ -1,18 +1,17 @@
 import { useCallback } from 'react';
 import { usePagedList } from '../hooks/usePagedList';
 import { getActivities } from '../services/activityService';
-import type { Trip } from '../types';
 import { formatDayLabel } from '../utils/tripFormat';
 import ActivityCard from './ActivityCard';
 import LoadMoreButton from './LoadMoreButton';
 
 interface DayActivitiesProps {
-  trip: Trip;
+  trip: { id: number };
   /** The day to list, yyyy-MM-dd. The parent gives a new `key` per day, so each day starts clean. */
   day: string;
   isCreator: boolean;
   onActivityDeleted?: () => void;
-  /** Where the activities come from: `getActivities` unless the trip is a public example. */
+  /** Where the activities come from: `getActivities` unless the trip is a public itinerary. */
   load?: typeof getActivities;
 }
 

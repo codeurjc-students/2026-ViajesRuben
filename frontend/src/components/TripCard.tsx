@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import { Link } from 'react-router';
@@ -33,6 +34,11 @@ export default function TripCard({ trip, onDeleted }: Readonly<TripCardProps>) {
         </Card.Title>
         <p className="trip-card__meta">{`Destino: ${trip.destination}`}</p>
         <p className="trip-card__meta">{`Fechas: ${formatDateRange(trip.startDate, trip.endDate)}`}</p>
+        {trip.published && (
+          <p className="trip-card__meta">
+            <Badge bg="success">Público</Badge>
+          </p>
+        )}
         {isCreator && (
           <div className="trip-card__actions">
             <Button

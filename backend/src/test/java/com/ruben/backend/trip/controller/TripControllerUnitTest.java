@@ -9,6 +9,7 @@ import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageDTO;
 import com.ruben.backend.image.dto.ImageResult;
+import com.ruben.backend.trip.dto.PublicationRequest;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
 import com.ruben.backend.trip.service.TripService;
@@ -43,6 +44,8 @@ class TripControllerUnitTest {
           LocalDate.of(2027, 7, 17),
           new BigDecimal("300.00"),
           null,
+          null,
+          false,
           null);
   private static final TripRequest REQUEST =
       new TripRequest(
@@ -86,6 +89,18 @@ class TripControllerUnitTest {
     when(tripService.update(3L, REQUEST)).thenReturn(TRIP);
 
     assertThat(controller.updateTrip(3L, REQUEST)).isEqualTo(TRIP);
+  }
+
+  @Test
+  @Tag("I7")
+  void changePublicationPassesTheValueToTheServiceAndReturnsTheTrip() {
+    when(tripService.changePublication(3L, true)).thenReturn(TRIP);
+    when(tripService.changePublication(3L, false)).thenReturn(TRIP);
+
+    assertThat(controller.changePublication(3L, new PublicationRequest(true))).isEqualTo(TRIP);
+    assertThat(controller.changePublication(3L, new PublicationRequest(false))).isEqualTo(TRIP);
+    verify(tripService).changePublication(3L, true);
+    verify(tripService).changePublication(3L, false);
   }
 
   @Test

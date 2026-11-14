@@ -2,16 +2,16 @@ import Card from 'react-bootstrap/Card';
 import Container from 'react-bootstrap/Container';
 import { Link, useParams } from 'react-router';
 import { useTrip } from '../hooks/useTrip';
-import { getExampleTrip } from '../services/exampleService';
+import { getPublicTrip } from '../services/publicTripService';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
 import ItinerarySection from './ItinerarySection';
 import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
-/** `/examples/:tripId`: read-only preview of an example trip, public. No edit, delete or conflicts. */
-export default function ExampleTripPage() {
+/** `/public/:tripId`: read-only preview of a public itinerary, no login needed. No edit, delete or conflicts. */
+export default function PublicTripPage() {
   const { tripId } = useParams();
-  const { trip, error } = useTrip(tripId, getExampleTrip);
+  const { trip, error } = useTrip(tripId, getPublicTrip);
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
@@ -49,11 +49,13 @@ export default function ExampleTripPage() {
                     <dd>{formatBudget(trip.budget)}</dd>
                   </>
                 )}
+                <dt>Autor</dt>
+                <dd>{trip.authorName}</dd>
               </dl>
               {trip.description && <p className="trip-detail__description">{trip.description}</p>}
             </div>
           </Card>
-          <ItinerarySection trip={trip} example />
+          <ItinerarySection trip={trip} publicPreview />
         </>
       )}
     </Container>

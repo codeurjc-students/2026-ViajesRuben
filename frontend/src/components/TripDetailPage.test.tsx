@@ -4,12 +4,16 @@ import { renderRoutes } from '../renderHelpers';
 import { deleteActivity, getActivities, getTripCost } from '../services/activityService';
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
-import { deleteTrip, getTrip } from '../services/tripService';
+import { deleteTrip, getTrip, setPublication } from '../services/tripService';
 import { activityOf, ANA, conflictsOf, pageOf, tripOf } from '../testHelpers';
 import type { User } from '../types';
 import TripDetailPage from './TripDetailPage';
 
-vi.mock('../services/tripService', () => ({ deleteTrip: vi.fn(), getTrip: vi.fn() }));
+vi.mock('../services/tripService', () => ({
+  deleteTrip: vi.fn(),
+  getTrip: vi.fn(),
+  setPublication: vi.fn(),
+}));
 vi.mock('../services/activityService', () => ({
   getActivities: vi.fn(),
   deleteActivity: vi.fn(),
@@ -38,6 +42,7 @@ const trip = tripOf({
 beforeEach(() => {
   vi.mocked(deleteTrip).mockReset();
   vi.mocked(getTrip).mockReset();
+  vi.mocked(setPublication).mockReset();
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(deleteActivity).mockReset();
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
@@ -375,5 +380,77 @@ describe('B8 TripDetailPage as the administrator', () => {
     expect(await screen.findByRole('link', { name: 'Editar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver a Mis viajes' })).toBeInTheDocument();
+  });
+
+  // --- publication (I7) ---
+
+  test('I7 the creator publishes the trip: the badge appears and the button becomes "Despublicar"', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(setPublication).mockResolvedValue({
+      ...trip,
+      published: true,
+      publishedAt: '2027-01-01T10:00:00Z',
+    });
+    renderRoutes(routes, '/trips/5');
+    await screen.findByRole('heading', { name: 'Verano en Roma' });
+    expect(screen.queryByText('Público')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar' }));
+
+    expect(await screen.findByText('Público')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Despublicar' })).toBeEnabled();
+    expect(setPublication).toHaveBeenCalledWith(5, true);
+  });
+
+  test('I7 the creator unpublishes a published trip: the badge goes away', async () => {
+    vi.mocked(getTrip).mockResolvedValue({
+      ...trip,
+      published: true,
+      publishedAt: '2027-01-01T10:00:00Z',
+    });
+    vi.mocked(setPublication).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5');
+    expect(await screen.findByText('Público')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Despublicar' }));
+
+    await waitFor(() => expect(screen.queryByText('Público')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Publicar' })).toBeInTheDocument();
+    expect(setPublication).toHaveBeenCalledWith(5, false);
+  });
+
+  test('I7 the button is disabled while the change is saved', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(setPublication).mockReturnValue(new Promise(() => {}));
+    renderRoutes(routes, '/trips/5');
+    fireEvent.click(await screen.findByRole('button', { name: 'Publicar' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Publicar' })).toBeDisabled());
+  });
+
+  test('I7 a failed change says so, keeps the state and lets the creator try again', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(setPublication).mockRejectedValue(new ApiError(500));
+    renderRoutes(routes, '/trips/5');
+    fireEvent.click(await screen.findByRole('button', { name: 'Publicar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No se pudo cambiar la visibilidad del viaje. Inténtalo de nuevo.',
+    );
+    expect(screen.queryByText('Público')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Publicar' })).toBeEnabled();
+  });
+
+  test("I7 the administrator reviewing another user's trip cannot publish it, but sees the badge", async () => {
+    vi.mocked(getTrip).mockResolvedValue({
+      ...trip,
+      published: true,
+      publishedAt: '2027-01-01T10:00:00Z',
+    });
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    expect(await screen.findByText('Público')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Despublicar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Publicar' })).not.toBeInTheDocument();
   });
 });

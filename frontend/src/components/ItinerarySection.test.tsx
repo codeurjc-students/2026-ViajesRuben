@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
 import { ApiError } from '../services/apiError';
 import { getActivities } from '../services/activityService';
-import { getExampleActivities } from '../services/exampleService';
+import { getPublicActivities } from '../services/publicTripService';
 import { activityOf, ANA, pageOf, tripOf } from '../testHelpers';
 import ItinerarySection from './ItinerarySection';
 
 vi.mock('../services/activityService', () => ({ getActivities: vi.fn() }));
-vi.mock('../services/exampleService', () => ({ getExampleActivities: vi.fn() }));
+vi.mock('../services/publicTripService', () => ({ getPublicActivities: vi.fn() }));
 
 const trip = tripOf({ id: 3, creatorId: ANA.id, startDate: '2027-05-01', endDate: '2027-05-04' });
 
@@ -178,28 +178,28 @@ describe('B5 ItinerarySection', () => {
     await screen.findByText('No hay actividades este día', { exact: false });
   });
 
-  test('B1 an example trip reads the example endpoints and is read-only even for its creator', async () => {
-    vi.mocked(getExampleActivities)
+  test('B1 I7 a public trip reads the public endpoints and is read-only even for its creator', async () => {
+    vi.mocked(getPublicActivities)
       .mockReset()
       .mockResolvedValue(pageOf([activityOf({ id: 9, name: 'Museo', date: '2027-05-01' })]));
     renderRoutes(
-      [{ path: '/examples/:tripId', element: <ItinerarySection trip={trip} example /> }],
-      '/examples/3',
+      [{ path: '/public/:tripId', element: <ItinerarySection trip={trip} publicPreview /> }],
+      '/public/3',
     );
 
     expect(await screen.findByRole('heading', { name: 'Museo' })).toBeInTheDocument();
-    expect(getExampleActivities).toHaveBeenCalledWith(3, '2027-05-01', 0);
+    expect(getPublicActivities).toHaveBeenCalledWith(3, '2027-05-01', 0);
     expect(getActivities).not.toHaveBeenCalled();
     expect(screen.queryByRole('link', { name: 'Nueva actividad' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Editar Museo' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Eliminar Museo' })).not.toBeInTheDocument();
   });
 
-  test('B1 an empty day of an example does not invite to add an activity', async () => {
-    vi.mocked(getExampleActivities).mockReset().mockResolvedValue(pageOf([]));
+  test('B1 I7 an empty day of a public trip does not invite to add an activity', async () => {
+    vi.mocked(getPublicActivities).mockReset().mockResolvedValue(pageOf([]));
     renderRoutes(
-      [{ path: '/examples/:tripId', element: <ItinerarySection trip={trip} example /> }],
-      '/examples/3',
+      [{ path: '/public/:tripId', element: <ItinerarySection trip={trip} publicPreview /> }],
+      '/public/3',
     );
 
     expect(await screen.findByText('No hay actividades este día.')).toBeInTheDocument();

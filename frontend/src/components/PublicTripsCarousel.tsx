@@ -2,26 +2,31 @@ import { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
-import { EXAMPLES_PAGE_SIZE, getExampleTrips } from '../services/exampleService';
-import type { ExampleTrip, Page } from '../types';
-import ExampleTripCard from './ExampleTripCard';
-import './ExampleTrips.css';
+import { Link } from 'react-router';
+import {
+  CAROUSEL_MAX_PAGES,
+  getPublicTrips,
+  PUBLIC_PAGE_SIZE,
+} from '../services/publicTripService';
+import type { Page, PublicTripSummary } from '../types';
+import PublicTripCard from './PublicTripCard';
+import './PublicTripsCarousel.css';
 
 /** The answer for one page, or the reason it failed. */
 interface Loaded {
   page: number;
-  data?: Page<ExampleTrip>;
+  data?: Page<PublicTripSummary>;
   error?: unknown;
 }
 
-/** The example trips of the home page, three at a time, with previous and next buttons. */
-export default function ExampleTrips() {
+/** The most recently published trips, three at a time and at most nine, with previous and next buttons. */
+export default function PublicTripsCarousel() {
   const [page, setPage] = useState(0);
   const [loaded, setLoaded] = useState<Loaded>();
 
   useEffect(() => {
     let cancelled = false;
-    getExampleTrips(page)
+    getPublicTrips(page)
       .then((data) => {
         if (!cancelled) setLoaded({ page, data });
       })
@@ -37,26 +42,32 @@ export default function ExampleTrips() {
   if (loaded?.error) throw loaded.error;
 
   // The last answer decides whether there are pages at all, so the buttons stay while the next one loads.
-  const total = loaded?.data?.totalElements ?? 0;
+  const shown = Math.min(loaded?.data?.totalElements ?? 0, PUBLIC_PAGE_SIZE * CAROUSEL_MAX_PAGES);
   const current = loaded?.page === page ? loaded.data : undefined;
-  const hasPages = total > EXAMPLES_PAGE_SIZE;
+  const hasPages = shown > PUBLIC_PAGE_SIZE;
+  const atLastPage = !current || current.last || page >= CAROUSEL_MAX_PAGES - 1;
 
   return (
-    <section aria-labelledby="examples-title" className="example-trips">
-      <div className="example-trips__header">
+    <section aria-labelledby="public-title" className="public-trips">
+      <div className="public-trips__header">
         <div>
-          <h2 id="examples-title" className="h1 text-white">
-            Itinerarios de ejemplo
-          </h2>
+          <div className="public-trips__title-row">
+            <h2 id="public-title" className="h1 text-white mb-0">
+              Itinerarios públicos
+            </h2>
+            <Link to="/public" className="public-trips__all">
+              Ver todos
+            </Link>
+          </div>
           <p className="text-white mb-0">
-            Viajes de muestra hechos con TripMate. Ábrelos para ver el itinerario día a día.
+            Viajes publicados por otros viajeros. Ábrelos para ver el itinerario día a día.
           </p>
         </div>
         {hasPages && (
-          <div className="example-trips__pager">
+          <div className="public-trips__pager">
             <Button
               variant="light"
-              aria-label="Ejemplos anteriores"
+              aria-label="Itinerarios anteriores"
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
             >
@@ -66,8 +77,8 @@ export default function ExampleTrips() {
             </Button>
             <Button
               variant="light"
-              aria-label="Ejemplos siguientes"
-              disabled={!current || current.last}
+              aria-label="Itinerarios siguientes"
+              disabled={atLastPage}
               onClick={() => setPage(page + 1)}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -79,17 +90,17 @@ export default function ExampleTrips() {
       </div>
       {!current && (
         <p className="bg-white rounded p-3" role="status">
-          Cargando itinerarios de ejemplo…
+          Cargando itinerarios públicos…
         </p>
       )}
       {current && current.content.length === 0 && (
-        <p className="bg-white rounded p-3">Todavía no hay itinerarios de ejemplo.</p>
+        <p className="bg-white rounded p-3">Todavía no hay itinerarios públicos.</p>
       )}
       {current && current.content.length > 0 && (
-        <Row as="ul" className="example-trips__list gy-4">
-          {current.content.map((example) => (
-            <Col as="li" key={example.trip.id} xs={12} lg={4}>
-              <ExampleTripCard example={example} />
+        <Row as="ul" className="public-trips__list gy-4">
+          {current.content.map((summary) => (
+            <Col as="li" key={summary.trip.id} xs={12} lg={4}>
+              <PublicTripCard summary={summary} />
             </Col>
           ))}
         </Row>

@@ -11,14 +11,13 @@ import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.trip.dto.DayPreviewDTO;
-import com.ruben.backend.trip.dto.ExampleTripDTO;
-import com.ruben.backend.trip.dto.TripDTO;
+import com.ruben.backend.trip.dto.PublicTripDTO;
+import com.ruben.backend.trip.dto.PublicTripSummaryDTO;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
-import com.ruben.backend.user.UserTestData;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
-import com.ruben.backend.user.entity.UserStatus;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,8 +33,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @Tag("B1")
+@Tag("I7")
 @ExtendWith(MockitoExtension.class)
-class ExampleTripServiceUnitTest {
+class PublicTripServiceUnitTest {
 
   private static final LocalDate START = LocalDate.of(2027, 7, 10);
 
@@ -43,27 +43,29 @@ class ExampleTripServiceUnitTest {
   @Mock private TripAccessService tripAccessService;
   @Mock private ActivityService activityService;
 
-  private ExampleTripService service;
-  private User admin;
+  private PublicTripService service;
+  private User author;
 
   @BeforeEach
   void setUp() {
-    service = new ExampleTripService(tripRepository, tripAccessService, activityService);
-    admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    service = new PublicTripService(tripRepository, tripAccessService, activityService);
+    author = new User("Ana García", "ana@tripmate.com", "hash", Role.USER);
+    ReflectionTestUtils.setField(author, "id", 2L);
   }
 
   private Trip trip(Long id, String name, LocalDate start) {
-    Trip trip = new Trip(admin, name, "Rome", start, start.plusDays(6));
+    Trip trip = new Trip(author, name, "Rome", start, start.plusDays(6));
     ReflectionTestUtils.setField(trip, "id", id);
+    trip.publish(Instant.parse("2027-01-01T10:00:00Z"));
     return trip;
   }
 
   @Test
-  void findPageListsTheAdministratorsTripsWithTheirFirstDaysNumberedFromTheStart() {
-    Pageable pageable = PageRequest.of(0, 3, Sort.by("startDate", "id"));
+  void findPageListsThePublishedTripsWithTheirFirstDaysNumberedFromTheStart() {
+    Pageable pageable = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "publishedAt", "id"));
     Trip rome = trip(10L, "Rome", START);
     Trip paris = trip(11L, "Paris", START.plusDays(30));
-    when(tripRepository.findByCreatorRole(Role.ADMIN, pageable))
+    when(tripRepository.findByPublishedTrue(pageable))
         .thenReturn(new PageImpl<>(List.of(rome, paris), pageable, 4));
     when(activityService.findFirstActivities(List.of(10L, 11L)))
         .thenReturn(
@@ -72,14 +74,15 @@ class ExampleTripServiceUnitTest {
                 new FirstActivityDTO(10L, START.plusDays(2), "Vatican"),
                 new FirstActivityDTO(11L, START.plusDays(31), "Louvre")));
 
-    PageDTO<ExampleTripDTO> page = service.findPage(pageable);
+    PageDTO<PublicTripSummaryDTO> page = service.findPage(pageable);
 
     assertThat(page.totalElements()).isEqualTo(4);
     assertThat(page.last()).isFalse();
     assertThat(page.content())
-        .extracting(ExampleTripDTO::trip)
-        .extracting(TripDTO::name)
+        .extracting(PublicTripSummaryDTO::trip)
+        .extracting(PublicTripDTO::name)
         .containsExactly("Rome", "Paris");
+    assertThat(page.content().get(0).trip().authorName()).isEqualTo("Ana García");
     assertThat(page.content().get(0).firstDays())
         .containsExactly(new DayPreviewDTO(1, "Colosseum"), new DayPreviewDTO(3, "Vatican"));
     assertThat(page.content().get(1).firstDays()).containsExactly(new DayPreviewDTO(2, "Louvre"));
@@ -88,11 +91,20 @@ class ExampleTripServiceUnitTest {
   @Test
   void aTripWithoutActivitiesHasNoPreviewDays() {
     Pageable pageable = PageRequest.of(0, 3);
-    when(tripRepository.findByCreatorRole(Role.ADMIN, pageable))
+    when(tripRepository.findByPublishedTrue(pageable))
         .thenReturn(new PageImpl<>(List.of(trip(10L, "Rome", START)), pageable, 1));
     when(activityService.findFirstActivities(List.of(10L))).thenReturn(List.of());
 
     assertThat(service.findPage(pageable).content().get(0).firstDays()).isEmpty();
+  }
+
+  @Test
+  void findPageAcceptsSortingByThePublicationDate() {
+    Pageable pageable = PageRequest.of(0, 3, Sort.by("publishedAt"));
+    when(tripRepository.findByPublishedTrue(pageable)).thenReturn(new PageImpl<>(List.of()));
+    when(activityService.findFirstActivities(List.of())).thenReturn(List.of());
+
+    assertThat(service.findPage(pageable).content()).isEmpty();
   }
 
   @Test
@@ -106,15 +118,19 @@ class ExampleTripServiceUnitTest {
   }
 
   @Test
-  void findByIdReturnsTheExampleTrip() {
-    when(tripAccessService.findExample(10L)).thenReturn(trip(10L, "Rome", START));
+  void findByIdReturnsThePublicTripWithoutAnyEmail() {
+    when(tripAccessService.findPublished(10L)).thenReturn(trip(10L, "Rome", START));
 
-    assertThat(service.findById(10L).name()).isEqualTo("Rome");
+    PublicTripDTO found = service.findById(10L);
+
+    assertThat(found.name()).isEqualTo("Rome");
+    assertThat(found.authorName()).isEqualTo("Ana García");
+    assertThat(found.publishedAt()).isEqualTo(Instant.parse("2027-01-01T10:00:00Z"));
   }
 
   @Test
-  void findByIdOfATripThatIsNotAnExampleIsNotFound() {
-    when(tripAccessService.findExample(5L)).thenThrow(new ResourceNotFoundException("Trip"));
+  void findByIdOfATripThatIsNotPublishedIsNotFound() {
+    when(tripAccessService.findPublished(5L)).thenThrow(new ResourceNotFoundException("Trip"));
 
     assertThatThrownBy(() -> service.findById(5L)).isInstanceOf(ResourceNotFoundException.class);
   }

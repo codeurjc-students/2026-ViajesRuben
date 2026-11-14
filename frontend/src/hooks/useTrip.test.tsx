@@ -73,12 +73,12 @@ describe('B4 useTrip', () => {
     await waitFor(() => expect(result.current.trip?.id).toBe(2));
   });
 
-  test('B1 loads the trip with another loader, such as the one of the example trips', async () => {
-    const load = vi.fn().mockResolvedValue(tripOf({ id: 4, name: 'Ejemplo' }));
+  test('B1 I7 loads the trip with another loader, such as the one of the public trips', async () => {
+    const load = vi.fn((id: number) => Promise.resolve(tripOf({ id, name: 'Público' })));
 
     const { result } = renderHook(() => useTrip('4', load));
 
-    await waitFor(() => expect(result.current.trip?.name).toBe('Ejemplo'));
+    await waitFor(() => expect(result.current.trip?.name).toBe('Público'));
     expect(load).toHaveBeenCalledWith(4);
     expect(getTrip).not.toHaveBeenCalled();
   });

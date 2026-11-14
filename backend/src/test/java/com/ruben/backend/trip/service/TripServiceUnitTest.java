@@ -32,6 +32,7 @@ import com.ruben.backend.user.entity.UserStatus;
 import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -126,6 +127,66 @@ class TripServiceUnitTest {
     Image image = new Image(ImageTestData.png(10), "image/png");
     ReflectionTestUtils.setField(image, "id", UUID.randomUUID());
     return image;
+  }
+
+  // --- publication (I7) ---
+
+  @Test
+  @Tag("I7")
+  void changePublicationPublishesTheTripAndSetsTheDate() {
+    Trip trip = tripOf(ana, 5L);
+    when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
+
+    TripDTO published = tripService.changePublication(5L, true);
+
+    assertThat(published.published()).isTrue();
+    assertThat(published.publishedAt()).isNotNull();
+    assertThat(trip.isPublished()).isTrue();
+  }
+
+  @Test
+  @Tag("I7")
+  void publishingAPublishedTripAgainKeepsItsFirstDate() {
+    Trip trip = tripOf(ana, 5L);
+    when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
+    Instant first = tripService.changePublication(5L, true).publishedAt();
+
+    Instant second = tripService.changePublication(5L, true).publishedAt();
+
+    assertThat(second).isEqualTo(first);
+  }
+
+  @Test
+  @Tag("I7")
+  void changePublicationUnpublishesTheTripAndClearsTheDate() {
+    Trip trip = tripOf(ana, 5L);
+    trip.publish();
+    when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
+
+    TripDTO unpublished = tripService.changePublication(5L, false);
+
+    assertThat(unpublished.published()).isFalse();
+    assertThat(unpublished.publishedAt()).isNull();
+  }
+
+  @Test
+  @Tag("I7")
+  void changePublicationOfAnotherUsersTripIsForbiddenAndSavesNothing() {
+    tripOf(bob, 6L);
+
+    assertThatThrownBy(() -> tripService.changePublication(6L, true))
+        .isInstanceOf(ForbiddenException.class);
+    verify(tripRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  @Tag("I7")
+  void changePublicationOfAMissingTripIsNotFound() {
+    when(tripAccessService.findForWrite(9L)).thenThrow(new ResourceNotFoundException("Trip"));
+
+    assertThatThrownBy(() -> tripService.changePublication(9L, true))
+        .isInstanceOf(ResourceNotFoundException.class);
+    verify(tripRepository, never()).saveAndFlush(any());
   }
 
   // --- list ---
