@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Planned features for version 0.2 extended with public itineraries (I7–I10): publishing trips, the public itineraries page, copying an itinerary to one's account and administrator moderation; the example itineraries of B1 become public itineraries.
+
 ## [0.1.0] - 2026-11-04
 
 First GitHub release (tag `0.1`): the basic functionality B1–B8, the Docker image and continuous delivery.
