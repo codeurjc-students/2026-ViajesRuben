@@ -97,6 +97,52 @@ class TripServiceIntegrationTest {
   }
 
   @Test
+  @Tag("I7")
+  void publishingPersistsTheFlagAndTheDateAndUnpublishingClearsThem() {
+    TripDTO created = tripService.create(request("Rome", 1));
+    assertThat(created.published()).isFalse();
+
+    TripDTO published = tripService.changePublication(created.id(), true);
+
+    assertThat(published.published()).isTrue();
+    assertThat(published.publishedAt()).isNotNull();
+    Trip stored = tripRepository.findById(created.id()).orElseThrow();
+    assertThat(stored.isPublished()).isTrue();
+    assertThat(stored.getPublishedAt()).isNotNull();
+
+    TripDTO again = tripService.changePublication(created.id(), true);
+    assertThat(again.publishedAt()).isEqualTo(stored.getPublishedAt());
+
+    TripDTO unpublished = tripService.changePublication(created.id(), false);
+    assertThat(unpublished.published()).isFalse();
+    Trip unpublishedStored = tripRepository.findById(created.id()).orElseThrow();
+    assertThat(unpublishedStored.isPublished()).isFalse();
+    assertThat(unpublishedStored.getPublishedAt()).isNull();
+  }
+
+  @Test
+  @Tag("I7")
+  void onlyTheCreatorMayPublishNotAnotherUserNorTheAdministrator() {
+    TripDTO created = tripService.create(request("Rome", 1));
+
+    logInAs(bob);
+    assertThatThrownBy(() -> tripService.changePublication(created.id(), true))
+        .isInstanceOf(ForbiddenException.class);
+
+    logInAs(UserDTO.from(userRepository.findByEmail("admin@test.tripmate.com").orElseThrow()));
+    assertThatThrownBy(() -> tripService.changePublication(created.id(), true))
+        .isInstanceOf(ForbiddenException.class);
+    assertThat(tripRepository.findById(created.id()).orElseThrow().isPublished()).isFalse();
+  }
+
+  @Test
+  @Tag("I7")
+  void publishingAMissingTripIsNotFound() {
+    assertThatThrownBy(() -> tripService.changePublication(999_999L, true))
+        .isInstanceOf(ResourceNotFoundException.class);
+  }
+
+  @Test
   void createPersistsTheTripForTheCurrentUserWithBudgetAndDescription() {
     TripDTO created =
         tripService.create(

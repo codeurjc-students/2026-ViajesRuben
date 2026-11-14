@@ -122,6 +122,27 @@ public class TripService {
   }
 
   /**
+   * Publishes or unpublishes the trip (I7): only its creator, not even the administrator, whose
+   * moderation is a different feature (I10). Publishing sets the publication date once, so doing it
+   * twice changes nothing; unpublishing a trip that is not public changes nothing either.
+   *
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws com.ruben.backend.common.error.ForbiddenException the trip is not the user's
+   */
+  @Transactional
+  public TripDTO changePublication(Long id, boolean published) {
+    Trip trip = tripAccessService.findForWrite(id);
+    if (published) {
+      trip.publish();
+    } else {
+      trip.unpublish();
+    }
+    trip = tripRepository.saveAndFlush(trip);
+    log.info("Trip {} {}", trip.getId(), published ? "published" : "unpublished");
+    return TripDTO.from(trip);
+  }
+
+  /**
    * The creator, or the administrator (B8), deletes the trip: its activities (with their pictures),
    * then the trip, then its cover image, in this order because each points at the next. Features
    * that add children of a trip (invitations, participations) delete them here first, explicitly,
