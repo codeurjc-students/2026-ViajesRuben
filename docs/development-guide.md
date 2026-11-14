@@ -58,7 +58,7 @@ The application has three parts that run as independent processes:
 | **Technologies**        | Backend: Java 21, Spring Boot, Spring Security, Spring Data JPA, MySQL. Frontend: React, React Router, React Bootstrap, TypeScript, Vite                                                                                                                              |
 | **Tools**               | Visual Studio Code, Maven, npm, Docker, Postman, Git, GitHub                                                                                                                                                                                                          |
 | **Quality control**     | Unit, integration and system tests for backend and frontend (JUnit, Mockito, Testcontainers, Rest Assured, Selenium, Vitest, Testing Library); test coverage (JaCoCo, Vitest); static code analysis (SonarQube Cloud); code style checks (Spotless, ESLint, Prettier) |
-| **Deployment**          | One Docker image (Spring Boot serving the React application over HTTPS) published on DockerHub, run with Docker Compose next to MySQL (see [Deployment](#deployment)). Deployment to a public server will be done in Phase 4                                          |
+| **Deployment**          | One Docker image (Spring Boot serving the React application over HTTPS) published on DockerHub, run with Docker Compose next to MySQL (see [Deployment](#deployment))                                                                                                 |
 | **Development process** | Iterative and incremental; Git with GitHub Flow; continuous integration with GitHub Actions; tasks managed with GitHub Issues and GitHub Projects                                                                                                                     |
 
 ## Technologies
@@ -899,7 +899,7 @@ Releases:
 | `0.0.1` | 15/09/2026          | Phase 1: project documentation (milestone, no GitHub release)                                                                       |
 | `0.0.2` | 19/10/2026          | Phase 2: minimum functionality, automated tests and continuous integration (milestone, no GitHub release)                           |
 | `0.1`   | 04/11/2026          | Phase 3, the first GitHub release (tag `0.1`, version `0.1.0`): basic functionality B1–B8, the Docker image and continuous delivery |
-| `0.2`   | Planned: 01/12/2026 | Phase 4: intermediate functionality (I1–I6) and deployment                                                                          |
+| `0.2`   | Planned: 01/12/2026 | Phase 4: intermediate functionality (I1–I10)                                                                                        |
 | `1.0`   | Planned: 20/12/2026 | Phase 5: advanced functionality (A1–A6, AI and Telegram) and database migration                                                     |
 
 ## Running and editing the code
