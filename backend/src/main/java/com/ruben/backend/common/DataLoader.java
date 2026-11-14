@@ -17,8 +17,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +39,11 @@ import org.springframework.stereotype.Component;
 
 /**
  * Loads the sample users, their trips and the itinerary of some trips that are not in the database
- * yet, plus the example trips of the public home page (B1), which belong to the administrator;
- * enabled with app.sample-data.enabled. The sample users are for development and demos: every one
- * logs in with app.sample-data.password (SAMPLE_USERS_PASSWORD, documented in the README), which is
- * encoded at start-up, so production must set SAMPLE_DATA=false. Runs after the administrator
- * account has been created.
+ * yet, plus the administrator's trips of the public home page (B1); some of the sample trips of
+ * several authors are published as public itineraries (I7). Enabled with app.sample-data.enabled.
+ * The sample users are for development and demos: every one logs in with app.sample-data.password
+ * (SAMPLE_USERS_PASSWORD, documented in the README), which is encoded at start-up, so production
+ * must set SAMPLE_DATA=false. Runs after the administrator account has been created.
  */
 @Component
 @Order(1)
@@ -144,6 +146,20 @@ public class DataLoader implements CommandLineRunner {
               "2800.00",
               "Templos, mercados y luces de neón: lo esencial de Tokio en una semana.",
               "Tokyo_trip_example.png"));
+
+  /**
+   * The sample trips that are public itineraries (I7), newest publication first: the
+   * administrator's three, so the first page of the home carousel is always the same, then one trip
+   * of each of two sample users, so the carousel shows several authors. A trip is published only
+   * when it is created, so one that somebody unpublished stays unpublished after a restart.
+   */
+  static final List<String> PUBLISHED_SAMPLES =
+      List.of(
+          "Roma en cinco días",
+          "Escapada a las Maldivas",
+          "Lo mejor de Tokio",
+          "Lisbon getaway",
+          "Andalusia route");
 
   /**
    * The itinerary of some sample trips, by trip name; the other trips start empty. The third day of
@@ -841,10 +857,11 @@ public class DataLoader implements CommandLineRunner {
             tripRepository.findByCreatorIdAndNameIn(
                 owner.getId(), samples.stream().map(SampleTrip::name).toList()));
     Set<String> existing = trips.stream().map(Trip::getName).collect(Collectors.toSet());
+    Instant now = Instant.now();
     List<Trip> missing =
         samples.stream()
             .filter(sample -> !existing.contains(sample.name()))
-            .map(sample -> toTrip(owner, sample))
+            .map(sample -> toTrip(owner, sample, now))
             .toList();
     trips.addAll(tripRepository.saveAll(missing));
     Map<String, SampleTrip> byName =
@@ -856,11 +873,19 @@ public class DataLoader implements CommandLineRunner {
         });
   }
 
-  private static Trip toTrip(User owner, SampleTrip sample) {
+  /**
+   * A new trip of the sample data; the ones in {@link #PUBLISHED_SAMPLES} are published, one minute
+   * apart from `now` so the public list has a fixed order.
+   */
+  private static Trip toTrip(User owner, SampleTrip sample, Instant now) {
     Trip trip =
         new Trip(owner, sample.name(), sample.destination(), sample.startDate(), sample.endDate());
     trip.setBudget(sample.budget() == null ? null : new BigDecimal(sample.budget()));
     trip.setDescription(sample.description());
+    int position = PUBLISHED_SAMPLES.indexOf(sample.name());
+    if (position >= 0) {
+      trip.publish(now.minus(position, ChronoUnit.MINUTES));
+    }
     return trip;
   }
 

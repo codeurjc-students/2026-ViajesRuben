@@ -8,9 +8,9 @@ import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.activity.repository.ActivityRepository;
 import com.ruben.backend.common.security.AdminProperties;
 import com.ruben.backend.image.repository.ImageRepository;
+import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.dto.LoginRequest;
-import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AdminAccountInitializer;
 import com.ruben.backend.user.service.AuthService;
@@ -83,7 +83,9 @@ class DataLoaderIntegrationTest {
     dataLoader.run();
     var admin = userRepository.findByEmail(adminProperties.email()).orElseThrow();
 
-    var examples = tripRepository.findByCreatorRole(Role.ADMIN, PageRequest.of(0, 10));
+    var examples =
+        tripRepository.findByCreatorId(
+            admin.getId(), PageRequest.of(0, 10, Sort.by("startDate", "id")));
 
     assertThat(examples.getTotalElements()).isEqualTo(3);
     assertThat(examples.getContent())
@@ -94,10 +96,9 @@ class DataLoaderIntegrationTest {
               assertThat(trip.getBudget()).isNotNull();
             });
     assertThat(
-            tripRepository
-                .findByCreatorRole(Role.USER, PageRequest.of(0, 50))
+            tripRepository.findAll().stream()
+                .filter(trip -> !trip.getCreator().getId().equals(admin.getId()))
                 .map(trip -> trip.getCoverImage())
-                .stream()
                 .filter(java.util.Objects::nonNull))
         .isEmpty();
 
@@ -107,6 +108,52 @@ class DataLoaderIntegrationTest {
     dataLoader.run();
 
     assertThat(tripRepository.findById(rome.getId()).orElseThrow().getCoverImage()).isNotNull();
+  }
+
+  @Test
+  @Tag("I7")
+  void theSampleTripsAreCreatedPublishedByThreeAuthorsNewestFirst() {
+    dataLoader.run();
+
+    var published =
+        tripRepository.findByPublishedTrue(
+            PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "publishedAt", "id")));
+
+    assertThat(published.getTotalElements()).isEqualTo(5);
+    assertThat(published.getContent())
+        .extracting(Trip::getName)
+        .containsExactly(
+            "Roma en cinco días",
+            "Escapada a las Maldivas",
+            "Lo mejor de Tokio",
+            "Lisbon getaway",
+            "Andalusia route");
+    assertThat(published.getContent())
+        .extracting(trip -> trip.getCreator().getId())
+        .doesNotContainNull()
+        .hasSize(5)
+        .satisfies(ids -> assertThat(ids.stream().distinct()).hasSize(3));
+  }
+
+  @Test
+  @Tag("I7")
+  void aSampleTripSomebodyUnpublishedStaysUnpublishedAfterARestart() {
+    dataLoader.run();
+    var admin = userRepository.findByEmail(adminProperties.email()).orElseThrow();
+    Trip rome =
+        tripRepository
+            .findByCreatorIdAndNameIn(admin.getId(), java.util.List.of("Roma en cinco días"))
+            .get(0);
+    rome.unpublish();
+    tripRepository.save(rome);
+
+    dataLoader.run();
+
+    Trip reloaded = tripRepository.findById(rome.getId()).orElseThrow();
+    assertThat(reloaded.isPublished()).isFalse();
+    assertThat(reloaded.getPublishedAt()).isNull();
+    assertThat(tripRepository.findByPublishedTrue(PageRequest.of(0, 10)).getTotalElements())
+        .isEqualTo(4);
   }
 
   @Test

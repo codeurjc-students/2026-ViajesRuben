@@ -348,6 +348,84 @@ class DataLoaderUnitTest {
   }
 
   @Test
+  @Tag("I7")
+  void thePublishedSamplesAreCreatedPublishedOneMinuteApartNewestFirst() {
+    emptyDatabaseWithSampleUsers();
+    when(activityRepository.existsByTripId(anyLong())).thenReturn(false);
+
+    dataLoader.run();
+
+    verify(tripRepository, times(4)).saveAll(savedTrips.capture());
+    List<Trip> all =
+        savedTrips.getAllValues().stream().flatMap(trips -> tripsOf(trips).stream()).toList();
+    List<Trip> published = all.stream().filter(Trip::isPublished).toList();
+    assertThat(published)
+        .extracting(Trip::getName)
+        .containsExactlyInAnyOrderElementsOf(DataLoader.PUBLISHED_SAMPLES);
+    assertThat(
+            published.stream()
+                .sorted(java.util.Comparator.comparing(Trip::getPublishedAt).reversed())
+                .map(Trip::getName))
+        .containsExactlyElementsOf(DataLoader.PUBLISHED_SAMPLES);
+    assertThat(published).allSatisfy(trip -> assertThat(trip.getPublishedAt()).isNotNull());
+    assertThat(all.stream().filter(trip -> !trip.isPublished()))
+        .extracting(Trip::getName)
+        .doesNotContainAnyElementsOf(DataLoader.PUBLISHED_SAMPLES);
+  }
+
+  @Test
+  @Tag("I7")
+  void aSampleTripThatAlreadyExistsIsNeverPublishedByALaterRun() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    Trip rome =
+        new Trip(
+            admin,
+            "Roma en cinco días",
+            "Roma",
+            LocalDate.of(2027, 5, 10),
+            LocalDate.of(2027, 5, 14));
+    when(userRepository.findByEmail(anyString()))
+        .thenAnswer(
+            invocation ->
+                Optional.of(
+                    UserTestData.user(
+                        1L, invocation.getArgument(0), Role.USER, UserStatus.ACTIVE)));
+    when(tripRepository.findByCreatorIdAndNameIn(anyLong(), anyCollection()))
+        .thenAnswer(
+            invocation -> {
+              java.util.Collection<String> names = invocation.getArgument(1);
+              return names.contains(rome.getName()) ? List.of(rome) : List.of();
+            });
+
+    dataLoader.run();
+
+    assertThat(rome.isPublished()).isFalse();
+    verify(tripRepository, times(4)).saveAll(savedTrips.capture());
+    List<Trip> created = tripsOf(savedTrips.getAllValues().get(3));
+    assertThat(created)
+        .extracting(Trip::getName)
+        .containsExactly("Escapada a las Maldivas", "Lo mejor de Tokio");
+    assertThat(created).allSatisfy(trip -> assertThat(trip.isPublished()).isTrue());
+  }
+
+  @Test
+  @Tag("I7")
+  void everyPublishedSampleIsASampleTripOfSeveralAuthors() {
+    List<String> adminTrips =
+        DataLoader.SAMPLE_EXAMPLES.stream().map(DataLoader.SampleTrip::name).toList();
+    long authorsOfPublished =
+        DataLoader.SAMPLE_USERS.stream()
+            .filter(
+                user ->
+                    user.trips().stream()
+                        .anyMatch(trip -> DataLoader.PUBLISHED_SAMPLES.contains(trip.name())))
+            .count();
+
+    assertThat(DataLoader.PUBLISHED_SAMPLES).containsAll(adminTrips).hasSize(5);
+    assertThat(authorsOfPublished).isEqualTo(2);
+  }
+
+  @Test
   void aTripThatAlreadyHasActivitiesIsLeftAlone() {
     emptyDatabaseWithSampleUsers();
     when(activityRepository.existsByTripId(anyLong())).thenReturn(true);
