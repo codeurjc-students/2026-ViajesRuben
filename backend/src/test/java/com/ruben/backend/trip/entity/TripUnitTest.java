@@ -7,6 +7,7 @@ import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.UserStatus;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -33,12 +34,22 @@ class TripUnitTest {
   @Test
   void publishingSetsTheFlagAndTheDate() {
     Trip trip = trip();
-    Instant before = Instant.now();
+    // The date is kept in microseconds, so the lower bound is cut the same way.
+    Instant before = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
     trip.publish();
 
     assertThat(trip.isPublished()).isTrue();
     assertThat(trip.getPublishedAt()).isBetween(before, Instant.now());
+  }
+
+  @Test
+  void thePublicationDateIsCutToMicrosecondsLikeTheDatabaseKeepsIt() {
+    Trip trip = trip();
+
+    trip.publish(Instant.parse("2027-01-01T10:00:00.123456789Z"));
+
+    assertThat(trip.getPublishedAt()).isEqualTo(Instant.parse("2027-01-01T10:00:00.123456Z"));
   }
 
   @Test

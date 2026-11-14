@@ -14,6 +14,7 @@ import jakarta.persistence.OneToOne;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
@@ -156,11 +157,15 @@ public class Trip {
     publish(Instant.now());
   }
 
-  /** Like {@link #publish()} with the given date, which the sample data uses to order the trips. */
+  /**
+   * Like {@link #publish()} with the given date, which the sample data uses to order the trips. The
+   * date is cut to microseconds, which is what the database keeps, so the value answered right
+   * after publishing is the same one every later read gives.
+   */
   public void publish(Instant at) {
     if (!published) {
       published = true;
-      publishedAt = at;
+      publishedAt = at.truncatedTo(ChronoUnit.MICROS);
     }
   }
 
