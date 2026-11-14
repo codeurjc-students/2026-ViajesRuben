@@ -15,7 +15,7 @@ The project follows an iterative and incremental process based on the principles
 | Phase 1 | Definition of features, screens, and analysis                                                  | Sep 1, 2026  | **Sep 15, 2026** |
 | Phase 2 | Repository setup, minimum functionality, automated tests, continuous integration, and Sonar    | Sep 15, 2026 | **Oct 1, 2026**  |
 | Phase 3 | Version 0.1 — basic functionality (B1–B8) + Docker and continuous delivery                     | Oct 1, 2026  | **Nov 1, 2026**  |
-| Phase 4 | Version 0.2 — intermediate functionality (I1–I6) + deployment                                  | Nov 1, 2026  | **Dec 1, 2026**  |
+| Phase 4 | Version 0.2 — intermediate functionality (I1–I10)                                              | Nov 1, 2026  | **Dec 1, 2026**  |
 | Phase 5 | Version 1.0 — advanced functionality (A1–A6: AI and Telegram integration) + database migration | Dec 1, 2026  | **Dec 20, 2026** |
 | Phase 6 | Writing the thesis report                                                                      | Dec 20, 2026 | **Jan 15, 2027** |
 | Phase 7 | Defense                                                                                        | TBD          | **TBD**          |
