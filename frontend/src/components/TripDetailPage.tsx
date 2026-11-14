@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Alert from 'react-bootstrap/Alert';
+import Badge from 'react-bootstrap/Badge';
 import Card from 'react-bootstrap/Card';
 import Container from 'react-bootstrap/Container';
 import Button from 'react-bootstrap/Button';
@@ -7,6 +9,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useConflicts } from '../hooks/useConflicts';
 import { useTrip } from '../hooks/useTrip';
 import { useTripCost } from '../hooks/useTripCost';
+import { setPublication } from '../services/tripService';
+import type { Trip } from '../types';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
 import ConflictAlert from './ConflictAlert';
 import DeleteTripModal from './DeleteTripModal';
@@ -26,11 +30,28 @@ export default function TripDetailPage() {
   const { conflicts, reload: reloadConflicts } = useConflicts(trip?.id);
   const { cost, reload: reloadCost } = useTripCost(trip?.id);
   const [confirming, setConfirming] = useState(false);
+  // The trip as the last publication change left it; the loaded one until the creator changes it.
+  const [updated, setUpdated] = useState<Trip>();
+  const [saving, setSaving] = useState(false);
+  const [publicationFailed, setPublicationFailed] = useState(false);
   const isCreator = trip !== undefined && user?.id === trip.creatorId;
   const moderating = trip !== undefined && !isCreator && user?.role === 'ADMIN';
+  const published = (updated?.id === trip?.id ? updated : trip)?.published ?? false;
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
+
+  async function togglePublication(id: number) {
+    setSaving(true);
+    setPublicationFailed(false);
+    try {
+      setUpdated(await setPublication(id, !published));
+    } catch {
+      setPublicationFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Container as="main" className="app-main py-4">
@@ -53,6 +74,11 @@ export default function TripDetailPage() {
           </div>
           <div className="trip-detail__body">
             <h1 className="trip-detail__title">{trip.name}</h1>
+            {published && (
+              <p>
+                <Badge bg="success">Público</Badge>
+              </p>
+            )}
             <dl className="trip-detail__facts">
               <dt>Destino</dt>
               <dd>{trip.destination}</dd>
@@ -81,8 +107,20 @@ export default function TripDetailPage() {
                 </Button>
               </div>
             )}
+            {isCreator && publicationFailed && (
+              <Alert variant="danger" role="alert">
+                No se pudo cambiar la visibilidad del viaje. Inténtalo de nuevo.
+              </Alert>
+            )}
             {isCreator && (
               <div className="d-flex flex-wrap gap-2">
+                <Button
+                  variant={published ? 'outline-secondary' : 'outline-success'}
+                  disabled={saving}
+                  onClick={() => togglePublication(trip.id)}
+                >
+                  {published ? 'Despublicar' : 'Publicar'}
+                </Button>
                 <Link to={`/trips/${trip.id}/edit`} className="btn btn-outline-primary">
                   Editar
                 </Link>

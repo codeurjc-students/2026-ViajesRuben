@@ -1,18 +1,18 @@
 import Card from 'react-bootstrap/Card';
 import { Link } from 'react-router';
-import type { ExampleTrip } from '../types';
+import type { PublicTripSummary } from '../types';
 import { tripDays } from '../utils/tripDays';
 import { formatBudget } from '../utils/tripFormat';
 import StoredImage from './StoredImage';
-import './ExampleTripCard.css';
+import './PublicTripCard.css';
 
-interface ExampleTripCardProps {
-  example: ExampleTrip;
+interface PublicTripCardProps {
+  summary: PublicTripSummary;
 }
 
-/** An example trip on the home page: cover, key facts, the first activity of its first days and a link to the full itinerary. */
-export default function ExampleTripCard({ example }: Readonly<ExampleTripCardProps>) {
-  const { trip, firstDays } = example;
+/** A public itinerary on the home page: cover, key facts, its author, the first activity of its first days and a link to the full itinerary. */
+export default function PublicTripCard({ summary }: Readonly<PublicTripCardProps>) {
+  const { trip, firstDays } = summary;
   const days = tripDays(trip.startDate, trip.endDate).length;
   const facts = [
     trip.destination,
@@ -21,20 +21,21 @@ export default function ExampleTripCard({ example }: Readonly<ExampleTripCardPro
   ];
 
   return (
-    <Card as="article" className="example-card h-100">
-      <div className="example-card__image">
+    <Card as="article" className="public-card h-100">
+      <div className="public-card__image">
         <StoredImage
           id={trip.coverImageId ?? undefined}
           alt={trip.coverImageId ? `Portada de ${trip.name}` : ''}
         />
       </div>
-      <div className="example-card__body">
+      <div className="public-card__body">
         <Card.Title as="h3" className="h4">
           {trip.name}
         </Card.Title>
-        <p className="example-card__facts">{facts.join(' · ')}</p>
+        <p className="public-card__facts">{facts.join(' · ')}</p>
+        <p className="public-card__author">{`Por ${trip.authorName}`}</p>
         {firstDays.length > 0 && (
-          <ul className="example-card__days" aria-label="Primeros días">
+          <ul className="public-card__days" aria-label="Primeros días">
             {firstDays.map((preview) => (
               <li key={preview.day}>
                 <strong>{`Día ${preview.day}`}</strong>
@@ -44,8 +45,8 @@ export default function ExampleTripCard({ example }: Readonly<ExampleTripCardPro
           </ul>
         )}
         <Link
-          to={`/examples/${trip.id}`}
-          className="btn btn-primary example-card__open"
+          to={`/public/${trip.id}`}
+          className="btn btn-primary public-card__open"
           aria-label={`Ver itinerario completo de ${trip.name}`}
         >
           Ver itinerario completo

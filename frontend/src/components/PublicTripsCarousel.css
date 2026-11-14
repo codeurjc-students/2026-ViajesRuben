@@ -1,4 +1,4 @@
-.example-trips__header {
+.public-trips__header {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -7,12 +7,23 @@
   margin-bottom: 1.5rem;
 }
 
-.example-trips__pager {
+.public-trips__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
+}
+
+.public-trips__all {
+  color: var(--tm-blanco);
+}
+
+.public-trips__pager {
   display: flex;
   gap: 0.5rem;
 }
 
-.example-trips__pager svg {
+.public-trips__pager svg {
   width: 1.25rem;
   height: 1.25rem;
   fill: none;
@@ -22,12 +33,12 @@
   stroke-linejoin: round;
 }
 
-.example-trips__list {
+.public-trips__list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.example-trips__list > li {
+.public-trips__list > li {
   list-style: none;
 }

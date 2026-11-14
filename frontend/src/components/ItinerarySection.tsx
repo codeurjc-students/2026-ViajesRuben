@@ -2,19 +2,22 @@ import { useMemo } from 'react';
 import Card from 'react-bootstrap/Card';
 import { Link, useSearchParams } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
-import { getExampleActivities } from '../services/exampleService';
+import { getPublicActivities } from '../services/publicTripService';
 import type { Trip } from '../types';
 import { tripDays } from '../utils/tripDays';
 import DayActivities from './DayActivities';
 import ItineraryDays from './ItineraryDays';
 import './ItinerarySection.css';
 
+/** What the itinerary needs of a trip: a public trip has no creator id, because it is never editable. */
+type ItineraryTrip = Pick<Trip, 'id' | 'startDate' | 'endDate'> & { creatorId?: number };
+
 interface ItinerarySectionProps {
-  trip: Trip;
+  trip: ItineraryTrip;
   /** Called after an activity was deleted, e.g. to refresh the trip's conflicts. */
   onActivityDeleted?: () => void;
-  /** A public example trip: read from the example endpoints and never editable, not even by its creator. */
-  example?: boolean;
+  /** A public itinerary: read from the public endpoints and never editable, not even by its creator. */
+  publicPreview?: boolean;
 }
 
 /**
@@ -24,7 +27,7 @@ interface ItinerarySectionProps {
 export default function ItinerarySection({
   trip,
   onActivityDeleted,
-  example = false,
+  publicPreview = false,
 }: Readonly<ItinerarySectionProps>) {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
@@ -34,7 +37,7 @@ export default function ItinerarySection({
   );
   const requested = params.get('day');
   const day = requested && days.includes(requested) ? requested : days[0];
-  const isCreator = !example && user?.id === trip.creatorId;
+  const isCreator = !publicPreview && user?.id === trip.creatorId;
 
   return (
     <Card as="section" className="itinerary" aria-labelledby="itinerary-title">
@@ -55,7 +58,7 @@ export default function ItinerarySection({
         day={day}
         isCreator={isCreator}
         onActivityDeleted={onActivityDeleted}
-        load={example ? getExampleActivities : undefined}
+        load={publicPreview ? getPublicActivities : undefined}
       />
     </Card>
   );

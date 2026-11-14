@@ -5,7 +5,7 @@ import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
 import { getActivities, getActivity, getTripCost } from './services/activityService';
-import { getExampleActivities, getExampleTrip, getExampleTrips } from './services/exampleService';
+import { getPublicActivities, getPublicTrip, getPublicTrips } from './services/publicTripService';
 import { getTrips as getAdminTrips } from './services/adminTripService';
 import { getTrip, getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
@@ -13,30 +13,35 @@ import { getCurrentUser } from './services/authService';
 import { getProfile } from './services/userService';
 import { AuthContext } from './context/AuthContext';
 import type { User } from './types';
-import { activityOf, ANA, authValue, exampleOf, pageOf, tripOf } from './testHelpers';
+import { activityOf, ANA, authValue, pageOf, publicTripOf, tripOf } from './testHelpers';
 
-vi.mock('./services/tripService', () => ({ getTrip: vi.fn(), getTrips: vi.fn() }));
+vi.mock('./services/tripService', () => ({
+  getTrip: vi.fn(),
+  getTrips: vi.fn(),
+  setPublication: vi.fn(),
+}));
 vi.mock('./services/activityService', () => ({
   getActivities: vi.fn(),
   getActivity: vi.fn(),
   getTripCost: vi.fn(),
 }));
-vi.mock('./services/exampleService', () => ({
-  EXAMPLES_PAGE_SIZE: 3,
-  getExampleTrips: vi.fn(),
-  getExampleTrip: vi.fn(),
-  getExampleActivities: vi.fn(),
+vi.mock('./services/publicTripService', () => ({
+  PUBLIC_PAGE_SIZE: 3,
+  CAROUSEL_MAX_PAGES: 3,
+  getPublicTrips: vi.fn(),
+  getPublicTrip: vi.fn(),
+  getPublicActivities: vi.fn(),
 }));
 vi.mock('./services/adminTripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
 
 beforeEach(() => {
-  vi.mocked(getExampleTrips)
+  vi.mocked(getPublicTrips)
     .mockReset()
-    .mockResolvedValue(pageOf([exampleOf()], { size: 3 }));
-  vi.mocked(getExampleTrip).mockReset();
-  vi.mocked(getExampleActivities).mockReset().mockResolvedValue(pageOf([]));
+    .mockResolvedValue(pageOf([publicTripOf()], { size: 3 }));
+  vi.mocked(getPublicTrip).mockReset();
+  vi.mocked(getPublicActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
@@ -64,33 +69,50 @@ test('B1 the app opens on the public home page inside the layout', async () => {
   expect(screen.getByRole('contentinfo')).toBeInTheDocument();
 });
 
-test('B1 /examples/:id shows the read-only preview of an example trip without a session', async () => {
-  vi.mocked(getExampleTrip).mockResolvedValue(
-    tripOf({ id: 10, creatorId: 99, name: 'Roma en cinco días' }),
-  );
+test('B1 I7 /public/:id shows the read-only preview of a public trip without a session', async () => {
+  vi.mocked(getPublicTrip).mockResolvedValue({
+    ...publicTripOf().trip,
+    startDate: '2027-05-01',
+    endDate: '2027-05-03',
+  });
   vi.mocked(getActivities).mockClear();
 
-  renderAt('/examples/10', null);
+  renderAt('/public/10', null);
 
   expect(
     await screen.findByRole('heading', { level: 1, name: 'Roma en cinco días' }),
   ).toBeInTheDocument();
-  expect(getExampleTrip).toHaveBeenCalledWith(10);
+  expect(getPublicTrip).toHaveBeenCalledWith(10);
   expect(await screen.findByRole('heading', { name: 'Itinerario' })).toBeInTheDocument();
-  expect(getExampleActivities).toHaveBeenCalledWith(10, '2027-05-01', 0);
+  expect(getPublicActivities).toHaveBeenCalledWith(10, '2027-05-01', 0);
   expect(getActivities).not.toHaveBeenCalled();
   expect(screen.queryByRole('link', { name: 'Nueva actividad' })).not.toBeInTheDocument();
   expect(screen.getByRole('contentinfo')).toBeInTheDocument();
 });
 
-test('B1 an example trip that does not exist shows the 404 page', async () => {
-  vi.mocked(getExampleTrip).mockRejectedValue(new ApiError(404));
+test('B1 I7 a public trip that does not exist or is not published shows the 404 page', async () => {
+  vi.mocked(getPublicTrip).mockRejectedValue(new ApiError(404));
 
-  renderAt('/examples/999', null);
+  renderAt('/public/999', null);
 
   expect(
     await screen.findByRole('heading', { name: 'No encontramos esta página' }),
   ).toBeInTheDocument();
+});
+
+test('I7 /public is the placeholder of the public itineraries page until I8', async () => {
+  renderAt('/public', null);
+
+  expect(await screen.findByRole('heading', { name: 'Viajes públicos' })).toBeInTheDocument();
+});
+
+test('B1 I7 the old /examples/:id URL no longer exists', async () => {
+  renderAt('/examples/10', null);
+
+  expect(
+    await screen.findByRole('heading', { name: 'No encontramos esta página' }),
+  ).toBeInTheDocument();
+  expect(getPublicTrip).not.toHaveBeenCalled();
 });
 
 test('renders the trip list at /trips with the header and footer', async () => {

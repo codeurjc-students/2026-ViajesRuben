@@ -4,11 +4,11 @@ import AdminTripsPage from './components/AdminTripsPage';
 import AdminUsersPage from './components/AdminUsersPage';
 import AppLayout from './components/AppLayout';
 import ErrorPage from './components/ErrorPage';
-import ExampleTripPage from './components/ExampleTripPage';
 import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import PlaceholderPage from './components/PlaceholderPage';
 import ProfilePage from './components/ProfilePage';
+import PublicTripPage from './components/PublicTripPage';
 import RegisterPage from './components/RegisterPage';
 import RequireAdmin from './components/RequireAdmin';
 import RequireAuth from './components/RequireAuth';
@@ -25,7 +25,9 @@ export const routes: RouteObject[] = [
         errorElement: <ErrorPage />,
         children: [
           { path: '/', element: <HomePage /> },
-          { path: '/examples/:tripId', element: <ExampleTripPage /> },
+          // The public itineraries page (search, copy) arrives with I8.
+          { path: '/public', element: <PlaceholderPage title="Viajes públicos" /> },
+          { path: '/public/:tripId', element: <PublicTripPage /> },
           { path: '/login', element: <LoginPage /> },
           { path: '/register', element: <RegisterPage /> },
           {

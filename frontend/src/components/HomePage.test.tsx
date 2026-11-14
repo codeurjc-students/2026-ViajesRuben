@@ -1,19 +1,20 @@
 import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderAsUser } from '../renderHelpers';
-import { getExampleTrips } from '../services/exampleService';
-import { ANA, exampleOf, pageOf } from '../testHelpers';
+import { getPublicTrips } from '../services/publicTripService';
+import { ANA, pageOf, publicTripOf } from '../testHelpers';
 import HomePage from './HomePage';
 
-vi.mock('../services/exampleService', () => ({
-  EXAMPLES_PAGE_SIZE: 3,
-  getExampleTrips: vi.fn(),
+vi.mock('../services/publicTripService', () => ({
+  PUBLIC_PAGE_SIZE: 3,
+  CAROUSEL_MAX_PAGES: 3,
+  getPublicTrips: vi.fn(),
 }));
 
 beforeEach(() => {
-  vi.mocked(getExampleTrips)
+  vi.mocked(getPublicTrips)
     .mockReset()
-    .mockResolvedValue(pageOf([exampleOf()], { size: 3 }));
+    .mockResolvedValue(pageOf([publicTripOf()], { size: 3 }));
 });
 
 describe('B1 HomePage', () => {
@@ -32,14 +33,16 @@ describe('B1 HomePage', () => {
     await screen.findByRole('heading', { name: 'Roma en cinco días' });
   });
 
-  test('shows the example trips', async () => {
+  test('shows the public itineraries with their author and a link to see them all', async () => {
     renderAsUser(<HomePage />, null);
 
     expect(await screen.findByRole('heading', { name: 'Roma en cinco días' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Itinerarios de ejemplo' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Itinerarios públicos' })).toBeInTheDocument();
+    expect(screen.getByText('Por Carlos')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Ver itinerario completo de Roma en cinco días' }),
-    ).toHaveAttribute('href', '/examples/10');
+    ).toHaveAttribute('href', '/public/10');
+    expect(screen.getByRole('link', { name: 'Ver todos' })).toHaveAttribute('href', '/public');
   });
 
   test('explains in three steps what exists in this version', async () => {

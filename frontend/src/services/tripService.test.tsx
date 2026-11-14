@@ -6,6 +6,7 @@ import {
   deleteTrip,
   getTrip,
   getTrips,
+  setPublication,
   updateTrip,
   uploadCover,
 } from './tripService';
@@ -174,4 +175,27 @@ describe('B4 trip operations', () => {
       await expect(getTrip(8)).rejects.toMatchObject({ name: 'ApiError', status });
     },
   );
+});
+
+test('I7 setPublication sends the value to the publication sub-resource and returns the trip', async () => {
+  const published = tripOf({ id: 9, published: true, publishedAt: '2027-01-01T10:00:00Z' });
+  answer(published);
+
+  await expect(setPublication(9, true)).resolves.toEqual(published);
+
+  const { url, init } = lastCall();
+  expect(url).toContain('/api/v1/trips/9/publication');
+  expect(init?.method).toBe('PUT');
+  expect(init?.body).toBe(JSON.stringify({ published: true }));
+});
+
+test('I7 setPublication can unpublish and answers an ApiError 403 for another trip', async () => {
+  answer(tripOf({ id: 9 }));
+  await setPublication(9, false);
+  expect(lastCall().init?.body).toBe(JSON.stringify({ published: false }));
+  vi.restoreAllMocks();
+
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status: 403 } as Response);
+
+  await expect(setPublication(9, true)).rejects.toMatchObject({ name: 'ApiError', status: 403 });
 });

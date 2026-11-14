@@ -35,6 +35,21 @@ describe('B4 TripCard', () => {
     expect(screen.queryByText('participantes', { exact: false })).not.toBeInTheDocument();
   });
 
+  test('I7 a published trip shows the "Público" badge and an unpublished one does not', () => {
+    const { unmount } = renderAsUser(
+      <TripCard
+        trip={{ ...trip, published: true, publishedAt: '2027-01-01T10:00:00Z' }}
+        onDeleted={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Público')).toBeInTheDocument();
+    unmount();
+
+    renderAsUser(<TripCard trip={trip} onDeleted={vi.fn()} />);
+
+    expect(screen.queryByText('Público')).not.toBeInTheDocument();
+  });
+
   test('shows the delete button and the edit link to the creator', () => {
     renderAsUser(<TripCard trip={trip} onDeleted={vi.fn()} />);
 
