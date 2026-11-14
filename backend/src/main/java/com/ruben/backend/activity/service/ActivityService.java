@@ -80,14 +80,14 @@ public class ActivityService {
   }
 
   /**
-   * Like {@link #findPage}, for an example trip, which anyone may read.
+   * Like {@link #findPage}, for a public (published) trip, which anyone may read.
    *
-   * @throws ResourceNotFoundException no example trip has that id
+   * @throws ResourceNotFoundException no published trip has that id
    */
   @Transactional(readOnly = true)
-  public PageDTO<ActivityDTO> findExamplePage(Long tripId, LocalDate date, Pageable pageable) {
+  public PageDTO<ActivityDTO> findPublicPage(Long tripId, LocalDate date, Pageable pageable) {
     checkSortable(pageable);
-    tripAccessService.findExample(tripId);
+    tripAccessService.findPublished(tripId);
     return PageDTO.from(
         activityRepository.findByTrip(tripId, date, pageable).map(ActivityDTO::from));
   }

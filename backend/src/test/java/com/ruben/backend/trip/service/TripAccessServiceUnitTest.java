@@ -138,23 +138,36 @@ class TripAccessServiceUnitTest {
 
   @Test
   @Tag("B1")
-  void anExampleTripIsFoundWithoutLookingAtTheCurrentUser() {
-    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
-    Trip trip =
-        new Trip(admin, "Rome", "Rome", LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 17));
-    when(tripRepository.findByIdAndCreatorRole(1L, Role.ADMIN)).thenReturn(Optional.of(trip));
+  @Tag("I7")
+  void aPublishedTripOfAnyUserIsFoundWithoutLookingAtTheCurrentUser() {
+    Trip trip = new Trip(ana, "Rome", "Rome", LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 17));
+    trip.publish();
+    when(tripRepository.findByIdAndPublishedTrue(1L)).thenReturn(Optional.of(trip));
 
-    assertThat(tripAccessService.findExample(1L)).isSameAs(trip);
+    assertThat(tripAccessService.findPublished(1L)).isSameAs(trip);
     verifyNoInteractions(authService);
   }
 
   @Test
   @Tag("B1")
-  void aTripThatIsNotTheAdministratorsIsNotFoundAsAnExample() {
-    when(tripRepository.findByIdAndCreatorRole(2L, Role.ADMIN)).thenReturn(Optional.empty());
+  @Tag("I7")
+  void aTripThatIsNotPublishedIsNotFoundAsPublicNeverForbidden() {
+    when(tripRepository.findByIdAndPublishedTrue(2L)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> tripAccessService.findExample(2L))
+    assertThatThrownBy(() -> tripAccessService.findPublished(2L))
         .isInstanceOf(ResourceNotFoundException.class)
         .hasMessage("Trip not found");
+    verifyNoInteractions(authService);
+  }
+
+  @Test
+  @Tag("I7")
+  void publishingIsDecidedLikeEditingSoOnlyTheCreatorMayDoIt() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    loggedInAs(admin);
+    tripOf(ana);
+
+    assertThatThrownBy(() -> tripAccessService.findForWrite(1L))
+        .isInstanceOf(ForbiddenException.class);
   }
 }

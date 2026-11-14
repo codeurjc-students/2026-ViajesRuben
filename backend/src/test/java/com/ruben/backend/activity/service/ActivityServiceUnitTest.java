@@ -170,19 +170,19 @@ class ActivityServiceUnitTest {
     verifyNoInteractions(activityRepository);
   }
 
-  // --- example trips (B1) ---
+  // --- public trips (B1, I7) ---
 
   @Test
   @Tag("B1")
-  void findExamplePageReadsTheActivitiesOfAnExampleTripWithoutAnyLogin() {
+  void findPublicPageReadsTheActivitiesOfAPublicTripWithoutAnyLogin() {
     Pageable pageable = PageRequest.of(0, 10, Sort.by("date", "startTime", "id"));
     LocalDate day = START.plusDays(1);
     List<Activity> found = List.of(activity(5L));
-    when(tripAccessService.findExample(1L)).thenReturn(trip);
+    when(tripAccessService.findPublished(1L)).thenReturn(trip);
     when(activityRepository.findByTrip(1L, day, pageable))
         .thenReturn(new PageImpl<>(found, pageable, 1));
 
-    PageDTO<ActivityDTO> page = activityService.findExamplePage(1L, day, pageable);
+    PageDTO<ActivityDTO> page = activityService.findPublicPage(1L, day, pageable);
 
     assertThat(page.content()).extracting(ActivityDTO::id).containsExactly(5L);
     verify(tripAccessService, never()).findForRead(any());
@@ -190,20 +190,20 @@ class ActivityServiceUnitTest {
 
   @Test
   @Tag("B1")
-  void findExamplePageOfATripThatIsNotAnExampleIsNotFoundAndQueriesNothing() {
-    when(tripAccessService.findExample(1L)).thenThrow(new ResourceNotFoundException("Trip"));
+  void findPublicPageOfATripThatIsNotPublishedIsNotFoundAndQueriesNothing() {
+    when(tripAccessService.findPublished(1L)).thenThrow(new ResourceNotFoundException("Trip"));
 
-    assertThatThrownBy(() -> activityService.findExamplePage(1L, null, PageRequest.of(0, 10)))
+    assertThatThrownBy(() -> activityService.findPublicPage(1L, null, PageRequest.of(0, 10)))
         .isInstanceOf(ResourceNotFoundException.class);
     verifyNoInteractions(activityRepository);
   }
 
   @Test
   @Tag("B1")
-  void findExamplePageRejectsSortingByAnotherPropertyBeforeLookingAtTheTrip() {
+  void findPublicPageRejectsSortingByAnotherPropertyBeforeLookingAtTheTrip() {
     Pageable nested = PageRequest.of(0, 10, Sort.by("trip.creator.password"));
 
-    assertThatThrownBy(() -> activityService.findExamplePage(1L, null, nested))
+    assertThatThrownBy(() -> activityService.findPublicPage(1L, null, nested))
         .isInstanceOf(BadRequestException.class);
     verifyNoInteractions(tripAccessService, activityRepository);
   }
