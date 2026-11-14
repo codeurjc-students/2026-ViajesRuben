@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- I7: publishing and unpublishing of trips. `Trip` gets `published` (false by default) and `publishedAt`, and `TripDTO` reports both. `PUT /api/v1/trips/{id}/publication` with `{"published": true|false}` publishes or unpublishes the trip; only the creator may (403 for another user and for the administrator, whose moderation is I10), it is idempotent, and publishing sets `publishedAt` once, so publishing a published trip keeps the first date.
+- I7: the trip page has a "Publicar" / "Despublicar" button for the creator, and a "Público" badge appears on published trips there and on the cards of "Mis viajes".
+- I7: the home page carousel shows the public itineraries of any user, with the author's name on each card, three at a time and at most the nine most recently published. A "Ver todos" link next to its title goes to `/public`, a placeholder until the public itineraries page (I8).
+- I7: sample data publishes five trips of three authors (the administrator's three, Ana's Lisbon and Carlos's Andalusia), so the carousel shows several authors.
+
 ### Changed
 
 - Planned features for version 0.2 extended with public itineraries (I7–I10): publishing trips, the public itineraries page, copying an itinerary to one's account and administrator moderation; the example itineraries of B1 become public itineraries.
+- I7: the example trips become public trips. `GET /api/v1/trips/examples`, `/examples/{id}` and `/examples/{id}/activities` are now `GET /api/v1/trips/public`, `/public/{id}` and `/public/{id}/activities`, they return the published trips of any user (newest publication first by default; `sort` also accepts `publishedAt`), and a trip that is not published is a 404, never a 403. The public answers carry `authorName` and never an email, an author id or participants. The old URLs are gone (401), and `SecurityConfig` lists the new exact paths. The frontend route `/examples/:tripId` is now `/public/:tripId`.
+- I7: the sample data publishes a trip only when it creates it, so a trip somebody unpublished stays unpublished after a restart.
+
+### Upgrading an existing development database
+
+- The schema is still updated by Hibernate (no Flyway): `trip.published` (not null, default false) and `trip.published_at` are added on start-up, so existing trips start unpublished and nothing breaks. The sample trips are published only when they are created, so an existing development database does not get the published sample trips until it is reset (delete the `tripmate-mysql` container and create it again, or drop the `tripmate` schema); until then the home carousel is empty, and a user can publish their own trips from the trip page.
 
 ## [0.1.0] - 2026-11-04
 

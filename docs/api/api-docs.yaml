@@ -762,6 +762,62 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{id}/publication:
+    put:
+      tags:
+        - trip-controller
+      summary: Publish or unpublish a trip
+      description:
+        "Only the creator, not even the administrator. `published: true`\
+        \ makes the trip a public itinerary (listed by `GET /api/v1/trips/public`)\
+        \ and sets `publishedAt`; `false` removes it from there and keeps the trip.\
+        \ Idempotent: repeating the same value changes nothing, and publishing again\
+        \ keeps the first date."
+      operationId: changePublication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicationRequest"
+        required: true
+      responses:
+        "200":
+          description: The trip with its new publication state
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description: Missing `published`
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The trip belongs to another user
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/trips/{id}/cover:
     get:
       tags:
@@ -1499,18 +1555,18 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /api/v1/trips/examples:
+  /api/v1/trips/public:
     get:
       tags:
-        - example-trip-controller
-      summary: List the example trips
+        - public-trip-controller
+      summary: List the public trips
       description:
-        "Public, no login. The trips the administrator created, each with\
+        "Public, no login. The published trips of every user, each with\
         \ the first activity of its first three days (`firstDays`; days without activities\
-        \ are left out). Paginated: `?page=0&size=10` (50 at most), sorted by start\
-        \ date by default; `sort` accepts `id`, `name`, `destination`, `startDate`,\
-        \ `endDate` and `createdAt`."
-      operationId: getExamples
+        \ are left out) and the author's name, never an email. Paginated: `?page=0&size=10`\
+        \ (50 at most), the most recently published first by default; `sort` accepts\
+        \ `id`, `name`, `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`."
+      operationId: getPublicTrips
       parameters:
         - name: page
           in: query
@@ -1537,32 +1593,32 @@ paths:
           schema:
             type: array
             default:
-              - "startDate,ASC"
-              - "id,ASC"
+              - "publishedAt,DESC"
+              - "id,DESC"
             items:
               type: string
       responses:
         "200":
-          description: One page of example trips
+          description: One page of public trips
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/PageDTOExampleTripDTO"
+                $ref: "#/components/schemas/PageDTOPublicTripSummaryDTO"
         "400":
           description: "Invalid page, size or sort parameter"
           content:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /api/v1/trips/examples/{id}:
+  /api/v1/trips/public/{id}:
     get:
       tags:
-        - example-trip-controller
-      summary: Get an example trip by id
+        - public-trip-controller
+      summary: Get a public trip by id
       description:
-        "Public, no login. Only trips the administrator created; any other\
-        \ id is 404."
-      operationId: getExample
+        "Public, no login. Only published trips; an unpublished or unknown\
+        \ id is 404, never 403."
+      operationId: getPublicTrip
       parameters:
         - name: id
           in: path
@@ -1572,11 +1628,11 @@ paths:
             format: int64
       responses:
         "200":
-          description: The example trip
+          description: The public trip
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/TripDTO"
+                $ref: "#/components/schemas/PublicTripDTO"
         "400":
           description: The id is not a number
           content:
@@ -1584,21 +1640,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: No example trip has that id
+          description: No published trip has that id
           content:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-  /api/v1/trips/examples/{id}/activities:
+  /api/v1/trips/public/{id}/activities:
     get:
       tags:
-        - example-trip-controller
-      summary: List an example trip's activities
+        - public-trip-controller
+      summary: List a public trip's activities
       description:
         "Public, no login. Paginated like `GET /api/v1/trips/{tripId}/activities`:\
         \ `?page=0&size=10`, sorted by date and start time by default, `date=yyyy-MM-dd`\
         \ keeps only the activities of that day."
-      operationId: getExampleActivities
+      operationId: getPublicTripActivities
       parameters:
         - name: id
           in: path
@@ -1657,7 +1713,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: No example trip has that id
+          description: No published trip has that id
           content:
             "*/*":
               schema:
@@ -2070,6 +2126,18 @@ components:
         coverImageId:
           type: string
           format: uuid
+        published:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+    PublicationRequest:
+      type: object
+      properties:
+        published:
+          type: boolean
+      required:
+        - published
     AdminUserDTO:
       type: object
       properties:
@@ -2241,22 +2309,13 @@ components:
           format: int32
         activityName:
           type: string
-    ExampleTripDTO:
-      type: object
-      properties:
-        trip:
-          $ref: "#/components/schemas/TripDTO"
-        firstDays:
-          type: array
-          items:
-            $ref: "#/components/schemas/DayPreviewDTO"
-    PageDTOExampleTripDTO:
+    PageDTOPublicTripSummaryDTO:
       type: object
       properties:
         content:
           type: array
           items:
-            $ref: "#/components/schemas/ExampleTripDTO"
+            $ref: "#/components/schemas/PublicTripSummaryDTO"
         page:
           type: integer
           format: int32
@@ -2268,6 +2327,43 @@ components:
           format: int64
         last:
           type: boolean
+    PublicTripDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        destination:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        budget:
+          type: number
+        description:
+          type: string
+        coverImageId:
+          type: string
+          format: uuid
+        authorName:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+    PublicTripSummaryDTO:
+      type: object
+      properties:
+        trip:
+          $ref: "#/components/schemas/PublicTripDTO"
+        firstDays:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayPreviewDTO"
     PageDTOAdminUserDTO:
       type: object
       properties:
