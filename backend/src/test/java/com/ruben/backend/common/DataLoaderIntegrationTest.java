@@ -116,8 +116,8 @@ class DataLoaderIntegrationTest {
     dataLoader.run();
 
     var published =
-        tripRepository.findByPublishedTrue(
-            PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "publishedAt", "id")));
+        tripRepository.searchPublished(
+            null, PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "publishedAt", "id")));
 
     assertThat(published.getTotalElements()).isEqualTo(5);
     assertThat(published.getContent())
@@ -152,7 +152,7 @@ class DataLoaderIntegrationTest {
     Trip reloaded = tripRepository.findById(rome.getId()).orElseThrow();
     assertThat(reloaded.isPublished()).isFalse();
     assertThat(reloaded.getPublishedAt()).isNull();
-    assertThat(tripRepository.findByPublishedTrue(PageRequest.of(0, 10)).getTotalElements())
+    assertThat(tripRepository.searchPublished(null, PageRequest.of(0, 10)).getTotalElements())
         .isEqualTo(4);
   }
 

@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 
 @Tag("B1")
 @Tag("I7")
+@Tag("I8")
 @ExtendWith(MockitoExtension.class)
 class PublicTripControllerUnitTest {
 
@@ -33,9 +34,18 @@ class PublicTripControllerUnitTest {
   void getPublicTripsReturnsThePageTheServiceBuilds() {
     Pageable pageable = PageRequest.of(0, 3);
     PageDTO<PublicTripSummaryDTO> page = new PageDTO<>(List.of(), 0, 3, 0, true);
-    when(publicTripService.findPage(pageable)).thenReturn(page);
+    when(publicTripService.findPage(null, pageable)).thenReturn(page);
 
-    assertThat(controller.getPublicTrips(pageable)).isSameAs(page);
+    assertThat(controller.getPublicTrips(null, pageable)).isSameAs(page);
+  }
+
+  @Test
+  void getPublicTripsPassesTheSearchTextToTheService() {
+    Pageable pageable = PageRequest.of(0, 10);
+    PageDTO<PublicTripSummaryDTO> page = new PageDTO<>(List.of(), 0, 10, 0, true);
+    when(publicTripService.findPage("rome", pageable)).thenReturn(page);
+
+    assertThat(controller.getPublicTrips("rome", pageable)).isSameAs(page);
   }
 
   @Test

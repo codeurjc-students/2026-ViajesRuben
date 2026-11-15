@@ -34,9 +34,10 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/** The public itineraries as an anonymous visitor reads them (B1, I7). */
+/** The public itineraries as an anonymous visitor reads and searches them (B1, I7, I8). */
 @Tag("B1")
 @Tag("I7")
+@Tag("I8")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(TestcontainersConfiguration.class)
 class PublicTripApiE2ETest {
@@ -122,6 +123,89 @@ class PublicTripApiE2ETest {
         .statusCode(200)
         .body("content.trip.name", contains("Public 0"))
         .body("last", equalTo(true));
+  }
+
+  @Test
+  void anAnonymousVisitorSearchesByNameIgnoringCase() {
+    given()
+        .get(PUBLIC + "?search=PUBLIC 2")
+        .then()
+        .statusCode(200)
+        .body("content.trip.name", contains("Public 2"))
+        .body("totalElements", equalTo(1));
+  }
+
+  @Test
+  void anAnonymousVisitorSearchesByDestinationIgnoringCaseAndSurroundingSpaces() {
+    given()
+        .queryParam("search", "  cItY 1 ")
+        .get(PUBLIC)
+        .then()
+        .statusCode(200)
+        .body("content.trip.name", contains("Public 1"))
+        .body("totalElements", equalTo(1));
+  }
+
+  @Test
+  void aBlankSearchListsEveryPublicTrip() {
+    given()
+        .queryParam("search", "   ")
+        .get(PUBLIC)
+        .then()
+        .statusCode(200)
+        .body("totalElements", equalTo(4));
+    given().get(PUBLIC + "?search=").then().statusCode(200).body("totalElements", equalTo(4));
+  }
+
+  @Test
+  void aSearchWithoutMatchesReturnsAnEmptyPage() {
+    given()
+        .get(PUBLIC + "?search=nowhere")
+        .then()
+        .statusCode(200)
+        .body("content", hasSize(0))
+        .body("totalElements", equalTo(0))
+        .body("last", equalTo(true));
+  }
+
+  @Test
+  void anUnpublishedTripNeverAppearsInASearch() {
+    given().get(PUBLIC + "?search=lisbon").then().statusCode(200).body("totalElements", equalTo(0));
+    given().get(PUBLIC + "?search=draft").then().statusCode(200).body("totalElements", equalTo(0));
+  }
+
+  @Test
+  void aSearchIsPaginated() {
+    given()
+        .get(PUBLIC + "?search=public&page=0&size=3")
+        .then()
+        .statusCode(200)
+        .body("content.trip.name", contains("Public 3", "Public 2", "Public 1"))
+        .body("totalElements", equalTo(4))
+        .body("last", equalTo(false));
+    given()
+        .get(PUBLIC + "?search=public&page=1&size=3")
+        .then()
+        .statusCode(200)
+        .body("content.trip.name", contains("Public 0"))
+        .body("last", equalTo(true));
+  }
+
+  @Test
+  void aSearchResponseNeverContainsEmails() {
+    String body =
+        given().get(PUBLIC + "?search=public").then().statusCode(200).extract().asString();
+
+    assertThat(body).contains("Public 3").doesNotContain("@").doesNotContain("email");
+  }
+
+  @Test
+  void theSearchDoesNotMatchTheAuthorsEmail() {
+    given()
+        .get(PUBLIC + "?search=ana@example")
+        .then()
+        .statusCode(200)
+        .body("totalElements", equalTo(0));
   }
 
   @Test
