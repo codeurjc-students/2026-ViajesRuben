@@ -11,8 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - I7: publishing and unpublishing of trips. `Trip` gets `published` (false by default) and `publishedAt`, and `TripDTO` reports both. `PUT /api/v1/trips/{id}/publication` with `{"published": true|false}` publishes or unpublishes the trip; only the creator may (403 for another user and for the administrator, whose moderation is I10), it is idempotent, and publishing sets `publishedAt` once, so publishing a published trip keeps the first date.
 - I7: the trip page has a "Publicar" / "Despublicar" button for the creator, and a "Público" badge appears on published trips there and on the cards of "Mis viajes".
-- I7: the home page carousel shows the public itineraries of any user, with the author's name on each card, three at a time and at most the nine most recently published. A "Ver todos" link next to its title goes to `/public`, a placeholder until the public itineraries page (I8).
+- I7: the home page carousel shows the public itineraries of any user, with the author's name on each card, three at a time and at most the nine most recently published. A "Ver todos" link next to its title goes to `/public`, the public itineraries page (I8).
 - I7: sample data publishes five trips of three authors (the administrator's three, Ana's Lisbon and Carlos's Andalusia), so the carousel shows several authors.
+- I8: public itineraries page at `/public`, open to anyone: the complete list of published trips, newest publication first, ten at a time with a "Más resultados" button, one line per trip (name, destination, dates and author) linking to its read-only preview, and a search by trip name or destination (on submit, ignoring case). It has empty states for no public trips and for a search without results. A "Viajes públicos" link in the header, for anonymous and logged-in users, opens it.
+- I8: `GET /api/v1/trips/public` accepts an optional `search` parameter that keeps the published trips whose name or destination contains the text, ignoring case and surrounding spaces; blank lists all. The sort, page size, public DTO (no emails) and the public URLs are unchanged, and the search is done in the database query.
 
 ### Changed
 

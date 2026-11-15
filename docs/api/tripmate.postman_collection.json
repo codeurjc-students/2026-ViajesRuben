@@ -1832,10 +1832,16 @@
               "key": "size",
               "value": "3",
               "description": "Items per page (default 10, maximum 50)"
+            },
+            {
+              "key": "search",
+              "value": "lisbon",
+              "description": "Optional. Text to find in the trip name or destination, ignoring case and surrounding spaces; blank lists all (I8)",
+              "disabled": true
             }
           ]
         },
-        "description": "Public, no login. The public itineraries of the home page: the published trips of every user, the most recently published first by default, each with `firstDays`, the first activity of each of its first three days (`day` counts from 1; days without activities are left out) and the author's name, never an email. `content`, `page`, `size`, `totalElements` and `last` as in every list. `sort` accepts `id`, `name`, `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`; another property is a 400. The home carousel shows the first three pages of three."
+        "description": "Public, no login. The public itineraries of the home page and of the public itineraries page (I8; enable `search` to try it: it keeps the trips whose name or destination contains the text, ignoring case; the public itineraries page asks for 10 per page): the published trips of every user, the most recently published first by default, each with `firstDays`, the first activity of each of its first three days (`day` counts from 1; days without activities are left out) and the author's name, never an email. `content`, `page`, `size`, `totalElements` and `last` as in every list. `sort` accepts `id`, `name`, `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`; another property is a 400. The home carousel shows the first three pages of three."
       },
       "response": [
         {
