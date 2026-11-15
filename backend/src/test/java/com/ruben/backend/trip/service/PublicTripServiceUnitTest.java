@@ -2,6 +2,8 @@ package com.ruben.backend.trip.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +36,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @Tag("B1")
 @Tag("I7")
+@Tag("I8")
 @ExtendWith(MockitoExtension.class)
 class PublicTripServiceUnitTest {
 
@@ -65,7 +68,7 @@ class PublicTripServiceUnitTest {
     Pageable pageable = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "publishedAt", "id"));
     Trip rome = trip(10L, "Rome", START);
     Trip paris = trip(11L, "Paris", START.plusDays(30));
-    when(tripRepository.findByPublishedTrue(pageable))
+    when(tripRepository.searchPublished(null, pageable))
         .thenReturn(new PageImpl<>(List.of(rome, paris), pageable, 4));
     when(activityService.findFirstActivities(List.of(10L, 11L)))
         .thenReturn(
@@ -74,7 +77,7 @@ class PublicTripServiceUnitTest {
                 new FirstActivityDTO(10L, START.plusDays(2), "Vatican"),
                 new FirstActivityDTO(11L, START.plusDays(31), "Louvre")));
 
-    PageDTO<PublicTripSummaryDTO> page = service.findPage(pageable);
+    PageDTO<PublicTripSummaryDTO> page = service.findPage(null, pageable);
 
     assertThat(page.totalElements()).isEqualTo(4);
     assertThat(page.last()).isFalse();
@@ -91,27 +94,48 @@ class PublicTripServiceUnitTest {
   @Test
   void aTripWithoutActivitiesHasNoPreviewDays() {
     Pageable pageable = PageRequest.of(0, 3);
-    when(tripRepository.findByPublishedTrue(pageable))
+    when(tripRepository.searchPublished(null, pageable))
         .thenReturn(new PageImpl<>(List.of(trip(10L, "Rome", START)), pageable, 1));
     when(activityService.findFirstActivities(List.of(10L))).thenReturn(List.of());
 
-    assertThat(service.findPage(pageable).content().get(0).firstDays()).isEmpty();
+    assertThat(service.findPage(null, pageable).content().get(0).firstDays()).isEmpty();
   }
 
   @Test
   void findPageAcceptsSortingByThePublicationDate() {
     Pageable pageable = PageRequest.of(0, 3, Sort.by("publishedAt"));
-    when(tripRepository.findByPublishedTrue(pageable)).thenReturn(new PageImpl<>(List.of()));
+    when(tripRepository.searchPublished(null, pageable)).thenReturn(new PageImpl<>(List.of()));
     when(activityService.findFirstActivities(List.of())).thenReturn(List.of());
 
-    assertThat(service.findPage(pageable).content()).isEmpty();
+    assertThat(service.findPage(null, pageable).content()).isEmpty();
+  }
+
+  @Test
+  void findPageSearchesWithTheTrimmedText() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(tripRepository.searchPublished("rome", pageable)).thenReturn(new PageImpl<>(List.of()));
+    when(activityService.findFirstActivities(List.of())).thenReturn(List.of());
+
+    assertThat(service.findPage("  rome ", pageable).content()).isEmpty();
+    verify(tripRepository).searchPublished("rome", pageable);
+  }
+
+  @Test
+  void aBlankSearchListsAllTheTrips() {
+    Pageable pageable = PageRequest.of(0, 10);
+    when(tripRepository.searchPublished(null, pageable)).thenReturn(new PageImpl<>(List.of()));
+    when(activityService.findFirstActivities(List.of())).thenReturn(List.of());
+
+    assertThat(service.findPage("   ", pageable).content()).isEmpty();
+    assertThat(service.findPage("", pageable).content()).isEmpty();
+    verify(tripRepository, times(2)).searchPublished(null, pageable);
   }
 
   @Test
   void findPageRejectsSortingByAnotherPropertyBeforeQueryingAnything() {
     Pageable nested = PageRequest.of(0, 3, Sort.by("creator.password"));
 
-    assertThatThrownBy(() -> service.findPage(nested))
+    assertThatThrownBy(() -> service.findPage(null, nested))
         .isInstanceOf(BadRequestException.class)
         .hasMessage("Cannot sort by 'creator.password'");
     verifyNoInteractions(tripRepository, activityService);

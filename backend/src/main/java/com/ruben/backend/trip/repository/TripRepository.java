@@ -17,11 +17,20 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
   Page<Trip> findByCreatorId(Long creatorId, Pageable pageable);
 
   /**
-   * One page of the published trips of every user (the public itineraries); the creator is fetched
-   * in the same query, because the public list shows the author's name.
+   * One page of the published trips of every user (the public itineraries); `search` matches the
+   * name or the destination, ignoring case, and null matches all. The creator is fetched in the
+   * same query, because the public list shows the author's name.
    */
-  @EntityGraph(attributePaths = "creator")
-  Page<Trip> findByPublishedTrue(Pageable pageable);
+  @Query(
+      value =
+          "select t from Trip t join fetch t.creator where t.published = true and (:search is null"
+              + " or lower(t.name) like lower(concat('%', :search, '%'))"
+              + " or lower(t.destination) like lower(concat('%', :search, '%')))",
+      countQuery =
+          "select count(t) from Trip t where t.published = true and (:search is null"
+              + " or lower(t.name) like lower(concat('%', :search, '%'))"
+              + " or lower(t.destination) like lower(concat('%', :search, '%')))")
+  Page<Trip> searchPublished(@Param("search") String search, Pageable pageable);
 
   /**
    * A published trip with its creator, or empty when the id is unknown or the trip is not public.

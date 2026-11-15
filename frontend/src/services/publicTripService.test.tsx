@@ -13,7 +13,25 @@ function answer(body: unknown) {
   } as Response);
 }
 
-describe('B1 I7 publicTripService', () => {
+describe('B1 I7 I8 publicTripService', () => {
+  test('searches by the trimmed, encoded text', async () => {
+    answer(pageOf([]));
+
+    await getPublicTrips(0, 10, '  Río & Co ');
+
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain(
+      '/api/v1/trips/public?page=0&size=10&search=R%C3%ADo%20%26%20Co',
+    );
+  });
+
+  test('sends no search parameter for a blank text', async () => {
+    answer(pageOf([]));
+
+    await getPublicTrips(0, 10, '   ');
+
+    expect(vi.mocked(fetch).mock.calls[0][0]).toMatch(/\/public\?page=0&size=10$/);
+  });
+
   test('asks for three public trips at a time by default', async () => {
     const page = pageOf([publicTripOf()]);
     answer(page);

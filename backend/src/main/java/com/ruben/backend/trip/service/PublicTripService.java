@@ -46,12 +46,13 @@ public class PublicTripService {
 
   /**
    * One page of public trips, each with the first activity of its first three days; the previews of
-   * the whole page come from one query.
+   * the whole page come from one query. `search` keeps the trips whose name or destination contains
+   * it, ignoring case; null or blank lists all.
    *
    * @throws BadRequestException the page asks to sort by a property that is not sortable
    */
   @Transactional(readOnly = true)
-  public PageDTO<PublicTripSummaryDTO> findPage(Pageable pageable) {
+  public PageDTO<PublicTripSummaryDTO> findPage(String search, Pageable pageable) {
     pageable
         .getSort()
         .forEach(
@@ -60,7 +61,8 @@ public class PublicTripService {
                 throw new BadRequestException("Cannot sort by '" + order.getProperty() + "'");
               }
             });
-    Page<Trip> trips = tripRepository.findByPublishedTrue(pageable);
+    String text = search == null || search.isBlank() ? null : search.trim();
+    Page<Trip> trips = tripRepository.searchPublished(text, pageable);
     Map<Long, List<FirstActivityDTO>> firstActivities =
         activityService.findFirstActivities(trips.stream().map(Trip::getId).toList()).stream()
             .collect(Collectors.groupingBy(FirstActivityDTO::tripId));

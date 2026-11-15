@@ -357,3 +357,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I7`.
 - **Human Validation:** The student reviewed and approved the plan, requested the two changes above, and reviewed the generated code.
+
+#### Record 4.2 — Public itineraries page with search (I8)
+
+- **Date:** 15/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I8.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.325; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I8`, and to write some parts of the code and tests, and the documentation (OpenAPI, Postman collection, changelog).
+  - The student approved the plan, reviewed and edited the generated code.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I8`.
+- **Human Validation:** The student reviewed and approved the plan and reviewed and edited the generated code.

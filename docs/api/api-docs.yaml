@@ -1565,9 +1565,17 @@ paths:
         \ the first activity of its first three days (`firstDays`; days without activities\
         \ are left out) and the author's name, never an email. Paginated: `?page=0&size=10`\
         \ (50 at most), the most recently published first by default; `sort` accepts\
-        \ `id`, `name`, `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`."
+        \ `id`, `name`, `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`.\
+        \ `search` keeps the trips whose name or destination contains the text, ignoring\
+        \ case; blank lists all."
       operationId: getPublicTrips
       parameters:
+        - name: search
+          in: query
+          description: Text to find in the trip name or destination, ignoring case
+          required: false
+          schema:
+            type: string
         - name: page
           in: query
           description: Zero-based page index (0..N)

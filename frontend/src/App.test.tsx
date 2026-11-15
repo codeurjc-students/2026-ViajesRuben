@@ -27,6 +27,7 @@ vi.mock('./services/activityService', () => ({
 }));
 vi.mock('./services/publicTripService', () => ({
   PUBLIC_PAGE_SIZE: 3,
+  PUBLIC_LIST_PAGE_SIZE: 10,
   CAROUSEL_MAX_PAGES: 3,
   getPublicTrips: vi.fn(),
   getPublicTrip: vi.fn(),
@@ -67,6 +68,20 @@ test('B1 the app opens on the public home page inside the layout', async () => {
   expect(await screen.findByRole('heading', { name: 'Roma en cinco días' })).toBeInTheDocument();
   expect(screen.getByRole('navigation')).toBeInTheDocument();
   expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+});
+
+test('I8 /public shows the public itineraries page without a session', async () => {
+  renderAt('/public', null);
+
+  expect(
+    await screen.findByRole('heading', { level: 1, name: 'Viajes públicos' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('search')).toBeInTheDocument();
+  expect(await screen.findByRole('link', { name: 'Roma en cinco días' })).toHaveAttribute(
+    'href',
+    '/public/10',
+  );
+  expect(getPublicTrips).toHaveBeenCalledWith(0, 10, '');
 });
 
 test('B1 I7 /public/:id shows the read-only preview of a public trip without a session', async () => {

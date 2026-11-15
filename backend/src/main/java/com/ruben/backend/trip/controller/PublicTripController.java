@@ -47,7 +47,9 @@ public class PublicTripController {
               + " first three days (`firstDays`; days without activities are left out) and the"
               + " author's name, never an email. Paginated: `?page=0&size=10` (50 at most), the"
               + " most recently published first by default; `sort` accepts `id`, `name`,"
-              + " `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`.")
+              + " `destination`, `startDate`, `endDate`, `createdAt` and `publishedAt`."
+              + " `search` keeps the trips whose name or destination contains the text, ignoring"
+              + " case; blank lists all.")
   @ApiResponse(responseCode = "200", description = "One page of public trips")
   @ApiResponse(
       responseCode = "400",
@@ -55,13 +57,16 @@ public class PublicTripController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @GetMapping
   public PageDTO<PublicTripSummaryDTO> getPublicTrips(
+      @Parameter(description = "Text to find in the trip name or destination, ignoring case")
+          @RequestParam(required = false)
+          String search,
       @ParameterObject
           @PageableDefault(
               size = 10,
               sort = {"publishedAt", "id"},
               direction = Sort.Direction.DESC)
           Pageable pageable) {
-    return publicTripService.findPage(pageable);
+    return publicTripService.findPage(search, pageable);
   }
 
   @Operation(
