@@ -9,6 +9,7 @@ import LoginPage from './components/LoginPage';
 import PlaceholderPage from './components/PlaceholderPage';
 import ProfilePage from './components/ProfilePage';
 import PublicTripPage from './components/PublicTripPage';
+import PublicTripsPage from './components/PublicTripsPage';
 import RegisterPage from './components/RegisterPage';
 import RequireAdmin from './components/RequireAdmin';
 import RequireAuth from './components/RequireAuth';
@@ -16,7 +17,7 @@ import TripDetailPage from './components/TripDetailPage';
 import TripFormPage from './components/TripFormPage';
 import TripList from './components/TripList';
 
-/** One route per screen in docs/analysis.md; the home page, trips, profile, auth, user management and trip moderation are built so far. */
+/** One route per screen in docs/analysis.md; the home page, trips, profile, auth, public itineraries, user management and trip moderation are built so far. */
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -25,8 +26,7 @@ export const routes: RouteObject[] = [
         errorElement: <ErrorPage />,
         children: [
           { path: '/', element: <HomePage /> },
-          // The public itineraries page (search, copy) arrives with I8.
-          { path: '/public', element: <PlaceholderPage title="Viajes públicos" /> },
+          { path: '/public', element: <PublicTripsPage /> },
           { path: '/public/:tripId', element: <PublicTripPage /> },
           { path: '/login', element: <LoginPage /> },
           { path: '/register', element: <RegisterPage /> },

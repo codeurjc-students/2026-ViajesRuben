@@ -1,0 +1,39 @@
+.public-list__title {
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+}
+
+.public-list__search,
+.public-list__empty,
+.public-list__item {
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.public-list__search {
+  margin-bottom: 1.5rem;
+}
+
+.public-list__search-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.public-list__list {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.public-list__name {
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.public-list__meta {
+  margin-bottom: 0;
+  color: var(--tm-via);
+  overflow-wrap: anywhere;
+}
