@@ -19,7 +19,7 @@ const NEW_TRIP = {
 
 // The first public trips are the sample data (SAMPLE_DATA, on by default): the administrator's
 // three, each with an itinerary on every day, and one of two other authors.
-describe('B1 I7 publicTripService against the REST API', () => {
+describe('B1 I7 I8 publicTripService against the REST API', () => {
   test('an anonymous visitor lists the public trips with a preview of the first days', async () => {
     const all = await getPublicTrips(0, 3);
 
@@ -116,5 +116,56 @@ describe('B1 I7 publicTripService against the REST API', () => {
     await newUser('Intrusa');
 
     await expect(setPublication(own.id, true)).rejects.toMatchObject({ status: 403 });
+  });
+
+  test('a search finds a public trip by name or destination ignoring case, and never an unpublished one', async () => {
+    const { cookie } = await newUser('Buscadora');
+    const unique = `Zzq${Date.now()}`;
+    const published = await createTrip({
+      ...NEW_TRIP,
+      name: `${unique} visible`,
+      destination: `${unique}City`,
+    });
+    const hidden = await createTrip({
+      ...NEW_TRIP,
+      name: `${unique} oculto`,
+      destination: `${unique}City`,
+    });
+    await setPublication(published.id, true);
+
+    try {
+      vi.restoreAllMocks();
+      const byName = await getPublicTrips(0, 10, `  ${unique.toUpperCase()} VISIBLE `);
+      const byDestination = await getPublicTrips(0, 10, `${unique.toLowerCase()}CITY`);
+
+      expect(byName.content.map((summary) => summary.trip.id)).toEqual([published.id]);
+      expect(byDestination.content.map((summary) => summary.trip.id)).toEqual([published.id]);
+      expect(byDestination.content.map((summary) => summary.trip.id)).not.toContain(hidden.id);
+      expect(JSON.stringify(byDestination)).not.toMatch(/@|email|participants/i);
+    } finally {
+      // The public trips are shared with the other tests (the newest ones must have previews).
+      sendCookie(cookie);
+      await setPublication(published.id, false);
+    }
+  });
+
+  test('a search without matches is an empty page and a blank search lists every public trip', async () => {
+    const none = await getPublicTrips(0, 10, 'no-trip-has-this-text-8f3a');
+    const blank = await getPublicTrips(0, 10, '   ');
+    const all = await getPublicTrips(0, 10);
+
+    expect(none).toMatchObject({ totalElements: 0, last: true });
+    expect(none.content).toEqual([]);
+    expect(blank.totalElements).toBe(all.totalElements);
+  });
+
+  test('the search is paginated', async () => {
+    const first = await getPublicTrips(0, 1, 'a');
+    const second = await getPublicTrips(1, 1, 'a');
+
+    expect(first).toMatchObject({ page: 0, size: 1 });
+    expect(first.content).toHaveLength(1);
+    expect(second.page).toBe(1);
+    expect(second.content[0].trip.id).not.toBe(first.content[0].trip.id);
   });
 });

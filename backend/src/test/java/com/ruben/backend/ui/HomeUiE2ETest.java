@@ -95,6 +95,11 @@ class HomeUiE2ETest {
 
     // Three cards with their key facts, their author and the preview of the first days.
     List<WebElement> cards = waitForCards(3);
+    // On a desktop the three cards sit side by side, not one below the other.
+    assertThat(cards)
+        .extracting(card -> card.getLocation().getY())
+        .containsOnly(cards.get(0).getLocation().getY());
+    assertThat(cards.get(1).getLocation().getX()).isGreaterThan(cards.get(0).getLocation().getX());
     assertThat(driver.findElement(By.cssSelector("section.public-trips h2")).getText())
         .isEqualTo("Itinerarios públicos");
     assertThat(cards).allSatisfy(card -> assertThat(card.getText()).contains("Por "));
@@ -167,7 +172,7 @@ class HomeUiE2ETest {
   }
 
   @Test
-  void theSeeAllLinkOfTheCarouselOpensThePublicItinerariesPlaceholderUntilI8() {
+  void theSeeAllLinkOfTheCarouselOpensThePublicItinerariesPage() {
     driver.get(baseUrl + "/");
     waitForCards(3);
 
