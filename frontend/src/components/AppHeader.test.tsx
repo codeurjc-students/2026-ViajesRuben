@@ -66,6 +66,26 @@ test('marks Create trip as the current page on /trips/new', () => {
   expect(screen.getByText('Mis viajes')).not.toHaveAttribute('aria-current');
 });
 
+describe('I8 header link to the public itineraries', () => {
+  test('an anonymous visitor sees it', () => {
+    renderAt('/', authValue(null));
+
+    expect(screen.getByRole('link', { name: 'Viajes públicos' })).toHaveAttribute(
+      'href',
+      '/public',
+    );
+  });
+
+  test('a logged-in user sees it too', () => {
+    renderAt('/trips');
+
+    expect(screen.getByRole('link', { name: 'Viajes públicos' })).toHaveAttribute(
+      'href',
+      '/public',
+    );
+  });
+});
+
 describe('B2 header and the session', () => {
   test('an anonymous visitor sees the login and register links and no trip menu', () => {
     renderAt('/', authValue(null));

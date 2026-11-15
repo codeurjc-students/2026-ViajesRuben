@@ -47,6 +47,9 @@ export default function AppHeader() {
                 <Nav.Link as={NavLink} to="/trips/new">
                   Crear viaje
                 </Nav.Link>
+                <Nav.Link as={NavLink} to="/public">
+                  Viajes públicos
+                </Nav.Link>
                 <Nav.Link href="#">Generador IA</Nav.Link>
                 {user.role === 'ADMIN' && (
                   <Nav.Link as={NavLink} to="/admin/users">
@@ -76,6 +79,9 @@ export default function AppHeader() {
             </>
           ) : (
             <Nav className="ms-auto">
+              <Nav.Link as={NavLink} to="/public">
+                Viajes públicos
+              </Nav.Link>
               <Nav.Link as={NavLink} to="/login">
                 Iniciar sesión
               </Nav.Link>
