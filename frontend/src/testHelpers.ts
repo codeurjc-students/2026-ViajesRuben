@@ -88,6 +88,7 @@ export function tripOf(overrides: Partial<Trip> = {}): Trip {
     coverImageId: null,
     published: false,
     publishedAt: null,
+    copiedFromId: null,
     ...overrides,
   };
 }

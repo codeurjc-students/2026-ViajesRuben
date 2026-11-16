@@ -453,4 +453,28 @@ describe('B8 TripDetailPage as the administrator', () => {
     expect(screen.queryByRole('button', { name: 'Despublicar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Publicar' })).not.toBeInTheDocument();
   });
+
+  test('I9 shows the notice left by the page that sent the user here, and lets them dismiss it', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5', ANA, {
+      notice: 'Itinerario copiado en tus viajes. Ya puedes editarlo.',
+    });
+
+    const notice = await screen.findByRole('alert');
+    expect(notice).toHaveTextContent('Itinerario copiado en tus viajes. Ya puedes editarlo.');
+    expect(await screen.findByRole('heading', { name: 'Verano en Roma' })).toBeInTheDocument();
+
+    fireEvent.click(within(notice).getByRole('button', { name: /cerrar|close/i }));
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('I9 shows no notice when the user arrives without one', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5');
+
+    await screen.findByRole('heading', { name: 'Verano en Roma' });
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

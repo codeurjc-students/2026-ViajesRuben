@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +47,33 @@ class ImageServiceUnitTest {
 
   private void stubSave() {
     when(imageRepository.save(any(Image.class))).thenAnswer(call -> call.getArgument(0));
+  }
+
+  @Test
+  @Tag("I9")
+  void copyStoresANewImageWithTheSameBytesAndType() {
+    stubSave();
+    byte[] data = ImageTestData.png(50);
+    Image original = new Image(data, "image/png");
+    UUID id = UUID.randomUUID();
+    when(imageRepository.findById(id)).thenReturn(Optional.of(original));
+
+    Image copy = imageService.copy(id);
+
+    assertThat(copy).isNotSameAs(original);
+    assertThat(copy.getContentType()).isEqualTo("image/png");
+    assertThat(copy.getData()).isEqualTo(data).isNotSameAs(data);
+    verify(imageRepository).save(copy);
+  }
+
+  @Test
+  @Tag("I9")
+  void copyOfAnUnknownImageIsNotFound() {
+    UUID id = UUID.randomUUID();
+    when(imageRepository.findById(id)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> imageService.copy(id)).isInstanceOf(ResourceNotFoundException.class);
+    verify(imageRepository, never()).save(any());
   }
 
   @Test

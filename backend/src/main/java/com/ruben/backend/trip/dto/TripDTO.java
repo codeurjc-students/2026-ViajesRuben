@@ -10,7 +10,7 @@ import java.util.UUID;
  * What the API says about a trip, in lists and alone. The cover bytes are served by `GET
  * /api/v1/images/{coverImageId}`, and `coverImageId` is null when the trip has no cover.
  * `published` tells whether the trip is a public itinerary (I7); `publishedAt` is null while it is
- * not.
+ * not. `copiedFromId` is the public trip this one was copied from (I9), or null.
  */
 public record TripDTO(
     Long id,
@@ -23,7 +23,8 @@ public record TripDTO(
     String description,
     UUID coverImageId,
     boolean published,
-    Instant publishedAt) {
+    Instant publishedAt,
+    Long copiedFromId) {
 
   public static TripDTO from(Trip trip) {
     return new TripDTO(
@@ -37,6 +38,7 @@ public record TripDTO(
         trip.getDescription(),
         trip.getCoverImage() == null ? null : trip.getCoverImage().getId(),
         trip.isPublished(),
-        trip.getPublishedAt());
+        trip.getPublishedAt(),
+        trip.getCopiedFrom() == null ? null : trip.getCopiedFrom().getId());
   }
 }

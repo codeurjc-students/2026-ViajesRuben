@@ -1,20 +1,44 @@
+import { useState } from 'react';
+import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Container from 'react-bootstrap/Container';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useAuth } from '../hooks/useAuth';
 import { useTrip } from '../hooks/useTrip';
 import { getPublicTrip } from '../services/publicTripService';
+import type { Trip } from '../types';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
+import CopyTripModal from './CopyTripModal';
 import ItinerarySection from './ItinerarySection';
 import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
-/** `/public/:tripId`: read-only preview of a public itinerary, no login needed. No edit, delete or conflicts. */
+/**
+ * `/public/:tripId`: read-only preview of a public itinerary, no login needed. No edit, delete or
+ * conflicts. Copying it to one's own trips (I9) needs a login: a visitor is sent to the login page
+ * and brought back here.
+ */
 export default function PublicTripPage() {
   const { tripId } = useParams();
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { trip, error } = useTrip(tripId, getPublicTrip);
+  const [copying, setCopying] = useState(false);
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
+
+  function startCopy() {
+    if (user) setCopying(true);
+    else navigate('/login', { state: { from: location } });
+  }
+
+  function copied(copy: Trip) {
+    navigate(`/trips/${copy.id}`, {
+      state: { notice: 'Itinerario copiado en tus viajes. Ya puedes editarlo.' },
+    });
+  }
 
   return (
     <Container as="main" className="app-main py-4">
@@ -53,8 +77,17 @@ export default function PublicTripPage() {
                 <dd>{trip.authorName}</dd>
               </dl>
               {trip.description && <p className="trip-detail__description">{trip.description}</p>}
+              <Button onClick={startCopy}>Copiar en tu cuenta</Button>
             </div>
           </Card>
+          {user && (
+            <CopyTripModal
+              tripId={trip.id}
+              show={copying}
+              onCancel={() => setCopying(false)}
+              onCopied={copied}
+            />
+          )}
           <ItinerarySection trip={trip} publicPreview />
         </>
       )}

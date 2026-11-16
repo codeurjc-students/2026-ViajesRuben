@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { pageOf, publicTripOf } from '../testHelpers';
-import { getPublicActivities, getPublicTrip, getPublicTrips } from './publicTripService';
+import { pageOf, publicTripOf, tripOf } from '../testHelpers';
+import {
+  copyPublicTrip,
+  getPublicActivities,
+  getPublicTrip,
+  getPublicTrips,
+} from './publicTripService';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -81,5 +86,35 @@ describe('B1 I7 I8 publicTripService', () => {
 
     await expect(getPublicTrip(1)).rejects.toMatchObject({ name: 'ApiError', status: 404 });
     await expect(getPublicActivities(1)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('I9 copyPublicTrip', () => {
+  test('posts the start date to the copies of the public trip and returns the new trip', async () => {
+    const copy = tripOf({ id: 20, copiedFromId: 7 });
+    answer(copy);
+
+    await expect(copyPublicTrip(7, '2027-09-01')).resolves.toEqual(copy);
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toContain('/api/v1/trips/public/7/copies');
+    expect(init?.method).toBe('POST');
+    expect(init?.body).toBe(JSON.stringify({ startDate: '2027-09-01' }));
+  });
+
+  test('sends an empty body when there is no start date, to keep the original dates', async () => {
+    answer(tripOf({ id: 20, copiedFromId: 7 }));
+
+    await copyPublicTrip(7);
+    await copyPublicTrip(7, '');
+
+    expect(vi.mocked(fetch).mock.calls[0][1]?.body).toBe('{}');
+    expect(vi.mocked(fetch).mock.calls[1][1]?.body).toBe('{}');
+  });
+
+  test.each([401, 404, 400])('a %i answer is an ApiError', async (status) => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status } as Response);
+
+    await expect(copyPublicTrip(7)).rejects.toMatchObject({ name: 'ApiError', status });
   });
 });

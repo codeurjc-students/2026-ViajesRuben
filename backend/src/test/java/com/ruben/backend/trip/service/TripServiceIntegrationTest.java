@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
+import com.ruben.backend.activity.entity.Activity;
+import com.ruben.backend.activity.repository.ActivityRepository;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
 import com.ruben.backend.common.error.ForbiddenException;
@@ -13,6 +15,7 @@ import com.ruben.backend.common.security.TripMateUserDetails;
 import com.ruben.backend.common.security.TripMateUserDetailsService;
 import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageResult;
+import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.repository.ImageRepository;
 import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
@@ -26,6 +29,9 @@ import com.ruben.backend.user.service.AdminAccountInitializer;
 import com.ruben.backend.user.service.UserService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -42,6 +48,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 @Tag("B4")
 @Tag("B8")
+@Tag("I9")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class TripServiceIntegrationTest {
@@ -50,6 +57,7 @@ class TripServiceIntegrationTest {
   @Autowired private UserService userService;
   @Autowired private TripRepository tripRepository;
   @Autowired private ImageRepository imageRepository;
+  @Autowired private ActivityRepository activityRepository;
   @Autowired private TripMateUserDetailsService userDetailsService;
   @Autowired private DatabaseCleaner databaseCleaner;
   @Autowired private UserRepository userRepository;
@@ -348,5 +356,194 @@ class TripServiceIntegrationTest {
     assertThat(imageRepository.count()).isZero();
     assertThatThrownBy(() -> tripService.findCoverContent(created.id()))
         .isInstanceOf(ResourceNotFoundException.class);
+  }
+
+  // --- copy of a public trip (I9) ---
+
+  /** Ana's published trip: a cover and two activities, one with a picture and times. */
+  private Trip publishedTripOfAna() {
+    Trip original =
+        new Trip(
+            userRepository.getReferenceById(ana.id()),
+            "Rome trip",
+            "Rome",
+            LocalDate.of(2027, 7, 10),
+            LocalDate.of(2027, 7, 17));
+    original.setBudget(new BigDecimal("900.00"));
+    original.setDescription("Ancient ruins");
+    original.setCoverImage(imageRepository.save(new Image(ImageTestData.png(30), "image/png")));
+    original.publish();
+    original = tripRepository.save(original);
+    Activity colosseum =
+        new Activity(
+            original,
+            userRepository.getReferenceById(ana.id()),
+            "Colosseum",
+            LocalDate.of(2027, 7, 11));
+    colosseum.setStartTime(LocalTime.of(10, 0));
+    colosseum.setEndTime(LocalTime.of(12, 0));
+    colosseum.setCost(new BigDecimal("16.50"));
+    colosseum.setImage(imageRepository.save(new Image(ImageTestData.jpeg(40), "image/jpeg")));
+    activityRepository.save(colosseum);
+    activityRepository.save(
+        new Activity(
+            original,
+            userRepository.getReferenceById(ana.id()),
+            "Forum",
+            LocalDate.of(2027, 7, 13)));
+    return original;
+  }
+
+  private List<Activity> activitiesOf(Long tripId) {
+    return activityRepository.findByTripIdOrderByDateAscStartTimeAscIdAsc(tripId);
+  }
+
+  @Test
+  void copyPublicCreatesAnUnpublishedTripOfTheCallerLinkedToTheOriginal() {
+    Trip original = publishedTripOfAna();
+    logInAs(bob);
+
+    TripDTO copy = tripService.copyPublic(original.getId(), null);
+
+    assertThat(copy.id()).isNotEqualTo(original.getId());
+    assertThat(copy.creatorId()).isEqualTo(bob.id());
+    assertThat(copy.published()).isFalse();
+    assertThat(copy.publishedAt()).isNull();
+    assertThat(copy.copiedFromId()).isEqualTo(original.getId());
+    assertThat(copy.name()).isEqualTo("Rome trip");
+    assertThat(copy.destination()).isEqualTo("Rome");
+    assertThat(copy.budget()).isEqualByComparingTo("900.00");
+    assertThat(copy.description()).isEqualTo("Ancient ruins");
+    assertThat(copy.startDate()).isEqualTo(LocalDate.of(2027, 7, 10));
+    assertThat(copy.endDate()).isEqualTo(LocalDate.of(2027, 7, 17));
+    assertThat(tripService.findPage(PageRequest.of(0, 10)).content())
+        .extracting(TripDTO::id)
+        .containsExactly(copy.id());
+  }
+
+  @Test
+  void copyPublicCopiesTheActivitiesWithTheCallerAsAuthorAndKeepsTheDatesWithoutAStartDate() {
+    Trip original = publishedTripOfAna();
+    logInAs(bob);
+
+    TripDTO copy = tripService.copyPublic(original.getId(), null);
+
+    List<Activity> copied = activitiesOf(copy.id());
+    assertThat(copied).extracting(Activity::getName).containsExactly("Colosseum", "Forum");
+    assertThat(copied)
+        .extracting(Activity::getDate)
+        .containsExactly(LocalDate.of(2027, 7, 11), LocalDate.of(2027, 7, 13));
+    assertThat(copied.getFirst().getAuthor().getId()).isEqualTo(bob.id());
+    assertThat(copied.getFirst().getStartTime()).isEqualTo(LocalTime.of(10, 0));
+    assertThat(copied.getFirst().getEndTime()).isEqualTo(LocalTime.of(12, 0));
+    assertThat(copied.getFirst().getCost()).isEqualByComparingTo("16.50");
+    assertThat(activitiesOf(original.getId())).hasSize(2);
+  }
+
+  @Test
+  void copyPublicWithAStartDateMovesTheTripAndEveryActivityByTheSameDays() {
+    Trip original = publishedTripOfAna();
+    logInAs(bob);
+
+    TripDTO copy = tripService.copyPublic(original.getId(), LocalDate.of(2027, 9, 1));
+
+    assertThat(copy.startDate()).isEqualTo(LocalDate.of(2027, 9, 1));
+    assertThat(copy.endDate()).isEqualTo(LocalDate.of(2027, 9, 8));
+    assertThat(activitiesOf(copy.id()))
+        .extracting(Activity::getDate)
+        .containsExactly(LocalDate.of(2027, 9, 2), LocalDate.of(2027, 9, 4));
+    assertThat(activitiesOf(original.getId()))
+        .extracting(Activity::getDate)
+        .containsExactly(LocalDate.of(2027, 7, 11), LocalDate.of(2027, 7, 13));
+  }
+
+  @Test
+  void copyPublicDuplicatesTheCoverAndThePicturesAsNewRowsWithTheSameContent() {
+    Trip original = publishedTripOfAna();
+    UUID originalCover = original.getCoverImage().getId();
+    UUID originalPicture = activitiesOf(original.getId()).getFirst().getImage().getId();
+    logInAs(bob);
+
+    TripDTO copy = tripService.copyPublic(original.getId(), null);
+
+    UUID copiedPicture = activitiesOf(copy.id()).getFirst().getImage().getId();
+    assertThat(copy.coverImageId()).isNotNull().isNotEqualTo(originalCover);
+    assertThat(copiedPicture).isNotEqualTo(originalPicture);
+    assertThat(imageRepository.count()).isEqualTo(4);
+    Image cover = imageRepository.findById(copy.coverImageId()).orElseThrow();
+    assertThat(cover.getData()).isEqualTo(ImageTestData.png(30));
+    assertThat(cover.getContentType()).isEqualTo("image/png");
+    Image picture = imageRepository.findById(copiedPicture).orElseThrow();
+    assertThat(picture.getData()).isEqualTo(ImageTestData.jpeg(40));
+    assertThat(picture.getContentType()).isEqualTo("image/jpeg");
+  }
+
+  @Test
+  void copyPublicOfAnUnpublishedOrUnknownTripIsNotFoundAndCreatesNothing() {
+    Trip original = publishedTripOfAna();
+    original.unpublish();
+    tripRepository.save(original);
+    logInAs(bob);
+
+    assertThatThrownBy(() -> tripService.copyPublic(original.getId(), null))
+        .isInstanceOf(ResourceNotFoundException.class);
+    assertThatThrownBy(() -> tripService.copyPublic(999_999L, null))
+        .isInstanceOf(ResourceNotFoundException.class);
+    assertThat(tripRepository.count()).isEqualTo(1);
+    assertThat(imageRepository.count()).isEqualTo(2);
+  }
+
+  @Test
+  void theCopyIsIndependentOfTheOriginalWhenTheOriginalIsEdited() {
+    Trip original = publishedTripOfAna();
+    logInAs(bob);
+    TripDTO copy = tripService.copyPublic(original.getId(), null);
+
+    logInAs(ana);
+    tripService.update(
+        original.getId(),
+        new TripRequest(
+            "Renamed", "Paris", LocalDate.of(2028, 1, 1), LocalDate.of(2028, 1, 3), null, null));
+    tripService.changePublication(original.getId(), false);
+
+    logInAs(bob);
+    TripDTO unchanged = tripService.findById(copy.id());
+    assertThat(unchanged.name()).isEqualTo("Rome trip");
+    assertThat(unchanged.destination()).isEqualTo("Rome");
+    assertThat(unchanged.startDate()).isEqualTo(LocalDate.of(2027, 7, 10));
+    assertThat(unchanged.copiedFromId()).isEqualTo(original.getId());
+  }
+
+  @Test
+  void deletingTheOriginalKeepsTheCopyWorkingAndClearsItsLink() {
+    Trip original = publishedTripOfAna();
+    logInAs(bob);
+    TripDTO copy = tripService.copyPublic(original.getId(), null);
+
+    logInAs(ana);
+    tripService.delete(original.getId());
+
+    logInAs(bob);
+    TripDTO survivor = tripService.findById(copy.id());
+    assertThat(survivor.copiedFromId()).isNull();
+    assertThat(survivor.name()).isEqualTo("Rome trip");
+    assertThat(activitiesOf(copy.id())).hasSize(2);
+    assertThat(imageRepository.count()).isEqualTo(2);
+    assertThat(imageRepository.findById(survivor.coverImageId())).isPresent();
+    UUID picture = activitiesOf(copy.id()).getFirst().getImage().getId();
+    assertThat(imageRepository.findById(picture)).isPresent();
+  }
+
+  @Test
+  void deletingTheCopyLeavesTheOriginalWithItsActivitiesAndImages() {
+    Trip original = publishedTripOfAna();
+    logInAs(bob);
+    TripDTO copy = tripService.copyPublic(original.getId(), null);
+
+    tripService.delete(copy.id());
+
+    assertThat(tripRepository.findById(original.getId())).isPresent();
+    assertThat(activitiesOf(original.getId())).hasSize(2);
+    assertThat(imageRepository.count()).isEqualTo(2);
   }
 }

@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -55,6 +56,14 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
               + " or lower(t.destination) like lower(concat('%', :search, '%'))"
               + " or lower(c.email) like lower(concat('%', :search, '%')))")
   Page<Trip> searchAll(@Param("search") String search, Pageable pageable);
+
+  /**
+   * Makes the copies of a trip independent of it (I9) before it is deleted: their `copiedFrom`
+   * becomes null. An explicit update, because the database has no cascade.
+   */
+  @Modifying(flushAutomatically = true)
+  @Query("update Trip t set t.copiedFrom = null where t.copiedFrom.id = :id")
+  int clearCopiedFrom(@Param("id") Long id);
 
   List<Trip> findByCreatorIdAndNameIn(Long creatorId, Collection<String> names);
 }

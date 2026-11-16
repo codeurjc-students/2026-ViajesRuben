@@ -4,22 +4,29 @@ import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.ErrorResponse;
+import com.ruben.backend.trip.dto.CopyTripRequest;
 import com.ruben.backend.trip.dto.PublicTripDTO;
 import com.ruben.backend.trip.dto.PublicTripSummaryDTO;
+import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.service.PublicTripService;
+import com.ruben.backend.trip.service.TripService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import java.net.URI;
 import java.time.LocalDate;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,11 +40,15 @@ public class PublicTripController {
 
   private final PublicTripService publicTripService;
   private final ActivityService activityService;
+  private final TripService tripService;
 
   public PublicTripController(
-      PublicTripService publicTripService, ActivityService activityService) {
+      PublicTripService publicTripService,
+      ActivityService activityService,
+      TripService tripService) {
     this.publicTripService = publicTripService;
     this.activityService = activityService;
+    this.tripService = tripService;
   }
 
   @Operation(
@@ -115,5 +126,37 @@ public class PublicTripController {
               sort = {"date", "startTime", "id"})
           Pageable pageable) {
     return activityService.findPublicPage(id, date, pageable);
+  }
+
+  @Operation(
+      summary = "Copy a public trip to the user's account",
+      description =
+          "Login required. Creates a new trip of the logged-in user from a published one: same"
+              + " name, destination, budget and description, not published, with `copiedFromId`"
+              + " pointing at the original, plus a copy of its cover, its activities (the user is"
+              + " their author) and their pictures; every image is a new one, so the copy never"
+              + " depends on the original. The body is optional: with `startDate`"
+              + " (`yyyy-MM-dd`) the copy starts that day, keeps the length of the trip and every"
+              + " activity moves by the same number of days; without it the original dates are"
+              + " kept. An unpublished or unknown id is 404, never 403. The `Location` header is"
+              + " the URL of the new trip.")
+  @ApiResponse(responseCode = "201", description = "The trip was copied")
+  @ApiResponse(
+      responseCode = "400",
+      description = "The id is not a number or `startDate` is not a valid date",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "401",
+      description = "Not logged in",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = NO_PUBLIC_TRIP,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @PostMapping("/{id}/copies")
+  public ResponseEntity<TripDTO> copyPublicTrip(
+      @PathVariable Long id, @RequestBody(required = false) CopyTripRequest request) {
+    TripDTO copy = tripService.copyPublic(id, request == null ? null : request.startDate());
+    return ResponseEntity.created(URI.create("/api/v1/trips/" + copy.id())).body(copy);
   }
 }

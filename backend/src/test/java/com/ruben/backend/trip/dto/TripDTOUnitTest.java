@@ -52,7 +52,19 @@ class TripDTOUnitTest {
                 "Ancient ruins",
                 null,
                 false,
+                null,
                 null));
+  }
+
+  @Test
+  @Tag("I9")
+  void exposesTheIdOfTheTripItWasCopiedFrom() {
+    Trip original = trip();
+    Trip copy = trip();
+    copy.setCopiedFrom(original);
+
+    assertThat(TripDTO.from(copy).copiedFromId()).isEqualTo(3L);
+    assertThat(TripDTO.from(original).copiedFromId()).isNull();
   }
 
   @Test

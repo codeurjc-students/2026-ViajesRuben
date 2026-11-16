@@ -372,3 +372,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I8`.
 - **Human Validation:** The student reviewed and approved the plan and reviewed and edited the generated code.
+
+#### Record 4.3 — Copy a public itinerary to one's account (I9)
+
+- **Date:** 16/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I9.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.325; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I9`, split into five stages, and to write some parts of the code and tests, and the documentation (OpenAPI, Postman collection, development guide, changelog).
+  - The student approved the plan, added the design decision about duplicating the image rows to it, and committed each stage after it.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I9`.
+- **Human Validation:** The student reviewed and approved the plan, asked for the design decision above, and reviewed the generated code stage by stage.

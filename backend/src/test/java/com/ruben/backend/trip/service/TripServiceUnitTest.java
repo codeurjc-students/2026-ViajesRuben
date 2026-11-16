@@ -3,6 +3,7 @@ package com.ruben.backend.trip.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -320,6 +322,141 @@ class TripServiceUnitTest {
         .isInstanceOf(ForbiddenException.class);
     assertThat(trip.getName()).isEqualTo("Trip");
     verify(tripRepository, never()).saveAndFlush(any());
+  }
+
+  // --- copy of a public trip (I9) ---
+
+  /** A published trip of Bob, as `findPublished` would answer, with budget and description. */
+  private Trip publicTrip(Long id) {
+    Trip original = newTrip(bob, id);
+    original.setBudget(new BigDecimal("900.00"));
+    original.setDescription("Ancient ruins");
+    original.publish();
+    when(tripAccessService.findPublished(id)).thenReturn(original);
+    return original;
+  }
+
+  private void copiesAreSavedAsTheyAre() {
+    anaIsLoggedIn();
+    when(userRepository.getReferenceById(7L)).thenReturn(ana);
+    when(tripRepository.saveAndFlush(any(Trip.class))).thenAnswer(call -> call.getArgument(0));
+  }
+
+  @Test
+  @Tag("I9")
+  void copyPublicCreatesAnUnpublishedTripOwnedByTheCallerLinkedToTheOriginal() {
+    Trip original = publicTrip(4L);
+    copiesAreSavedAsTheyAre();
+
+    TripDTO copy = tripService.copyPublic(4L, null);
+
+    assertThat(copy.creatorId()).isEqualTo(7L);
+    assertThat(copy.name()).isEqualTo("Trip");
+    assertThat(copy.destination()).isEqualTo("Rome");
+    assertThat(copy.budget()).isEqualByComparingTo("900.00");
+    assertThat(copy.description()).isEqualTo("Ancient ruins");
+    assertThat(copy.published()).isFalse();
+    assertThat(copy.publishedAt()).isNull();
+    ArgumentCaptor<Trip> saved = ArgumentCaptor.forClass(Trip.class);
+    verify(tripRepository).saveAndFlush(saved.capture());
+    assertThat(saved.getValue()).isNotSameAs(original);
+    assertThat(saved.getValue().getCopiedFrom()).isSameAs(original);
+  }
+
+  @Test
+  @Tag("I9")
+  void copyPublicWithoutADateKeepsTheOriginalDatesAndCopiesTheActivitiesUnmoved() {
+    publicTrip(4L);
+    copiesAreSavedAsTheyAre();
+
+    TripDTO copy = tripService.copyPublic(4L, null);
+
+    assertThat(copy.startDate()).isEqualTo(LocalDate.of(2027, 7, 10));
+    assertThat(copy.endDate()).isEqualTo(LocalDate.of(2027, 7, 17));
+    ArgumentCaptor<Trip> saved = ArgumentCaptor.forClass(Trip.class);
+    verify(tripRepository).saveAndFlush(saved.capture());
+    verify(activityService).copyAll(4L, saved.getValue(), 0L);
+  }
+
+  @Test
+  @Tag("I9")
+  void copyPublicWithAStartDateKeepsTheLengthAndMovesTheActivitiesByTheSameDays() {
+    publicTrip(4L);
+    copiesAreSavedAsTheyAre();
+
+    TripDTO copy = tripService.copyPublic(4L, LocalDate.of(2027, 8, 1));
+
+    assertThat(copy.startDate()).isEqualTo(LocalDate.of(2027, 8, 1));
+    assertThat(copy.endDate()).isEqualTo(LocalDate.of(2027, 8, 8));
+    ArgumentCaptor<Trip> saved = ArgumentCaptor.forClass(Trip.class);
+    verify(tripRepository).saveAndFlush(saved.capture());
+    verify(activityService).copyAll(4L, saved.getValue(), 22L);
+  }
+
+  @Test
+  @Tag("I9")
+  void copyPublicWithAnEarlierStartDateMovesEverythingBack() {
+    publicTrip(4L);
+    copiesAreSavedAsTheyAre();
+
+    TripDTO copy = tripService.copyPublic(4L, LocalDate.of(2027, 7, 1));
+
+    assertThat(copy.startDate()).isEqualTo(LocalDate.of(2027, 7, 1));
+    assertThat(copy.endDate()).isEqualTo(LocalDate.of(2027, 7, 8));
+    verify(activityService).copyAll(eq(4L), any(Trip.class), eq(-9L));
+  }
+
+  @Test
+  @Tag("I9")
+  void copyPublicDuplicatesTheCoverAsANewImage() {
+    Trip original = publicTrip(4L);
+    Image cover = image();
+    Image duplicate = image();
+    original.setCoverImage(cover);
+    when(imageService.copy(cover.getId())).thenReturn(duplicate);
+    copiesAreSavedAsTheyAre();
+
+    TripDTO copy = tripService.copyPublic(4L, null);
+
+    assertThat(copy.coverImageId()).isEqualTo(duplicate.getId()).isNotEqualTo(cover.getId());
+  }
+
+  @Test
+  @Tag("I9")
+  void copyPublicOfATripWithoutCoverDoesNotTouchImages() {
+    publicTrip(4L);
+    copiesAreSavedAsTheyAre();
+
+    TripDTO copy = tripService.copyPublic(4L, null);
+
+    assertThat(copy.coverImageId()).isNull();
+    verifyNoInteractions(imageService);
+  }
+
+  @Test
+  @Tag("I9")
+  void copyPublicOfAnUnpublishedOrUnknownTripIsNotFoundAndCopiesNothing() {
+    when(tripAccessService.findPublished(4L))
+        .thenThrow(new ResourceNotFoundException("Trip not found"));
+
+    assertThatThrownBy(() -> tripService.copyPublic(4L, null))
+        .isInstanceOf(ResourceNotFoundException.class);
+    verify(tripRepository, never()).saveAndFlush(any());
+    verifyNoInteractions(activityService, imageService);
+  }
+
+  @Test
+  @Tag("I9")
+  void deleteMakesTheCopiesIndependentAfterTheActivitiesAndBeforeTheTrip() {
+    anaIsLoggedIn();
+    Trip trip = tripOf(ana, 1L);
+
+    tripService.delete(1L);
+
+    InOrder order = Mockito.inOrder(activityService, tripRepository);
+    order.verify(activityService).deleteAllByTrip(1L);
+    order.verify(tripRepository).clearCopiedFrom(1L);
+    order.verify(tripRepository).delete(trip);
   }
 
   @Test

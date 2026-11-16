@@ -1,5 +1,5 @@
-import type { Activity, Page, PublicTrip, PublicTripSummary } from '../types';
-import { request } from './apiError';
+import type { Activity, Page, PublicTrip, PublicTripSummary, Trip } from '../types';
+import { request, sendJson } from './apiError';
 import { DEFAULT_PAGE_SIZE } from './tripService';
 
 /** How many public trips the home carousel shows at a time. */
@@ -43,4 +43,14 @@ export function getPublicActivities(
   return request<Page<Activity>>(
     `${PUBLIC_URL}/${tripId}/activities?page=${page}&size=${size}${day}`,
   );
+}
+
+/**
+ * Copies a public trip with its activities and images into a new, unpublished trip of the logged-in
+ * user (I9). With `startDate` (yyyy-MM-dd) the copy starts that day, keeps the length and moves
+ * every activity by the same number of days; without it the original dates are kept. Answers 401
+ * without a session and 404 when the trip does not exist or is not published.
+ */
+export function copyPublicTrip(id: number, startDate?: string): Promise<Trip> {
+  return sendJson<Trip>('POST', `${PUBLIC_URL}/${id}/copies`, startDate ? { startDate } : {});
 }
