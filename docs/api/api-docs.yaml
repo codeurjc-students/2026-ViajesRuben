@@ -1359,6 +1359,59 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/public/{id}/copies:
+    post:
+      tags:
+        - public-trip-controller
+      summary: Copy a public trip to the user's account
+      description:
+        "Login required. Creates a new trip of the logged-in user from\
+        \ a published one: same name, destination, budget and description, not published,\
+        \ with `copiedFromId` pointing at the original, plus a copy of its cover,\
+        \ its activities (the user is their author) and their pictures; every image\
+        \ is a new one, so the copy never depends on the original. The body is optional:\
+        \ with `startDate` (`yyyy-MM-dd`) the copy starts that day, keeps the length\
+        \ of the trip and every activity moves by the same number of days; without\
+        \ it the original dates are kept. An unpublished or unknown id is 404, never\
+        \ 403. The `Location` header is the URL of the new trip."
+      operationId: copyPublicTrip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CopyTripRequest"
+      responses:
+        "201":
+          description: The trip was copied
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripDTO"
+        "400":
+          description: The id is not a number or `startDate` is not a valid date
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No published trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/images:
     post:
       tags:
@@ -2139,6 +2192,9 @@ components:
         publishedAt:
           type: string
           format: date-time
+        copiedFromId:
+          type: integer
+          format: int64
     PublicationRequest:
       type: object
       properties:
@@ -2194,6 +2250,12 @@ components:
         - email
         - name
         - password
+    CopyTripRequest:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date
     LoginRequest:
       type: object
       properties:

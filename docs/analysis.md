@@ -122,7 +122,7 @@ Notes:
 
 - The activity duration is not stored; it is calculated from `start_time` and `end_time`.
 - `published` is false by default; a published trip is a public itinerary (from version 0.2), and `published_at` is the date it was published, used to order the public list.
-- Copying a public itinerary creates a new, independent trip owned by the user who copies it, with new rows for its activities and images, and `copied_from_id` pointing to the original. Unpublishing or editing the original does not affect the copy, and `copied_from_id` becomes empty if the original is deleted. The copy is not published.
+- Copying a public itinerary creates a new, independent trip owned by the user who copies it, with new rows for its activities and images, and `copied_from_id` pointing to the original. Unpublishing or editing the original does not affect the copy, and `copied_from_id` becomes empty if the original is deleted. The copy is not published. The user may choose a new start date: the copy then keeps the length of the trip and every activity moves by the same number of days; without it, the original dates are kept.
 - The Telegram attributes are optional (empty until the user connects Telegram or the creator creates the trip's group) and are used from version 1.0.
 - `telegram_link_token` is a one-time code with an expiration date, used to link a TripMate account with a Telegram account through the bot.
 

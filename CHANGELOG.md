@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - I7: sample data publishes five trips of three authors (the administrator's three, Ana's Lisbon and Carlos's Andalusia), so the carousel shows several authors.
 - I8: public itineraries page at `/public`, open to anyone: the complete list of published trips, newest publication first, ten at a time with a "Más resultados" button, one line per trip (name, destination, dates and author) linking to its read-only preview, and a search by trip name or destination (on submit, ignoring case). It has empty states for no public trips and for a search without results. A "Viajes públicos" link in the header, for anonymous and logged-in users, opens it.
 - I8: `GET /api/v1/trips/public` accepts an optional `search` parameter that keeps the published trips whose name or destination contains the text, ignoring case and surrounding spaces; blank lists all. The sort, page size, public DTO (no emails) and the public URLs are unchanged, and the search is done in the database query.
+- I9: copy a public itinerary to one's own account. `POST /api/v1/trips/public/{id}/copies` (login required; 401 for a visitor, 404, never 403, for a trip that is not published) creates a new trip of the user with the same name, destination, budget and description, not published, plus a copy of its cover and of its activities (the user is their author), and answers 201 with the new trip in the body and its URL in `Location`. The optional body `{"startDate": "yyyy-MM-dd"}` makes the copy start that day, keep the length of the trip and move every activity by the same number of days; without it the original dates are kept. Every image is duplicated as a new row, so the copy never shares data with the original, and everything happens in one transaction.
+- I9: `Trip` gets `copiedFrom` (column `copied_from_id`, null for a trip that is not a copy) and `TripDTO` reports it as `copiedFromId`. Deleting the original sets `copiedFromId` to null on its copies (an explicit update before the delete, no database cascade), so a copy keeps working.
+- I9: the public itinerary page (`/public/:tripId`) has a "Copiar en tu cuenta" button. A visitor is sent to the login page and brought back to the same itinerary; a logged-in user chooses an optional new start date in a modal and lands on the new trip, with a message that it was copied.
 
 ### Changed
 
@@ -25,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Upgrading an existing development database
 
 - The schema is still updated by Hibernate (no Flyway): `trip.published` (not null, default false) and `trip.published_at` are added on start-up, so existing trips start unpublished and nothing breaks. The sample trips are published only when they are created, so an existing development database does not get the published sample trips until it is reset (delete the `tripmate-mysql` container and create it again, or drop the `tripmate` schema); until then the home carousel is empty, and a user can publish their own trips from the trip page.
+- `trip.copied_from_id` (nullable, a foreign key to `trip.id`) is added on start-up (I9); no existing row changes, because no existing trip is a copy.
 
 ## [0.1.0] - 2026-11-04
 

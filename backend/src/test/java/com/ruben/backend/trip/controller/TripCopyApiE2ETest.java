@@ -205,12 +205,14 @@ class TripCopyApiE2ETest {
 
   @Test
   void theCopyIsCreatedForTheCallerUnpublishedAndLinkedToTheOriginal() {
-    json(bobToken)
-        .post(copies)
+    io.restassured.response.Response created = json(bobToken).post(copies);
+
+    created
         .then()
         .statusCode(201)
-        .header("Location", endsWith("/api/v1/trips/" + (originalId + 1)))
+        .header("Location", endsWith("/api/v1/trips/" + created.jsonPath().getLong("id")))
         .body("id", notNullValue())
+        .body("id", org.hamcrest.Matchers.not(equalTo((int) originalId)))
         .body("name", equalTo("Rome trip"))
         .body("destination", equalTo("Rome"))
         .body("budget", equalTo(900.00f))
