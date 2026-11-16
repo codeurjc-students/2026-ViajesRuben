@@ -15,6 +15,8 @@ export interface Trip {
   published: boolean;
   /** ISO instant of the publication; null while the trip is not published. */
   publishedAt: string | null;
+  /** Id of the public trip this one was copied from (I9); null if it is no copy or the original was deleted. */
+  copiedFromId: number | null;
 }
 
 /** Mirrors the backend AdminTripDTO: a trip in the administrator's moderation list. */
