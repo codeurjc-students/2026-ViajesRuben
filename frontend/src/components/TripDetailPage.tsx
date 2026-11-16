@@ -4,7 +4,7 @@ import Badge from 'react-bootstrap/Badge';
 import Card from 'react-bootstrap/Card';
 import Container from 'react-bootstrap/Container';
 import Button from 'react-bootstrap/Button';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { useConflicts } from '../hooks/useConflicts';
 import { useTrip } from '../hooks/useTrip';
@@ -26,6 +26,9 @@ export default function TripDetailPage() {
   const { tripId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  // A message left by the page that sent the user here, e.g. after copying a public itinerary (I9).
+  const notice = (useLocation().state as { notice?: string } | null)?.notice;
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
   const { trip, error } = useTrip(tripId);
   const { conflicts, reload: reloadConflicts } = useConflicts(trip?.id);
   const { cost, reload: reloadCost } = useTripCost(trip?.id);
@@ -60,6 +63,11 @@ export default function TripDetailPage() {
           {moderating ? 'Volver a Viajes' : 'Volver a Mis viajes'}
         </Link>
       </p>
+      {notice && !noticeDismissed && (
+        <Alert variant="success" dismissible onClose={() => setNoticeDismissed(true)}>
+          {notice}
+        </Alert>
+      )}
       {!trip ? (
         <p className="bg-white rounded p-3" role="status">
           Cargando viaje…
