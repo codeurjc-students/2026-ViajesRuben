@@ -576,6 +576,108 @@ class ActivityServiceUnitTest {
     verify(imageService).deleteAll(List.of());
   }
 
+  // --- copy of a public trip (I9) ---
+
+  private Trip copyTarget(Long id) {
+    Trip target = new Trip(ana, "Copy", "Rome", START.plusDays(10), END.plusDays(10));
+    ReflectionTestUtils.setField(target, "id", id);
+    return target;
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<Activity> savedCopies() {
+    org.mockito.ArgumentCaptor<List<Activity>> saved =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(activityRepository).saveAll(saved.capture());
+    return saved.getValue();
+  }
+
+  @Test
+  @Tag("I9")
+  void copyAllCopiesEveryFieldMovesTheDateAndSetsTheCurrentUserAsAuthor() {
+    User bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
+    Activity source = new Activity(trip, bob, "Colosseum", START.plusDays(1));
+    source.setDescription("Guided tour");
+    source.setLocation("Piazza");
+    source.setStartTime(LocalTime.of(10, 0));
+    source.setEndTime(LocalTime.of(12, 30));
+    source.setCost(new BigDecimal("16.50"));
+    source.setCategory(ActivityCategory.SIGHTSEEING);
+    when(activityRepository.findByTripIdOrderByDateAscStartTimeAscIdAsc(1L))
+        .thenReturn(List.of(source));
+    when(authService.getCurrentUser()).thenReturn(UserDTO.from(ana));
+    when(userRepository.getReferenceById(7L)).thenReturn(ana);
+    Trip target = copyTarget(2L);
+
+    activityService.copyAll(1L, target, 10);
+
+    Activity copy = savedCopies().getFirst();
+    assertThat(copy).isNotSameAs(source);
+    assertThat(copy.getTrip()).isSameAs(target);
+    assertThat(copy.getAuthor()).isSameAs(ana);
+    assertThat(copy.getName()).isEqualTo("Colosseum");
+    assertThat(copy.getDate()).isEqualTo(START.plusDays(11));
+    assertThat(copy.getDescription()).isEqualTo("Guided tour");
+    assertThat(copy.getLocation()).isEqualTo("Piazza");
+    assertThat(copy.getStartTime()).isEqualTo(LocalTime.of(10, 0));
+    assertThat(copy.getEndTime()).isEqualTo(LocalTime.of(12, 30));
+    assertThat(copy.getCost()).isEqualByComparingTo("16.50");
+    assertThat(copy.getCategory()).isEqualTo(ActivityCategory.SIGHTSEEING);
+    assertThat(copy.getImage()).isNull();
+    verifyNoInteractions(imageService, tripAccessService);
+  }
+
+  @Test
+  @Tag("I9")
+  void copyAllKeepsTheDatesWithAZeroOffsetAndMovesThemBackWithANegativeOne() {
+    Activity first = new Activity(trip, ana, "One", START);
+    Activity second = new Activity(trip, ana, "Two", START.plusDays(2));
+    when(activityRepository.findByTripIdOrderByDateAscStartTimeAscIdAsc(1L))
+        .thenReturn(List.of(first, second));
+    when(authService.getCurrentUser()).thenReturn(UserDTO.from(ana));
+    when(userRepository.getReferenceById(7L)).thenReturn(ana);
+
+    activityService.copyAll(1L, copyTarget(2L), -3);
+
+    assertThat(savedCopies())
+        .extracting(Activity::getDate)
+        .containsExactly(START.minusDays(3), START.minusDays(1));
+  }
+
+  @Test
+  @Tag("I9")
+  void copyAllDuplicatesEachPictureAsANewImage() {
+    Image original = image();
+    Image duplicate = image();
+    Activity source = new Activity(trip, ana, "Colosseum", START);
+    source.setImage(original);
+    Activity withoutPicture = new Activity(trip, ana, "Walk", START);
+    when(activityRepository.findByTripIdOrderByDateAscStartTimeAscIdAsc(1L))
+        .thenReturn(List.of(source, withoutPicture));
+    when(authService.getCurrentUser()).thenReturn(UserDTO.from(ana));
+    when(userRepository.getReferenceById(7L)).thenReturn(ana);
+    when(imageService.copy(original.getId())).thenReturn(duplicate);
+
+    activityService.copyAll(1L, copyTarget(2L), 0);
+
+    List<Activity> copies = savedCopies();
+    assertThat(copies.get(0).getImage()).isSameAs(duplicate).isNotSameAs(original);
+    assertThat(copies.get(1).getImage()).isNull();
+    verify(imageService, Mockito.times(1)).copy(any());
+  }
+
+  @Test
+  @Tag("I9")
+  void copyAllOfATripWithoutActivitiesSavesNothingToCopy() {
+    when(activityRepository.findByTripIdOrderByDateAscStartTimeAscIdAsc(1L)).thenReturn(List.of());
+    when(authService.getCurrentUser()).thenReturn(UserDTO.from(ana));
+    when(userRepository.getReferenceById(7L)).thenReturn(ana);
+
+    activityService.copyAll(1L, copyTarget(2L), 5);
+
+    assertThat(savedCopies()).isEmpty();
+  }
+
   // --- cost and remaining budget ---
 
   @Test

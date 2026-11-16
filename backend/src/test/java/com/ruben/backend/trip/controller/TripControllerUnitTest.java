@@ -46,6 +46,7 @@ class TripControllerUnitTest {
           null,
           null,
           false,
+          null,
           null);
   private static final TripRequest REQUEST =
       new TripRequest(

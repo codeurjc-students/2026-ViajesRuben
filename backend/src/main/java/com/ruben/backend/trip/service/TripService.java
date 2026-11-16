@@ -16,6 +16,8 @@ import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,10 +145,45 @@ public class TripService {
   }
 
   /**
+   * Copies a public itinerary into a new trip of the current user (I9): same name, destination,
+   * budget and description, not published, with `copiedFrom` pointing at the original, a copy of
+   * its cover and of every activity (with its picture). With a `startDate` the copy starts that
+   * day, keeps the length of the original and moves every activity by the same number of days;
+   * without it the original dates are kept. Everything happens in one transaction, and every image
+   * is a new row, so the copy never depends on the original.
+   *
+   * @throws ResourceNotFoundException no published trip has that id
+   */
+  @Transactional
+  public TripDTO copyPublic(Long id, LocalDate startDate) {
+    Trip original = tripAccessService.findPublished(id);
+    long dayOffset =
+        startDate == null ? 0 : ChronoUnit.DAYS.between(original.getStartDate(), startDate);
+    Trip copy =
+        new Trip(
+            userRepository.getReferenceById(authService.getCurrentUser().id()),
+            original.getName(),
+            original.getDestination(),
+            original.getStartDate().plusDays(dayOffset),
+            original.getEndDate().plusDays(dayOffset));
+    copy.setBudget(original.getBudget());
+    copy.setDescription(original.getDescription());
+    copy.setCopiedFrom(original);
+    if (original.getCoverImage() != null) {
+      copy.setCoverImage(imageService.copy(original.getCoverImage().getId()));
+    }
+    copy = tripRepository.saveAndFlush(copy);
+    activityService.copyAll(id, copy, dayOffset);
+    log.info(
+        "User {} copied public trip {} into trip {}", copy.getCreator().getId(), id, copy.getId());
+    return TripDTO.from(copy);
+  }
+
+  /**
    * The creator, or the administrator (B8), deletes the trip: its activities (with their pictures),
-   * then the trip, then its cover image, in this order because each points at the next. Features
-   * that add children of a trip (invitations, participations) delete them here first, explicitly,
-   * before the trip.
+   * the link of its copies (I9), then the trip, then its cover image, in this order because each
+   * points at the next. Features that add children of a trip (invitations, participations) delete
+   * them here first, explicitly, before the trip.
    */
   @Transactional
   public void delete(Long id) {
@@ -154,6 +191,7 @@ public class TripService {
     Image cover = trip.getCoverImage();
     Long creatorId = trip.getCreator().getId();
     activityService.deleteAllByTrip(id);
+    tripRepository.clearCopiedFrom(id);
     tripRepository.delete(trip);
     if (cover != null) {
       imageService.delete(cover.getId());

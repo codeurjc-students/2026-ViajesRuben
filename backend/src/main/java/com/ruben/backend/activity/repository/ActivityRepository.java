@@ -49,6 +49,9 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
   boolean existsByTripId(Long tripId);
 
+  /** All the activities of a trip in itinerary order, for copying it (I9). */
+  List<Activity> findByTripIdOrderByDateAscStartTimeAscIdAsc(Long tripId);
+
   /**
    * The pairs of activities of the same day whose times intersect. Ranges that only touch (one ends
    * when the other starts) do not intersect; activities without both times are ignored.

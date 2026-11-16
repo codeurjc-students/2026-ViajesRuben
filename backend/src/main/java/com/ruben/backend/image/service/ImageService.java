@@ -58,6 +58,21 @@ public class ImageService {
     return imageRepository.save(new Image(data, contentType));
   }
 
+  /**
+   * Stores a new image with the same bytes and type as an existing one (I9), so a copied trip never
+   * shares a row with its original and deleting one never breaks the other.
+   *
+   * @throws ResourceNotFoundException no image has that id
+   */
+  @Transactional
+  public Image copy(UUID id) {
+    Image original =
+        imageRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Image not found"));
+    return imageRepository.save(new Image(original.getData().clone(), original.getContentType()));
+  }
+
   /** Removes an image that nothing links to any more; an unknown id is ignored. */
   @Transactional
   public void delete(UUID id) {

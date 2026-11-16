@@ -17,6 +17,7 @@ import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.service.TripAccessService;
+import com.ruben.backend.user.entity.User;
 import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
 import java.math.BigDecimal;
@@ -239,6 +240,41 @@ public class ActivityService {
     List<UUID> imageIds = activityRepository.findImageIdsByTripId(tripId);
     activityRepository.deleteByTripId(tripId);
     imageService.deleteAll(imageIds);
+  }
+
+  /**
+   * Copies every activity of a trip into another trip (I9), with the current user as author and
+   * each date moved by `dayOffset` days; a picture is duplicated as a new image, never shared. The
+   * caller has already authorised both trips.
+   */
+  @Transactional
+  public void copyAll(Long sourceTripId, Trip target, long dayOffset) {
+    User author = userRepository.getReferenceById(authService.getCurrentUser().id());
+    List<Activity> copies =
+        activityRepository.findByTripIdOrderByDateAscStartTimeAscIdAsc(sourceTripId).stream()
+            .map(source -> copyOf(source, target, author, dayOffset))
+            .toList();
+    activityRepository.saveAll(copies);
+    log.info(
+        "{} activities copied from trip {} to trip {}",
+        copies.size(),
+        sourceTripId,
+        target.getId());
+  }
+
+  private Activity copyOf(Activity source, Trip target, User author, long dayOffset) {
+    Activity copy =
+        new Activity(target, author, source.getName(), source.getDate().plusDays(dayOffset));
+    copy.setDescription(source.getDescription());
+    copy.setLocation(source.getLocation());
+    copy.setStartTime(source.getStartTime());
+    copy.setEndTime(source.getEndTime());
+    copy.setCost(source.getCost());
+    copy.setCategory(source.getCategory());
+    if (source.getImage() != null) {
+      copy.setImage(imageService.copy(source.getImage().getId()));
+    }
+    return copy;
   }
 
   private Activity findActivity(Long tripId, Long id) {

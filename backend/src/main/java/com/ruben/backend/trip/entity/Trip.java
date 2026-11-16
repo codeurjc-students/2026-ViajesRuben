@@ -64,6 +64,14 @@ public class Trip {
   /** When the trip was published; null while it is not. Orders the public list. */
   private Instant publishedAt;
 
+  /**
+   * The public trip this one was copied from (I9); null for a trip that is not a copy, or whose
+   * original was deleted. Lazy, so reading its id never loads the original.
+   */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "copied_from_id")
+  private Trip copiedFrom;
+
   protected Trip() {}
 
   public Trip(
@@ -150,6 +158,14 @@ public class Trip {
 
   public Instant getPublishedAt() {
     return publishedAt;
+  }
+
+  public Trip getCopiedFrom() {
+    return copiedFrom;
+  }
+
+  public void setCopiedFrom(Trip copiedFrom) {
+    this.copiedFrom = copiedFrom;
   }
 
   /** Publishes the trip now; publishing a published trip changes nothing, not even its date. */
