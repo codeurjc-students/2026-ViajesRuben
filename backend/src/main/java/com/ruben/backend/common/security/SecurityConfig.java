@@ -69,6 +69,7 @@ public class SecurityConfig {
                     .permitAll()
                     // Trips belong to their creator and need a login, except the read-only
                     // public itineraries (the published trips) of the public home page (B1, I7).
+                    // Only these GETs are public: copying one (I9, a POST) needs a login.
                     .requestMatchers(
                         HttpMethod.GET,
                         "/api/v1/trips/public",

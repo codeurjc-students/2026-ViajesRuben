@@ -6,9 +6,12 @@ import static org.mockito.Mockito.when;
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
+import com.ruben.backend.trip.dto.CopyTripRequest;
 import com.ruben.backend.trip.dto.PublicTripDTO;
 import com.ruben.backend.trip.dto.PublicTripSummaryDTO;
+import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.service.PublicTripService;
+import com.ruben.backend.trip.service.TripService;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -19,15 +22,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 @Tag("B1")
 @Tag("I7")
 @Tag("I8")
+@Tag("I9")
 @ExtendWith(MockitoExtension.class)
 class PublicTripControllerUnitTest {
 
   @Mock private PublicTripService publicTripService;
   @Mock private ActivityService activityService;
+  @Mock private TripService tripService;
   @InjectMocks private PublicTripController controller;
 
   @Test
@@ -65,5 +72,49 @@ class PublicTripControllerUnitTest {
     when(activityService.findPublicPage(4L, day, pageable)).thenReturn(page);
 
     assertThat(controller.getPublicTripActivities(4L, day, pageable)).isSameAs(page);
+  }
+
+  private static TripDTO copy() {
+    return new TripDTO(
+        9L,
+        7L,
+        "Rome",
+        "Rome",
+        LocalDate.of(2027, 8, 1),
+        LocalDate.of(2027, 8, 8),
+        null,
+        null,
+        null,
+        false,
+        null,
+        4L);
+  }
+
+  @Test
+  void copyPublicTripAnswers201WithTheLocationOfTheNewTrip() {
+    TripDTO copy = copy();
+    LocalDate start = LocalDate.of(2027, 8, 1);
+    when(tripService.copyPublic(4L, start)).thenReturn(copy);
+
+    ResponseEntity<TripDTO> response = controller.copyPublicTrip(4L, new CopyTripRequest(start));
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertThat(response.getHeaders().getLocation()).hasToString("/api/v1/trips/9");
+    assertThat(response.getBody()).isSameAs(copy);
+  }
+
+  @Test
+  void copyPublicTripWithoutABodyKeepsTheOriginalDates() {
+    when(tripService.copyPublic(4L, null)).thenReturn(copy());
+
+    assertThat(controller.copyPublicTrip(4L, null).getBody()).isEqualTo(copy());
+  }
+
+  @Test
+  void copyPublicTripWithAnEmptyBodyKeepsTheOriginalDates() {
+    when(tripService.copyPublic(4L, null)).thenReturn(copy());
+
+    assertThat(controller.copyPublicTrip(4L, new CopyTripRequest(null)).getBody())
+        .isEqualTo(copy());
   }
 }
