@@ -108,6 +108,19 @@ class PublicItineraryModerationUiE2ETest {
             By.xpath("//main//button[normalize-space()='Despublicar']")));
   }
 
+  /**
+   * The creator takes the trip off the public list again from the trip page, so a trip published by
+   * this test never stays in the home carousel, where other tests expect the sample trips.
+   */
+  private void unpublishOwnTrip() {
+    driver.get(baseUrl + "/trips");
+    click(By.xpath("//main//a[normalize-space()='" + tripName + "']"));
+    click(By.xpath("//main//button[normalize-space()='Despublicar']"));
+    wait.until(
+        ExpectedConditions.visibilityOfElementLocated(
+            By.xpath("//main//button[normalize-space()='Publicar']")));
+  }
+
   private void logOut() {
     click(By.xpath("//button[normalize-space()='Cerrar sesión']"));
     wait.until(
@@ -198,17 +211,22 @@ class PublicItineraryModerationUiE2ETest {
     register("Lucía", email);
     createAndPublishTrip(tripName);
 
-    driver.get(baseUrl + "/public");
-    searchPublicTrips(tripName);
-    wait.until(ExpectedConditions.visibilityOfElementLocated(tripLink()));
+    try {
+      driver.get(baseUrl + "/public");
+      searchPublicTrips(tripName);
+      wait.until(ExpectedConditions.visibilityOfElementLocated(tripLink()));
 
-    assertThat(driver.findElements(By.cssSelector("button[aria-label^='Despublicar ']"))).isEmpty();
-    click(tripLink());
-    wait.until(ExpectedConditions.urlMatches(".*/public/\\d+$"));
-    wait.until(
-        ExpectedConditions.visibilityOfElementLocated(
-            By.xpath("//main//button[normalize-space()='Copiar en tu cuenta']")));
-    assertThat(driver.findElements(By.xpath("//main//button[normalize-space()='Despublicar']")))
-        .isEmpty();
+      assertThat(driver.findElements(By.cssSelector("button[aria-label^='Despublicar ']")))
+          .isEmpty();
+      click(tripLink());
+      wait.until(ExpectedConditions.urlMatches(".*/public/\\d+$"));
+      wait.until(
+          ExpectedConditions.visibilityOfElementLocated(
+              By.xpath("//main//button[normalize-space()='Copiar en tu cuenta']")));
+      assertThat(driver.findElements(By.xpath("//main//button[normalize-space()='Despublicar']")))
+          .isEmpty();
+    } finally {
+      unpublishOwnTrip();
+    }
   }
 }
