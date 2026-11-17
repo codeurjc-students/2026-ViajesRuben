@@ -4,12 +4,16 @@ import PublicTripsPage from './PublicTripsPage';
 import { renderAsUser, renderRoutes } from '../renderHelpers';
 import { ApiError } from '../services/apiError';
 import { getPublicTrips } from '../services/publicTripService';
-import { pageOf, publicTripOf } from '../testHelpers';
+import { setPublication } from '../services/tripService';
+import { ANA, pageOf, publicTripOf, tripOf } from '../testHelpers';
 
 vi.mock('../services/publicTripService', () => ({
   PUBLIC_LIST_PAGE_SIZE: 10,
   getPublicTrips: vi.fn(),
 }));
+vi.mock('../services/tripService', () => ({ setPublication: vi.fn() }));
+
+const ADMIN = { ...ANA, id: 99, name: 'Admin', role: 'ADMIN' as const };
 
 const rome = publicTripOf();
 const oslo = publicTripOf({
@@ -37,6 +41,77 @@ function search(text: string) {
 
 beforeEach(() => {
   vi.mocked(getPublicTrips).mockReset();
+  vi.mocked(setPublication).mockReset();
+});
+
+describe('I10 PublicTripsPage moderation', () => {
+  test.each([
+    ['a visitor', null],
+    ['a regular user', ANA],
+  ])('%s does not see the unpublish buttons', async (_who, user) => {
+    vi.mocked(getPublicTrips).mockResolvedValue(pageOf([rome, oslo]));
+
+    renderAsUser(<PublicTripsPage />, user, '/public');
+
+    await screen.findByRole('link', { name: 'Fiordos' });
+    expect(screen.queryByRole('button', { name: /Despublicar/ })).not.toBeInTheDocument();
+  });
+
+  test('the administrator sees one button per row', async () => {
+    vi.mocked(getPublicTrips).mockResolvedValue(pageOf([rome, oslo]));
+
+    renderAsUser(<PublicTripsPage />, ADMIN, '/public');
+
+    expect(
+      await screen.findByRole('button', { name: 'Despublicar Roma en cinco días' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Despublicar Fiordos' })).toBeInTheDocument();
+  });
+
+  test('confirming unpublishes the trip, reloads the list and shows a notice', async () => {
+    vi.mocked(getPublicTrips).mockResolvedValueOnce(pageOf([rome, oslo]));
+    vi.mocked(getPublicTrips).mockResolvedValueOnce(pageOf([oslo]));
+    vi.mocked(setPublication).mockResolvedValue(tripOf({ id: 10, published: false }));
+    renderAsUser(<PublicTripsPage />, ADMIN, '/public');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Despublicar Roma en cinco días' }));
+    expect(screen.getByRole('dialog', { name: 'Despublicar itinerario' })).toHaveTextContent(
+      'dejará de ser público; el viaje no se borra.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Despublicar' }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('link', { name: 'Roma en cinco días' })).not.toBeInTheDocument(),
+    );
+    expect(setPublication).toHaveBeenCalledWith(10, false);
+    expect(screen.getByRole('link', { name: 'Fiordos' })).toBeInTheDocument();
+    expect(screen.getByText('«Roma en cinco días» ya no es público.')).toBeInTheDocument();
+    expect(getPublicTrips).toHaveBeenCalledTimes(2);
+  });
+
+  test('cancelling changes nothing', async () => {
+    vi.mocked(getPublicTrips).mockResolvedValue(pageOf([rome]));
+    renderAsUser(<PublicTripsPage />, ADMIN, '/public');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Despublicar Roma en cinco días' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(setPublication).not.toHaveBeenCalled();
+    expect(getPublicTrips).toHaveBeenCalledTimes(1);
+  });
+
+  test('shows the notice sent by the preview page and lets the user dismiss it', async () => {
+    vi.mocked(getPublicTrips).mockResolvedValue(pageOf([oslo]));
+    renderRoutes([{ path: '/public', element: <PublicTripsPage /> }], '/public', ADMIN, {
+      notice: '«Roma en cinco días» ya no es público.',
+    });
+
+    expect(await screen.findByText('«Roma en cinco días» ya no es público.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+    expect(screen.queryByText('«Roma en cinco días» ya no es público.')).not.toBeInTheDocument();
+  });
 });
 
 describe('I8 PublicTripsPage', () => {

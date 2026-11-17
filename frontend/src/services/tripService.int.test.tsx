@@ -1,8 +1,9 @@
 // @vitest-environment node
 // Node's fetch needs Node's own FormData and File for the multipart upload, not the jsdom ones.
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { newUser, png } from '../integrationHelpers';
+import { newUser, png, sendCookie, sessionCookie } from '../integrationHelpers';
 import { imageUrl } from './imageService';
+import { getPublicTrip } from './publicTripService';
 import {
   applyCover,
   createTrip,
@@ -10,6 +11,7 @@ import {
   deleteTrip,
   getTrip,
   getTrips,
+  setPublication,
   updateTrip,
   uploadCover,
 } from './tripService';
@@ -153,5 +155,60 @@ describe('B4 tripService against the REST API', () => {
     await deleteTrip(trip.id);
 
     expect((await fetch(imageUrl(cover.id))).status).toBe(404);
+  });
+});
+
+// The development administrator (ADMIN_EMAIL / ADMIN_PASSWORD_HASH defaults), as in CI.
+async function asAdmin() {
+  vi.restoreAllMocks();
+  sendCookie(await sessionCookie('admin@tripmate.com', 'admin'));
+}
+
+describe('I10 tripService.setPublication moderation against the REST API', () => {
+  test("the administrator unpublishes another user's trip, which the creator keeps", async () => {
+    const { cookie } = await newUser();
+    const trip = await createTrip({ ...data, name: `Moderado ${Date.now()}` });
+    await setPublication(trip.id, true);
+    await expect(getPublicTrip(trip.id)).resolves.toMatchObject({ id: trip.id });
+
+    await asAdmin();
+    await expect(setPublication(trip.id, false)).resolves.toMatchObject({
+      id: trip.id,
+      published: false,
+    });
+
+    await expect(getPublicTrip(trip.id)).rejects.toMatchObject({ status: 404 });
+    vi.restoreAllMocks();
+    sendCookie(cookie);
+    await expect(getTrip(trip.id)).resolves.toMatchObject({ name: trip.name, published: false });
+  });
+
+  test("the administrator cannot publish another user's trip", async () => {
+    await newUser();
+    const trip = await createTrip(data);
+
+    await asAdmin();
+
+    await expect(setPublication(trip.id, true)).rejects.toMatchObject({ status: 403 });
+  });
+
+  test('another regular user cannot unpublish the trip', async () => {
+    await newUser();
+    const trip = await createTrip(data);
+    await setPublication(trip.id, true);
+
+    vi.restoreAllMocks();
+    await newUser('Bob');
+
+    await expect(setPublication(trip.id, false)).rejects.toMatchObject({ status: 403 });
+    await expect(getPublicTrip(trip.id)).resolves.toMatchObject({ id: trip.id });
+  });
+
+  test('without a session unpublishing is a 401 and an unknown trip is a 404', async () => {
+    await expect(setPublication(1, false)).rejects.toMatchObject({ status: 401 });
+
+    await asAdmin();
+
+    await expect(setPublication(999_999_999, false)).rejects.toMatchObject({ status: 404 });
   });
 });

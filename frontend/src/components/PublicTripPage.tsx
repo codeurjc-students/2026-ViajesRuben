@@ -11,6 +11,7 @@ import { formatBudget, formatDateRange } from '../utils/tripFormat';
 import CopyTripModal from './CopyTripModal';
 import ItinerarySection from './ItinerarySection';
 import StoredImage from './StoredImage';
+import UnpublishTripModal from './UnpublishTripModal';
 import './TripDetailPage.css';
 
 /**
@@ -25,6 +26,8 @@ export default function PublicTripPage() {
   const navigate = useNavigate();
   const { trip, error } = useTrip(tripId, getPublicTrip);
   const [copying, setCopying] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
+  const isAdmin = user?.role === 'ADMIN';
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
@@ -38,6 +41,10 @@ export default function PublicTripPage() {
     navigate(`/trips/${copy.id}`, {
       state: { notice: 'Itinerario copiado en tus viajes. Ya puedes editarlo.' },
     });
+  }
+
+  function unpublished(name: string) {
+    navigate('/public', { state: { notice: `«${name}» ya no es público.` } });
   }
 
   return (
@@ -77,7 +84,14 @@ export default function PublicTripPage() {
                 <dd>{trip.authorName}</dd>
               </dl>
               {trip.description && <p className="trip-detail__description">{trip.description}</p>}
-              <Button onClick={startCopy}>Copiar en tu cuenta</Button>
+              <div className="d-flex flex-wrap gap-2">
+                <Button onClick={startCopy}>Copiar en tu cuenta</Button>
+                {isAdmin && (
+                  <Button variant="outline-danger" onClick={() => setUnpublishing(true)}>
+                    Despublicar
+                  </Button>
+                )}
+              </div>
             </div>
           </Card>
           {user && (
@@ -86,6 +100,14 @@ export default function PublicTripPage() {
               show={copying}
               onCancel={() => setCopying(false)}
               onCopied={copied}
+            />
+          )}
+          {isAdmin && (
+            <UnpublishTripModal
+              trip={trip}
+              show={unpublishing}
+              onCancel={() => setUnpublishing(false)}
+              onUnpublished={() => unpublished(trip.name)}
             />
           )}
           <ItinerarySection trip={trip} publicPreview />

@@ -1,8 +1,9 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
 import { ApiError } from '../services/apiError';
 import { copyPublicTrip, getPublicActivities, getPublicTrip } from '../services/publicTripService';
+import { setPublication } from '../services/tripService';
 import { activityOf, ANA, pageOf, publicTripOf, tripOf } from '../testHelpers';
 import PublicTripPage from './PublicTripPage';
 
@@ -11,6 +12,7 @@ vi.mock('../services/publicTripService', () => ({
   getPublicActivities: vi.fn(),
   copyPublicTrip: vi.fn(),
 }));
+vi.mock('../services/tripService', () => ({ setPublication: vi.fn() }));
 
 const trip = { ...publicTripOf().trip, description: 'Lo mejor de Roma.' };
 
@@ -22,6 +24,7 @@ const routes = [
 ];
 
 beforeEach(() => {
+  vi.mocked(setPublication).mockReset();
   vi.mocked(copyPublicTrip).mockReset();
   vi.mocked(getPublicTrip).mockReset().mockResolvedValue(trip);
   vi.mocked(getPublicActivities)
@@ -107,6 +110,48 @@ describe('B1 I7 PublicTripPage', () => {
 
     expect(await screen.findByText('Error')).toBeInTheDocument();
     expect(getPublicTrip).not.toHaveBeenCalled();
+  });
+});
+
+describe('I10 PublicTripPage moderation', () => {
+  const admin = { ...ANA, id: 99, name: 'Admin', role: 'ADMIN' as const };
+  const moderationRoutes = [...routes, { path: '/public', element: <p>Lista pública</p> }];
+
+  test.each([
+    ['a visitor', null],
+    ['a regular user', ANA],
+  ])('%s does not see "Despublicar"', async (_who, user) => {
+    renderRoutes(routes, '/public/10', user);
+    await screen.findByRole('heading', { name: 'Roma en cinco días' });
+
+    expect(screen.queryByRole('button', { name: 'Despublicar' })).not.toBeInTheDocument();
+  });
+
+  test('the administrator unpublishes and goes back to the list with a notice', async () => {
+    vi.mocked(setPublication).mockResolvedValue(tripOf({ id: 10, published: false }));
+    const router = renderRoutes(moderationRoutes, '/public/10', admin);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Despublicar' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Despublicar itinerario' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Despublicar' }));
+
+    expect(await screen.findByText('Lista pública')).toBeInTheDocument();
+    expect(setPublication).toHaveBeenCalledWith(10, false);
+    expect(router.state.location.pathname).toBe('/public');
+    expect(router.state.location.state).toEqual({
+      notice: '«Roma en cinco días» ya no es público.',
+    });
+  });
+
+  test('cancelling stays on the preview without unpublishing', async () => {
+    const router = renderRoutes(moderationRoutes, '/public/10', admin);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Despublicar' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(setPublication).not.toHaveBeenCalled();
+    expect(router.state.location.pathname).toBe('/public/10');
   });
 });
 
