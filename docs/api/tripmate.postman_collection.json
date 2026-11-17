@@ -465,7 +465,7 @@
             "publication"
           ]
         },
-        "description": "Only the creator, not even the administrator. `published: true` makes the trip a public itinerary (listed by `GET /api/v1/trips/public`, newest publication first) and sets `publishedAt`; `false` removes it from there and keeps the trip. Idempotent: repeating the same value changes nothing, and publishing a published trip keeps its first date. Answers 200 with the trip, 400 for a missing `published`, 401, 403 (another user, or the administrator) and 404.",
+        "description": "`published: true` makes the trip a public itinerary (listed by `GET /api/v1/trips/public`, newest publication first) and sets `publishedAt`; only the creator may, not even the administrator. `false` removes it from there and keeps the trip; the creator may, and so may the administrator, who moderates public itineraries (I10). Idempotent: repeating the same value changes nothing, and publishing a published trip keeps its first date. Answers 200 with the trip, 400 for a missing `published`, 401, 403 (another user; or the administrator publishing) and 404.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"published\": true\n}",

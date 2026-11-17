@@ -387,3 +387,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I9`.
 - **Human Validation:** The student reviewed and approved the plan, asked for the design decision above, and reviewed the generated code stage by stage.
+
+#### Record 4.4 — Moderation of public itineraries (I10)
+
+- **Date:** 17/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I10.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.326; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I10` and to write some parts of the code and tests, and the documentation (OpenAPI, Postman collection, development guide, changelog). The test-auditor and guide-reviewer subagents were run before the hand-over.
+  - The student set the design decisions in the request (the administrator unpublishes, the trip is kept, B8 pattern), approved the plan, reviewed and edited some of the generated code and tests, and committed each stage after it.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I10`.
+- **Human Validation:** The student reviewed and approved the plan and reviewed the generated code and the test output stage by stage.

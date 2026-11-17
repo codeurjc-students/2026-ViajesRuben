@@ -768,11 +768,12 @@ paths:
         - trip-controller
       summary: Publish or unpublish a trip
       description:
-        "Only the creator, not even the administrator. `published: true`\
-        \ makes the trip a public itinerary (listed by `GET /api/v1/trips/public`)\
-        \ and sets `publishedAt`; `false` removes it from there and keeps the trip.\
-        \ Idempotent: repeating the same value changes nothing, and publishing again\
-        \ keeps the first date."
+        "`published: true` makes the trip a public itinerary (listed by\
+        \ `GET /api/v1/trips/public`) and sets `publishedAt`; only the creator may,\
+        \ not even the administrator. `false` removes it from there and keeps the\
+        \ trip; the creator may, and so may the administrator, who moderates public\
+        \ itineraries. Idempotent: repeating the same value changes nothing, and publishing\
+        \ again keeps the first date."
       operationId: changePublication
       parameters:
         - name: id
@@ -807,7 +808,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            "The trip belongs to another user, and the user is not the\
+            \ administrator unpublishing it"
           content:
             "*/*":
               schema:
@@ -1625,7 +1628,7 @@ paths:
       parameters:
         - name: search
           in: query
-          description: Text to find in the trip name or destination, ignoring case
+          description: "Text to find in the trip name or destination, ignoring case"
           required: false
           schema:
             type: string
