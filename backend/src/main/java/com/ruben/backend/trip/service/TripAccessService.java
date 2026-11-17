@@ -52,6 +52,19 @@ public class TripAccessService {
   }
 
   /**
+   * Who may unpublish a trip: its creator, and the administrator, who removes inappropriate public
+   * itineraries without deleting the trip (I10). Publishing is a different rule, {@link
+   * #findForWrite}.
+   *
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws ForbiddenException the user may not unpublish the trip
+   */
+  @Transactional(readOnly = true)
+  public Trip findForUnpublish(Long id) {
+    return find(id, true);
+  }
+
+  /**
    * Who may change a trip or anything that belongs to it (its cover, its activities): only its
    * creator, not even the administrator, who moderates but never edits other users' trips.
    *

@@ -116,11 +116,13 @@ class TripServiceUnitTest {
       lenient().when(tripAccessService.findForRead(id)).thenReturn(trip);
       lenient().when(tripAccessService.findForWrite(id)).thenReturn(trip);
       lenient().when(tripAccessService.findForDelete(id)).thenReturn(trip);
+      lenient().when(tripAccessService.findForUnpublish(id)).thenReturn(trip);
     } else {
       ForbiddenException refusal = new ForbiddenException("Only the creator can access this trip");
       lenient().when(tripAccessService.findForRead(id)).thenThrow(refusal);
       lenient().when(tripAccessService.findForWrite(id)).thenThrow(refusal);
       lenient().when(tripAccessService.findForDelete(id)).thenThrow(refusal);
+      lenient().when(tripAccessService.findForUnpublish(id)).thenThrow(refusal);
     }
     return trip;
   }
@@ -136,6 +138,7 @@ class TripServiceUnitTest {
   @Test
   @Tag("I7")
   void changePublicationPublishesTheTripAndSetsTheDate() {
+    anaIsLoggedIn();
     Trip trip = tripOf(ana, 5L);
     when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
 
@@ -149,6 +152,7 @@ class TripServiceUnitTest {
   @Test
   @Tag("I7")
   void publishingAPublishedTripAgainKeepsItsFirstDate() {
+    anaIsLoggedIn();
     Trip trip = tripOf(ana, 5L);
     when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
     Instant first = tripService.changePublication(5L, true).publishedAt();
@@ -161,6 +165,7 @@ class TripServiceUnitTest {
   @Test
   @Tag("I7")
   void changePublicationUnpublishesTheTripAndClearsTheDate() {
+    anaIsLoggedIn();
     Trip trip = tripOf(ana, 5L);
     trip.publish();
     when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
@@ -187,6 +192,55 @@ class TripServiceUnitTest {
     when(tripAccessService.findForWrite(9L)).thenThrow(new ResourceNotFoundException("Trip"));
 
     assertThatThrownBy(() -> tripService.changePublication(9L, true))
+        .isInstanceOf(ResourceNotFoundException.class);
+    verify(tripRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  @Tag("I10")
+  void theAdministratorUnpublishesAnotherUsersTripThroughTheUnpublishRule() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    when(authService.getCurrentUser()).thenReturn(UserDTO.from(admin));
+    Trip trip = newTrip(bob, 6L);
+    trip.publish();
+    when(tripAccessService.findForUnpublish(6L)).thenReturn(trip);
+    when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
+
+    TripDTO result = tripService.changePublication(6L, false);
+
+    assertThat(result.published()).isFalse();
+    assertThat(result.creatorId()).isEqualTo(8L);
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I10")
+  void publishingStillNeedsTheWriteRuleSoTheAdministratorIsRefused() {
+    when(tripAccessService.findForWrite(6L))
+        .thenThrow(new ForbiddenException("Only the creator can access this trip"));
+
+    assertThatThrownBy(() -> tripService.changePublication(6L, true))
+        .isInstanceOf(ForbiddenException.class);
+    verify(tripAccessService, never()).findForUnpublish(any());
+    verify(tripRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  @Tag("I10")
+  void unpublishingAsAnotherRegularUserIsForbiddenAndSavesNothing() {
+    tripOf(bob, 6L);
+
+    assertThatThrownBy(() -> tripService.changePublication(6L, false))
+        .isInstanceOf(ForbiddenException.class);
+    verify(tripRepository, never()).saveAndFlush(any());
+  }
+
+  @Test
+  @Tag("I10")
+  void unpublishingAMissingTripIsNotFound() {
+    when(tripAccessService.findForUnpublish(9L)).thenThrow(new ResourceNotFoundException("Trip"));
+
+    assertThatThrownBy(() -> tripService.changePublication(9L, false))
         .isInstanceOf(ResourceNotFoundException.class);
     verify(tripRepository, never()).saveAndFlush(any());
   }
