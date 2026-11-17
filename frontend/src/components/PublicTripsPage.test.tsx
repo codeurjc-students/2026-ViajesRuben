@@ -80,11 +80,13 @@ describe('I10 PublicTripsPage moderation', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Despublicar' }));
 
-    await waitFor(() =>
-      expect(screen.queryByRole('link', { name: 'Roma en cinco días' })).not.toBeInTheDocument(),
-    );
+    // The list remounts (spinner first), and Fiordos was in the old list too: wait for both
+    // conditions together, so the reloaded list is what is checked.
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: 'Roma en cinco días' })).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Fiordos' })).toBeInTheDocument();
+    });
     expect(setPublication).toHaveBeenCalledWith(10, false);
-    expect(screen.getByRole('link', { name: 'Fiordos' })).toBeInTheDocument();
     expect(screen.getByText('«Roma en cinco días» ya no es público.')).toBeInTheDocument();
     expect(getPublicTrips).toHaveBeenCalledTimes(2);
   });
