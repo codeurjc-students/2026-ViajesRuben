@@ -194,14 +194,22 @@ describe('I10 tripService.setPublication moderation against the REST API', () =>
 
   test('another regular user cannot unpublish the trip', async () => {
     await newUser();
-    const trip = await createTrip(data);
+    const trip = await createTrip({ ...data, name: `Moderado ${Date.now()}` });
     await setPublication(trip.id, true);
 
-    vi.restoreAllMocks();
-    await newUser('Bob');
+    try {
+      vi.restoreAllMocks();
+      await newUser('Bob');
 
-    await expect(setPublication(trip.id, false)).rejects.toMatchObject({ status: 403 });
-    await expect(getPublicTrip(trip.id)).resolves.toMatchObject({ id: trip.id });
+      await expect(setPublication(trip.id, false)).rejects.toMatchObject({ status: 403 });
+      await expect(getPublicTrip(trip.id)).resolves.toMatchObject({ id: trip.id });
+    } finally {
+      // The development database is shared with the UI tests, which expect the sample trips to
+      // be the newest public ones: this trip must not stay public.
+      await asAdmin();
+      await setPublication(trip.id, false);
+    }
+    await expect(getPublicTrip(trip.id)).rejects.toMatchObject({ status: 404 });
   });
 
   test('without a session unpublishing is a 401 and an unknown trip is a 404', async () => {
