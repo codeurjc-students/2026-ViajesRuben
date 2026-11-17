@@ -4,19 +4,24 @@ import Card from 'react-bootstrap/Card';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import Spinner from 'react-bootstrap/Spinner';
-import { Link } from 'react-router';
+import Alert from 'react-bootstrap/Alert';
+import { Link, useLocation } from 'react-router';
+import { useAuth } from '../hooks/useAuth';
 import { usePagedList } from '../hooks/usePagedList';
 import { getPublicTrips, PUBLIC_LIST_PAGE_SIZE } from '../services/publicTripService';
 import { formatDateRange } from '../utils/tripFormat';
 import LoadMoreButton from './LoadMoreButton';
+import UnpublishTripModal from './UnpublishTripModal';
 import './PublicTripsPage.css';
 
 interface PublicTripListProps {
   search: string;
+  /** Set for the administrator: called with the trip to unpublish. */
+  onUnpublish?: (trip: { id: number; name: string }) => void;
 }
 
 /** The public trips matching `search`; mounted again (key) for every new search so it starts at page 0. */
-function PublicTripList({ search }: Readonly<PublicTripListProps>) {
+function PublicTripList({ search, onUnpublish }: Readonly<PublicTripListProps>) {
   const fetchPage = useCallback(
     (page: number) => getPublicTrips(page, PUBLIC_LIST_PAGE_SIZE, search),
     [search],
@@ -55,6 +60,17 @@ function PublicTripList({ search }: Readonly<PublicTripListProps>) {
                 <p className="public-list__meta">
                   {`${trip.destination} · ${formatDateRange(trip.startDate, trip.endDate)} · Por ${trip.authorName}`}
                 </p>
+                {onUnpublish && (
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    className="public-list__unpublish"
+                    aria-label={`Despublicar ${trip.name}`}
+                    onClick={() => onUnpublish(trip)}
+                  >
+                    Despublicar
+                  </Button>
+                )}
               </Card>
             </li>
           ))}
@@ -67,8 +83,20 @@ function PublicTripList({ search }: Readonly<PublicTripListProps>) {
 
 /** Every public itinerary, newest first, with a search by trip name or destination; public, no login. */
 export default function PublicTripsPage() {
+  const { user } = useAuth();
+  const location = useLocation();
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
+  const [unpublishing, setUnpublishing] = useState<{ id: number; name: string }>();
+  const [reloads, setReloads] = useState(0);
+  const [notice, setNotice] = useState((location.state as { notice?: string } | null)?.notice);
+  const isAdmin = user?.role === 'ADMIN';
+
+  function unpublished() {
+    setNotice(`«${unpublishing?.name}» ya no es público.`);
+    setUnpublishing(undefined);
+    setReloads((count) => count + 1);
+  }
 
   function handleSearch(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,7 +120,24 @@ export default function PublicTripsPage() {
           </div>
         </Form>
       </Card>
-      <PublicTripList key={search} search={search} />
+      {notice && (
+        <Alert variant="success" dismissible onClose={() => setNotice(undefined)}>
+          {notice}
+        </Alert>
+      )}
+      <PublicTripList
+        key={`${search}-${reloads}`}
+        search={search}
+        onUnpublish={isAdmin ? setUnpublishing : undefined}
+      />
+      {unpublishing && (
+        <UnpublishTripModal
+          trip={unpublishing}
+          show
+          onCancel={() => setUnpublishing(undefined)}
+          onUnpublished={unpublished}
+        />
+      )}
     </Container>
   );
 }

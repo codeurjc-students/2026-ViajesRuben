@@ -49,11 +49,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Tag("B4")
 @Tag("B8")
 @Tag("I9")
+@Tag("I10")
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class TripServiceIntegrationTest {
 
   @Autowired private TripService tripService;
+  @Autowired private PublicTripService publicTripService;
   @Autowired private UserService userService;
   @Autowired private TripRepository tripRepository;
   @Autowired private ImageRepository imageRepository;
@@ -141,6 +143,53 @@ class TripServiceIntegrationTest {
     assertThatThrownBy(() -> tripService.changePublication(created.id(), true))
         .isInstanceOf(ForbiddenException.class);
     assertThat(tripRepository.findById(created.id()).orElseThrow().isPublished()).isFalse();
+  }
+
+  @Test
+  @Tag("I10")
+  void theAdministratorUnpublishesAnotherUsersTripAndItsDataIsKept() {
+    TripDTO created = tripService.create(request("Rome", 1));
+    tripService.changePublication(created.id(), true);
+    activityRepository.save(
+        new Activity(
+            tripRepository.getReferenceById(created.id()),
+            userRepository.getReferenceById(ana.id()),
+            "Colosseum",
+            LocalDate.of(2027, 1, 3)));
+    assertThat(publicTripService.findPage(null, PageRequest.of(0, 10)).content()).hasSize(1);
+
+    logInAs(UserDTO.from(userRepository.findByEmail("admin@test.tripmate.com").orElseThrow()));
+    TripDTO unpublished = tripService.changePublication(created.id(), false);
+
+    assertThat(unpublished.published()).isFalse();
+    assertThat(unpublished.creatorId()).isEqualTo(ana.id());
+    assertThat(publicTripService.findPage(null, PageRequest.of(0, 10)).content()).isEmpty();
+    Trip stored = tripRepository.findById(created.id()).orElseThrow();
+    assertThat(stored.isPublished()).isFalse();
+    assertThat(stored.getPublishedAt()).isNull();
+    assertThat(activityRepository.count()).isEqualTo(1);
+  }
+
+  @Test
+  @Tag("I10")
+  void anotherRegularUserMayNotUnpublishAndTheTripStaysPublic() {
+    TripDTO created = tripService.create(request("Rome", 1));
+    tripService.changePublication(created.id(), true);
+
+    logInAs(bob);
+    assertThatThrownBy(() -> tripService.changePublication(created.id(), false))
+        .isInstanceOf(ForbiddenException.class);
+
+    assertThat(tripRepository.findById(created.id()).orElseThrow().isPublished()).isTrue();
+  }
+
+  @Test
+  @Tag("I10")
+  void theAdministratorUnpublishingAMissingTripIsNotFound() {
+    logInAs(UserDTO.from(userRepository.findByEmail("admin@test.tripmate.com").orElseThrow()));
+
+    assertThatThrownBy(() -> tripService.changePublication(999_999L, false))
+        .isInstanceOf(ResourceNotFoundException.class);
   }
 
   @Test

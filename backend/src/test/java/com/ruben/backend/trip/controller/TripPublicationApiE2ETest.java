@@ -3,6 +3,8 @@ package com.ruben.backend.trip.controller;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -197,12 +199,98 @@ class TripPublicationApiE2ETest {
   }
 
   @Test
-  void theAdministratorCannotPublishOrUnpublishEither() {
+  @Tag("I10")
+  void theAdministratorCannotPublishAnotherUsersTrip() {
     json(adminToken).body(PUBLISH).put(publication()).then().statusCode(403);
+
+    given().get(TRIPS + "/public/" + tripId).then().statusCode(404);
+    json(anaToken).get(TRIPS + "/" + tripId).then().body("published", equalTo(false));
+  }
+
+  @Test
+  @Tag("I10")
+  void theAdministratorUnpublishesAnotherUsersTripAndItsCreatorKeepsIt() {
     json(anaToken).body(PUBLISH).put(publication()).then().statusCode(200);
-    json(adminToken).body(UNPUBLISH).put(publication()).then().statusCode(403);
+    json(anaToken)
+        .body("{\"name\":\"Belem\",\"date\":\"2027-05-02\"}")
+        .post(TRIPS + "/" + tripId + "/activities")
+        .then()
+        .statusCode(201);
+
+    json(adminToken)
+        .body(UNPUBLISH)
+        .put(publication())
+        .then()
+        .statusCode(200)
+        .body("published", equalTo(false))
+        .body("publishedAt", nullValue());
+
+    given().get(TRIPS + "/public/" + tripId).then().statusCode(404);
+    given().get(TRIPS + "/public/" + tripId + "/activities").then().statusCode(404);
+    given()
+        .get(TRIPS + "/public?search=Lisbon")
+        .then()
+        .statusCode(200)
+        .body("totalElements", equalTo(0));
+    given()
+        .get(TRIPS + "/public?size=3")
+        .then()
+        .statusCode(200)
+        .body("content.id", not(hasItem((int) tripId)));
+    json(anaToken)
+        .get(TRIPS + "/" + tripId)
+        .then()
+        .statusCode(200)
+        .body("name", equalTo("Lisbon trip"))
+        .body("published", equalTo(false));
+    json(anaToken)
+        .get(TRIPS + "/" + tripId + "/activities")
+        .then()
+        .statusCode(200)
+        .body("content.name", hasItem("Belem"));
+  }
+
+  @Test
+  @Tag("I10")
+  void unpublishingATripThatIsNotPublishedIsHarmlessForTheAdministratorToo() {
+    json(adminToken)
+        .body(UNPUBLISH)
+        .put(publication())
+        .then()
+        .statusCode(200)
+        .body("published", equalTo(false));
+  }
+
+  @Test
+  @Tag("I10")
+  void anotherRegularUserStillCannotUnpublishAndAnAnonymousVisitorGets401() {
+    json(anaToken).body(PUBLISH).put(publication()).then().statusCode(200);
+
+    json(bobToken).body(UNPUBLISH).put(publication()).then().statusCode(403);
+    given().contentType(ContentType.JSON).body(UNPUBLISH).put(publication()).then().statusCode(401);
 
     given().get(TRIPS + "/public/" + tripId).then().statusCode(200);
+  }
+
+  @Test
+  @Tag("I10")
+  void theAdministratorUnpublishingAMissingTripGets404() {
+    json(adminToken).body(UNPUBLISH).put(TRIPS + "/999999/publication").then().statusCode(404);
+  }
+
+  @Test
+  @Tag("I10")
+  void theCreatorCanStillPublishAndUnpublishAfterAModeration() {
+    json(anaToken).body(PUBLISH).put(publication()).then().statusCode(200);
+    json(adminToken).body(UNPUBLISH).put(publication()).then().statusCode(200);
+
+    json(anaToken)
+        .body(PUBLISH)
+        .put(publication())
+        .then()
+        .statusCode(200)
+        .body("published", equalTo(true));
+    json(anaToken).body(UNPUBLISH).put(publication()).then().statusCode(200);
   }
 
   @Test

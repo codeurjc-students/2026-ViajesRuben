@@ -27,8 +27,9 @@ export function updateTrip(id: number, data: TripData): Promise<Trip> {
 }
 
 /**
- * Publishes (`true`) or unpublishes (`false`) the trip, which only its creator may do; answers 403
- * (even for the administrator) or 404. Repeating the same value changes nothing.
+ * Publishes (`true`) or unpublishes (`false`) the trip. Only its creator may publish; the creator
+ * and the administrator (moderation) may unpublish. Answers 403 or 404. Repeating the same value
+ * changes nothing.
  */
 export function setPublication(id: number, published: boolean): Promise<Trip> {
   return sendJson<Trip>('PUT', `${tripUrl(id)}/publication`, { published });

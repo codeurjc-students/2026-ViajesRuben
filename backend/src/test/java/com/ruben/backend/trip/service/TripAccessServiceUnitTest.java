@@ -161,6 +161,47 @@ class TripAccessServiceUnitTest {
   }
 
   @Test
+  @Tag("I10")
+  void theAdministratorMayUnpublishAnotherUsersTrip() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    loggedInAs(admin);
+    Trip trip = tripOf(ana);
+
+    assertThat(tripAccessService.findForUnpublish(1L)).isSameAs(trip);
+  }
+
+  @Test
+  @Tag("I10")
+  void theCreatorMayUnpublishTheirOwnTrip() {
+    loggedInAs(ana);
+    Trip trip = tripOf(ana);
+
+    assertThat(tripAccessService.findForUnpublish(1L)).isSameAs(trip);
+  }
+
+  @Test
+  @Tag("I10")
+  void anotherRegularUserMayNotUnpublishTheTrip() {
+    loggedInAs(ana);
+    tripOf(bob);
+
+    assertThatThrownBy(() -> tripAccessService.findForUnpublish(1L))
+        .isInstanceOf(ForbiddenException.class)
+        .hasMessage("Only the creator can access this trip");
+  }
+
+  @Test
+  @Tag("I10")
+  void unpublishingAMissingTripIsNotFoundBeforeAnyPermissionIsChecked() {
+    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> tripAccessService.findForUnpublish(99L))
+        .isInstanceOf(ResourceNotFoundException.class)
+        .hasMessage("Trip not found");
+    verifyNoInteractions(authService);
+  }
+
+  @Test
   @Tag("I7")
   void publishingIsDecidedLikeEditingSoOnlyTheCreatorMayDoIt() {
     User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);

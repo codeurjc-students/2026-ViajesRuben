@@ -151,10 +151,12 @@ public class TripController {
   @Operation(
       summary = "Publish or unpublish a trip",
       description =
-          "Only the creator, not even the administrator. `published: true` makes the trip a public"
-              + " itinerary (listed by `GET /api/v1/trips/public`) and sets `publishedAt`;"
-              + " `false` removes it from there and keeps the trip. Idempotent: repeating the"
-              + " same value changes nothing, and publishing again keeps the first date.")
+          "`published: true` makes the trip a public itinerary (listed by `GET"
+              + " /api/v1/trips/public`) and sets `publishedAt`; only the creator may, not even the"
+              + " administrator. `false` removes it from there and keeps the trip; the creator may,"
+              + " and so may the administrator, who moderates public itineraries. Idempotent:"
+              + " repeating the same value changes nothing, and publishing again keeps the first"
+              + " date.")
   @ApiResponse(responseCode = "200", description = "The trip with its new publication state")
   @ApiResponse(
       responseCode = "400",
@@ -166,7 +168,8 @@ public class TripController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "403",
-      description = NOT_CREATOR,
+      description =
+          "The trip belongs to another user, and the user is not the administrator unpublishing it",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "404",

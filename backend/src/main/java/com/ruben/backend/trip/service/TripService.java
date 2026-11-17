@@ -124,23 +124,30 @@ public class TripService {
   }
 
   /**
-   * Publishes or unpublishes the trip (I7): only its creator, not even the administrator, whose
-   * moderation is a different feature (I10). Publishing sets the publication date once, so doing it
-   * twice changes nothing; unpublishing a trip that is not public changes nothing either.
+   * Publishes or unpublishes the trip (I7). Publishing is only for its creator; unpublishing is for
+   * the creator and for the administrator, who moderates public itineraries (I10). Publishing sets
+   * the publication date once, so doing it twice changes nothing; unpublishing a trip that is not
+   * public changes nothing either.
    *
    * @throws ResourceNotFoundException no trip has that id
-   * @throws com.ruben.backend.common.error.ForbiddenException the trip is not the user's
+   * @throws com.ruben.backend.common.error.ForbiddenException the user may not do it
    */
   @Transactional
   public TripDTO changePublication(Long id, boolean published) {
-    Trip trip = tripAccessService.findForWrite(id);
+    Trip trip =
+        published ? tripAccessService.findForWrite(id) : tripAccessService.findForUnpublish(id);
     if (published) {
       trip.publish();
     } else {
       trip.unpublish();
     }
     trip = tripRepository.saveAndFlush(trip);
-    log.info("Trip {} {}", trip.getId(), published ? "published" : "unpublished");
+    log.info(
+        "Trip {} of user {} {} by user {}",
+        trip.getId(),
+        trip.getCreator().getId(),
+        published ? "published" : "unpublished",
+        authService.getCurrentUser().id());
     return TripDTO.from(trip);
   }
 

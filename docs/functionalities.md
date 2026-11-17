@@ -85,7 +85,7 @@ Each feature has an identifier so that it can be traced to its automated tests (
 | I7  | Public itineraries: the creator publishes or unpublishes their own trips; published trips are shown in a carousel on the public home page and opened in a read-only preview, day by day.                                                    | Trip creator, Anonymous        | ✅ Implemented |
 | I8  | Public itineraries page: the complete list of published trips, with a search by name or destination, paginated.                                                                                                                             | Anonymous                      | ✅ Implemented |
 | I9  | Copy a public itinerary to one's own account: the trip, its activities and its images are copied into a new trip of the user, who can then edit it freely.                                                                                  | Registered                     | ✅ Implemented |
-| I10 | Moderation of public itineraries: the administrator unpublishes a public itinerary, which removes it from the public list but keeps the user's trip; serious cases are still handled by deleting the trip (B8) or blocking its author (B7). | Administrator                  | ⏳ Planned |
+| I10 | Moderation of public itineraries: the administrator unpublishes a public itinerary, which removes it from the public list but keeps the user's trip; serious cases are still handled by deleting the trip (B8) or blocking its author (B7). | Administrator                  | ✅ Implemented |
 
 ### Advanced functionality (version 1.0)
 
