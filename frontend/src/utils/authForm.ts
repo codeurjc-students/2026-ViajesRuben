@@ -6,7 +6,19 @@ export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 72;
 export const MAX_NAME_LENGTH = 100;
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * Whether the text looks like an address: no whitespace, one `@` with something before it, and a
+ * dot in the domain with something before and after it. Checked with string methods because the
+ * equivalent regular expression backtracks (super-linear time) on long input.
+ */
+function hasEmailShape(email: string): boolean {
+  if (/\s/.test(email)) return false;
+  const at = email.indexOf('@');
+  if (at < 1 || email.indexOf('@', at + 1) !== -1) return false;
+  const domain = email.slice(at + 1);
+  const dot = domain.indexOf('.', 1);
+  return dot !== -1 && dot < domain.length - 1;
+}
 
 /** Why a field or a request is wrong; the components turn each code into the Spanish message. */
 export type EmailError = 'required' | 'invalid';
@@ -15,7 +27,7 @@ export type SubmitError = 'network' | 'invalidData' | 'badCredentials' | 'blocke
 
 export function emailError(email: string): EmailError | undefined {
   if (!email.trim()) return 'required';
-  if (!EMAIL_PATTERN.test(email.trim())) return 'invalid';
+  if (!hasEmailShape(email.trim())) return 'invalid';
   return undefined;
 }
 

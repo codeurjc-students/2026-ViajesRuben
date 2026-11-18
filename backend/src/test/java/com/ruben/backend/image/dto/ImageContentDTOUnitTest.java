@@ -21,10 +21,10 @@ class ImageContentDTOUnitTest {
     ImageContentDTO content = new ImageContentDTO(new byte[] {1, 2, 3}, "image/png");
 
     assertThat(content)
+        .isNotNull()
         .isNotEqualTo(new ImageContentDTO(new byte[] {1, 2, 4}, "image/png"))
         .isNotEqualTo(new ImageContentDTO(new byte[] {1, 2, 3}, "image/jpeg"))
-        .isNotEqualTo("not a dto")
-        .isNotEqualTo(null);
+        .isNotEqualTo("not a dto");
   }
 
   @Test

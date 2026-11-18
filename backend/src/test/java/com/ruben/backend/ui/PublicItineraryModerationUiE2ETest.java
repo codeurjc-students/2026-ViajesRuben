@@ -201,9 +201,11 @@ class PublicItineraryModerationUiE2ETest {
         ExpectedConditions.textToBePresentInElementLocated(
             MAIN, "«" + tripName + "» ya no es público."));
     searchPublicTrips(tripName);
-    wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(
-            MAIN, "Ningún viaje público coincide con la búsqueda."));
+    assertThat(
+            wait.until(
+                ExpectedConditions.textToBePresentInElementLocated(
+                    MAIN, "Ningún viaje público coincide con la búsqueda.")))
+        .isTrue();
   }
 
   @Test

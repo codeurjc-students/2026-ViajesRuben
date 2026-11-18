@@ -39,8 +39,8 @@ export default function BlockUserModal({
     setError(undefined);
     try {
       onChanged(await setUserStatus(user.id, blocking ? 'BLOCKED' : 'ACTIVE'));
-    } catch (failure) {
-      setError(statusErrorMessage(failure, blocking));
+    } catch (blockError) {
+      setError(statusErrorMessage(blockError, blocking));
     } finally {
       setBusy(false);
     }

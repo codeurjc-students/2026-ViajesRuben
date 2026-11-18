@@ -110,9 +110,9 @@ class TripUiE2ETest {
 
   private void waitForLoadedPicture(String cssSelector) {
     wait.until(
-        driver ->
+        browser ->
             Boolean.TRUE.equals(
-                ((JavascriptExecutor) driver)
+                ((JavascriptExecutor) browser)
                     .executeScript(
                         "const img = document.querySelector(arguments[0]);"
                             + " return !!img && img.complete && img.naturalWidth > 0;",
@@ -195,8 +195,9 @@ class TripUiE2ETest {
 
     String trips = driver.findElement(By.id("trips")).getText();
 
-    assertThat(trips).contains("Weekend in Porto", "Alps in winter");
-    assertThat(trips).doesNotContain("Lisbon getaway");
+    assertThat(trips)
+        .contains("Weekend in Porto", "Alps in winter")
+        .doesNotContain("Lisbon getaway");
   }
 
   @Test
@@ -320,8 +321,10 @@ class TripUiE2ETest {
     logInAs("carlos@tripmate.com");
     driver.get(anaTrip);
 
-    wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(
-            By.tagName("h1"), "No tienes acceso a esta página"));
+    assertThat(
+            wait.until(
+                ExpectedConditions.textToBePresentInElementLocated(
+                    By.tagName("h1"), "No tienes acceso a esta página")))
+        .isTrue();
   }
 }

@@ -84,11 +84,15 @@ function endTimeError(values: ActivityFormValues): ActivityFieldError | undefine
   return values.endTime <= values.startTime ? 'endBeforeStart' : undefined;
 }
 
+function nameError(name: string): ActivityFieldError | undefined {
+  if (!name) return 'required';
+  return name.length > MAX_ACTIVITY_NAME_LENGTH ? 'tooLong' : undefined;
+}
+
 /** The same rules as the backend's ActivityRequest and the trip's dates; only wrong fields appear. */
 export function validateActivity(values: ActivityFormValues, trip: TripRange): ActivityFieldErrors {
-  const name = values.name.trim();
   const found: ActivityFieldErrors = {
-    name: !name ? 'required' : name.length > MAX_ACTIVITY_NAME_LENGTH ? 'tooLong' : undefined,
+    name: nameError(values.name.trim()),
     date: dateError(values, trip),
     endTime: endTimeError(values),
     cost: amountError(values.cost),

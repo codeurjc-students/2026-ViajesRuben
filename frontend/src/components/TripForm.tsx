@@ -99,6 +99,9 @@ export default function TripForm({
     onSubmit(toTripData(values), cover);
   }
 
+  let submitLabel = trip ? 'Guardar cambios' : 'Crear viaje';
+  if (submitting) submitLabel = 'Guardando…';
+
   return (
     <Form noValidate onSubmit={handleSubmit}>
       {notice && <Alert variant="warning">{notice}</Alert>}
@@ -223,7 +226,7 @@ export default function TripForm({
       </div>
       <div className="d-flex flex-wrap gap-2">
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Guardando…' : trip ? 'Guardar cambios' : 'Crear viaje'}
+          {submitLabel}
         </Button>
         <Button variant="outline-secondary" disabled={submitting} onClick={onCancel}>
           Cancelar

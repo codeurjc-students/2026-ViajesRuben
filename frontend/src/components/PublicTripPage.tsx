@@ -55,9 +55,7 @@ export default function PublicTripPage() {
         </Link>
       </p>
       {!trip ? (
-        <p className="bg-white rounded p-3" role="status">
-          Cargando viaje…
-        </p>
+        <output className="d-block mb-3 bg-white rounded p-3">Cargando viaje…</output>
       ) : (
         <>
           <Card as="article" className="trip-detail">

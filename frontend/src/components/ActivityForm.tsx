@@ -111,6 +111,9 @@ export default function ActivityForm({
     onSubmit(toActivityData(values), image);
   }
 
+  let submitLabel = activity ? 'Guardar cambios' : 'Crear actividad';
+  if (submitting) submitLabel = 'Guardando…';
+
   return (
     <Form noValidate onSubmit={handleSubmit}>
       {notice && <Alert variant="warning">{notice}</Alert>}
@@ -267,7 +270,7 @@ export default function ActivityForm({
       </div>
       <div className="d-flex flex-wrap gap-2">
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Guardando…' : activity ? 'Guardar cambios' : 'Crear actividad'}
+          {submitLabel}
         </Button>
         <Button variant="outline-secondary" disabled={submitting} onClick={onCancel}>
           Cancelar

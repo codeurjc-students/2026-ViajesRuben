@@ -43,10 +43,10 @@ export default function UnpublishTripModal({
     try {
       await setPublication(trip.id, false);
       onUnpublished();
-    } catch (failure) {
+    } catch (unpublishError) {
       // A trip that is already gone is no longer public, which is what the user wanted.
-      if (failure instanceof ApiError && failure.status === 404) onUnpublished();
-      else setError(unpublishErrorMessage(failure));
+      if (unpublishError instanceof ApiError && unpublishError.status === 404) onUnpublished();
+      else setError(unpublishErrorMessage(unpublishError));
     } finally {
       setBusy(false);
     }

@@ -83,7 +83,7 @@ class HomeUiE2ETest {
   // --- tests ---
 
   @Test
-  void anAnonymousVisitorSeesThePublicItinerariesPagesThemAndBrowsesEveryDayOfOne() {
+  void anAnonymousVisitorSeesThePublicItinerariesAndPagesThemOnTheHomePage() {
     driver.get(baseUrl + "/");
 
     // The hero invites to register or log in.
@@ -134,6 +134,12 @@ class HomeUiE2ETest {
     assertThat(driver.findElement(next).isEnabled()).isFalse();
     click(previous);
     waitForCards(3);
+  }
+
+  @Test
+  void anAnonymousVisitorOpensAPublicItineraryAndBrowsesEveryDayOfIt() {
+    driver.get(baseUrl + "/");
+    waitForCards(3);
 
     // Opening a public itinerary shows the trip and its first day, read-only.
     click(openExample("Roma en cinco días"));
@@ -179,8 +185,11 @@ class HomeUiE2ETest {
     click(link("Ver todos"));
 
     wait.until(ExpectedConditions.urlMatches(".*/public$"));
-    wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Viajes públicos"));
+    assertThat(
+            wait.until(
+                ExpectedConditions.textToBePresentInElementLocated(
+                    By.tagName("h1"), "Viajes públicos")))
+        .isTrue();
   }
 
   @Test
@@ -190,8 +199,11 @@ class HomeUiE2ETest {
     click(link("Regístrate gratis"));
 
     wait.until(ExpectedConditions.urlContains("/register"));
-    wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Crear cuenta"));
+    assertThat(
+            wait.until(
+                ExpectedConditions.textToBePresentInElementLocated(
+                    By.tagName("h1"), "Crear cuenta")))
+        .isTrue();
   }
 
   @Test

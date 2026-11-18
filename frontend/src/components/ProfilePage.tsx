@@ -56,9 +56,7 @@ export default function ProfilePage() {
       <h1 className="profile-page__title mb-4 text-white">Mi perfil</h1>
       {loadError && <Alert variant="danger">{loadError}</Alert>}
       {!profile && !loadError && (
-        <p className="bg-white rounded p-3" role="status">
-          Cargando perfil…
-        </p>
+        <output className="d-block mb-3 bg-white rounded p-3">Cargando perfil…</output>
       )}
       {profile && (
         <Row className="gy-4">

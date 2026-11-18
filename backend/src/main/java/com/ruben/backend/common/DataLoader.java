@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Month;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,17 @@ public class DataLoader implements CommandLineRunner {
   private static final String PHOTOS = "sample_images/";
 
   /**
+   * Names of the sample trips that appear in more than one list below (the trips, the published
+   * ones and the itineraries are matched by name).
+   */
+  private static final String LISBON_TRIP = "Lisbon getaway";
+
+  private static final String ANDALUSIA_TRIP = "Andalusia route";
+  private static final String ROME_EXAMPLE = "Roma en cinco días";
+  private static final String MALDIVES_EXAMPLE = "Escapada a las Maldivas";
+  private static final String TOKYO_EXAMPLE = "Lo mejor de Tokio";
+
+  /**
    * A trip of the sample data. `budget`, `description` and `cover` (the file name of a photo in the
    * photos folder) are optional.
    */
@@ -90,31 +102,99 @@ public class DataLoader implements CommandLineRunner {
               "Ana García",
               "ana@tripmate.com",
               List.of(
-                  trip("Lisbon getaway", "Lisbon", 2027, 5, 1, 2027, 5, 5),
-                  trip("Summer in Rome", "Rome", 2027, 7, 10, 2027, 7, 17),
-                  trip("Trip to Japan", "Tokyo", 2027, 9, 3, 2027, 9, 15),
-                  trip("Long weekend in Paris", "Paris", 2027, 10, 8, 2027, 10, 12),
-                  trip("Weekend in Berlin", "Berlin", 2027, 10, 20, 2027, 10, 24),
-                  trip("Prague route", "Prague", 2027, 11, 5, 2027, 11, 9),
-                  trip("Christmas in Vienna", "Vienna", 2027, 11, 18, 2027, 11, 21),
-                  trip("Amsterdam canals", "Amsterdam", 2027, 12, 3, 2027, 12, 6),
-                  trip("Madrid holidays", "Madrid", 2027, 12, 20, 2027, 12, 27),
-                  trip("Week in Athens", "Athens", 2028, 3, 14, 2028, 3, 20),
-                  trip("Spring in Istanbul", "Istanbul", 2028, 4, 2, 2028, 4, 9),
-                  trip("Northern lights in Reykjavik", "Reykjavik", 2028, 6, 15, 2028, 6, 22))),
+                  trip(
+                      LISBON_TRIP,
+                      "Lisbon",
+                      LocalDate.of(2027, Month.MAY, 1),
+                      LocalDate.of(2027, Month.MAY, 5)),
+                  trip(
+                      "Summer in Rome",
+                      "Rome",
+                      LocalDate.of(2027, Month.JULY, 10),
+                      LocalDate.of(2027, Month.JULY, 17)),
+                  trip(
+                      "Trip to Japan",
+                      "Tokyo",
+                      LocalDate.of(2027, Month.SEPTEMBER, 3),
+                      LocalDate.of(2027, Month.SEPTEMBER, 15)),
+                  trip(
+                      "Long weekend in Paris",
+                      "Paris",
+                      LocalDate.of(2027, Month.OCTOBER, 8),
+                      LocalDate.of(2027, Month.OCTOBER, 12)),
+                  trip(
+                      "Weekend in Berlin",
+                      "Berlin",
+                      LocalDate.of(2027, Month.OCTOBER, 20),
+                      LocalDate.of(2027, Month.OCTOBER, 24)),
+                  trip(
+                      "Prague route",
+                      "Prague",
+                      LocalDate.of(2027, Month.NOVEMBER, 5),
+                      LocalDate.of(2027, Month.NOVEMBER, 9)),
+                  trip(
+                      "Christmas in Vienna",
+                      "Vienna",
+                      LocalDate.of(2027, Month.NOVEMBER, 18),
+                      LocalDate.of(2027, Month.NOVEMBER, 21)),
+                  trip(
+                      "Amsterdam canals",
+                      "Amsterdam",
+                      LocalDate.of(2027, Month.DECEMBER, 3),
+                      LocalDate.of(2027, Month.DECEMBER, 6)),
+                  trip(
+                      "Madrid holidays",
+                      "Madrid",
+                      LocalDate.of(2027, Month.DECEMBER, 20),
+                      LocalDate.of(2027, Month.DECEMBER, 27)),
+                  trip(
+                      "Week in Athens",
+                      "Athens",
+                      LocalDate.of(2028, Month.MARCH, 14),
+                      LocalDate.of(2028, Month.MARCH, 20)),
+                  trip(
+                      "Spring in Istanbul",
+                      "Istanbul",
+                      LocalDate.of(2028, Month.APRIL, 2),
+                      LocalDate.of(2028, Month.APRIL, 9)),
+                  trip(
+                      "Northern lights in Reykjavik",
+                      "Reykjavik",
+                      LocalDate.of(2028, Month.JUNE, 15),
+                      LocalDate.of(2028, Month.JUNE, 22)))),
           new SampleUser(
               "Carlos Ruiz",
               "carlos@tripmate.com",
               List.of(
-                  trip("Andalusia route", "Seville", 2027, 4, 5, 2027, 4, 11),
-                  trip("Week in New York", "New York", 2027, 8, 2, 2027, 8, 9),
-                  trip("Summer in Croatia", "Split", 2027, 8, 20, 2027, 8, 30))),
+                  trip(
+                      ANDALUSIA_TRIP,
+                      "Seville",
+                      LocalDate.of(2027, Month.APRIL, 5),
+                      LocalDate.of(2027, Month.APRIL, 11)),
+                  trip(
+                      "Week in New York",
+                      "New York",
+                      LocalDate.of(2027, Month.AUGUST, 2),
+                      LocalDate.of(2027, Month.AUGUST, 9)),
+                  trip(
+                      "Summer in Croatia",
+                      "Split",
+                      LocalDate.of(2027, Month.AUGUST, 20),
+                      LocalDate.of(2027, Month.AUGUST, 30)))),
           new SampleUser(
               "Laura Pérez",
               "laura@tripmate.com",
               List.of(
-                  trip("Weekend in Porto", "Porto", 2027, 3, 12, 2027, 3, 14),
-                  trip("Alps in winter", "Innsbruck", 2028, 1, 8, 2028, 1, 15))));
+                  trip(
+                      "Weekend in Porto",
+                      "Porto",
+                      LocalDate.of(2027, Month.MARCH, 12),
+                      LocalDate.of(2027, Month.MARCH, 14)),
+                  trip(
+                      "Alps in winter",
+                      "Innsbruck",
+                      LocalDate.of(2028, Month.JANUARY, 8),
+                      LocalDate.of(2028, Month.JANUARY, 15)))));
 
   /**
    * The example trips of the public home page: the administrator's trips. There are three, which is
@@ -123,26 +203,26 @@ public class DataLoader implements CommandLineRunner {
   static final List<SampleTrip> SAMPLE_EXAMPLES =
       List.of(
           example(
-              "Roma en cinco días",
+              ROME_EXAMPLE,
               "Roma, Italia",
-              LocalDate.of(2027, 5, 10),
-              LocalDate.of(2027, 5, 14),
+              LocalDate.of(2027, Month.MAY, 10),
+              LocalDate.of(2027, Month.MAY, 14),
               "1200.00",
               "La Roma antigua, el Vaticano y la mejor pasta de la ciudad, a un ritmo relajado.",
               "Rome_trip_example.png"),
           example(
-              "Escapada a las Maldivas",
+              MALDIVES_EXAMPLE,
               "Maldivas",
-              LocalDate.of(2027, 9, 6),
-              LocalDate.of(2027, 9, 12),
+              LocalDate.of(2027, Month.SEPTEMBER, 6),
+              LocalDate.of(2027, Month.SEPTEMBER, 12),
               "3200.00",
               "Una semana de playas, snorkel y atardeceres sobre el agua.",
               "Maldivas_trip_example.png"),
           example(
-              "Lo mejor de Tokio",
+              TOKYO_EXAMPLE,
               "Tokio, Japón",
-              LocalDate.of(2027, 10, 4),
-              LocalDate.of(2027, 10, 10),
+              LocalDate.of(2027, Month.OCTOBER, 4),
+              LocalDate.of(2027, Month.OCTOBER, 10),
               "2800.00",
               "Templos, mercados y luces de neón: lo esencial de Tokio en una semana.",
               "Tokyo_trip_example.png"));
@@ -154,12 +234,7 @@ public class DataLoader implements CommandLineRunner {
    * when it is created, so one that somebody unpublished stays unpublished after a restart.
    */
   static final List<String> PUBLISHED_SAMPLES =
-      List.of(
-          "Roma en cinco días",
-          "Escapada a las Maldivas",
-          "Lo mejor de Tokio",
-          "Lisbon getaway",
-          "Andalusia route");
+      List.of(ROME_EXAMPLE, MALDIVES_EXAMPLE, TOKYO_EXAMPLE, LISBON_TRIP, ANDALUSIA_TRIP);
 
   /**
    * The itinerary of some sample trips, by trip name; the other trips start empty. The third day of
@@ -167,637 +242,539 @@ public class DataLoader implements CommandLineRunner {
    */
   static final Map<String, List<SampleActivity>> SAMPLE_ACTIVITIES =
       Map.of(
-          "Roma en cinco días",
+          ROME_EXAMPLE,
           List.of(
-              activity(
+              new SampleActivity(
                   0,
                   "Visita guiada al Coliseo",
                   "Piazza del Colosseo",
-                  9,
-                  0,
-                  11,
-                  0,
+                  LocalTime.of(9, 0),
+                  LocalTime.of(11, 0),
                   "16.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   0,
                   "Comida en Armando al Pantheon",
                   "Panteón",
-                  13,
-                  0,
-                  14,
-                  30,
+                  LocalTime.of(13, 0),
+                  LocalTime.of(14, 30),
                   "35.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   0,
                   "Paseo por el Foro Romano",
                   "Foro Romano",
-                  16,
-                  0,
-                  18,
-                  0,
+                  LocalTime.of(16, 0),
+                  LocalTime.of(18, 0),
                   "0.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Museos Vaticanos y Capilla Sixtina",
                   "Ciudad del Vaticano",
-                  9,
-                  0,
-                  13,
-                  0,
+                  LocalTime.of(9, 0),
+                  LocalTime.of(13, 0),
                   "20.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Comida de pasta en Trastevere",
                   "Trastevere",
-                  13,
-                  30,
-                  15,
-                  0,
+                  LocalTime.of(13, 30),
+                  LocalTime.of(15, 0),
                   "22.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   2,
                   "Galería Borghese y jardines",
                   "Villa Borghese",
-                  10,
-                  0,
-                  13,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(13, 0),
                   "15.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   2,
                   "Fontana de Trevi al atardecer",
                   "Trevi",
-                  19,
-                  0,
-                  20,
-                  0,
+                  LocalTime.of(19, 0),
+                  LocalTime.of(20, 0),
                   null,
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Subida a la cúpula de San Pedro",
                   "Ciudad del Vaticano",
-                  15,
-                  30,
-                  17,
-                  30,
+                  LocalTime.of(15, 30),
+                  LocalTime.of(17, 30),
                   "10.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   3,
                   "Paseo por la Plaza de España y Via Condotti",
                   "Piazza di Spagna",
-                  10,
-                  0,
-                  12,
-                  30,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(12, 30),
                   null,
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   3,
                   "Clase de cocina de pasta fresca",
                   "Campo de' Fiori",
-                  17,
-                  0,
-                  20,
-                  0,
+                  LocalTime.of(17, 0),
+                  LocalTime.of(20, 0),
                   "65.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   4,
                   "Museos Capitolinos",
                   "Piazza del Campidoglio",
-                  9,
-                  30,
-                  12,
-                  30,
+                  LocalTime.of(9, 30),
+                  LocalTime.of(12, 30),
                   "15.50",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   4,
                   "Leonardo Express al aeropuerto",
                   "Roma Termini",
-                  15,
-                  0,
-                  15,
-                  45,
+                  LocalTime.of(15, 0),
+                  LocalTime.of(15, 45),
                   "14.00",
                   ActivityCategory.TRANSPORT,
                   null)),
-          "Escapada a las Maldivas",
+          MALDIVES_EXAMPLE,
           List.of(
-              activity(
+              new SampleActivity(
                   0,
                   "Traslado en hidroavión al resort",
                   "Malé",
-                  10,
-                  0,
-                  11,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(11, 0),
                   "250.00",
                   ActivityCategory.TRANSPORT,
                   null),
-              activity(
+              new SampleActivity(
                   0,
                   "Cena al atardecer en la playa",
                   "Playa del resort",
-                  19,
-                  0,
-                  21,
-                  0,
+                  LocalTime.of(19, 0),
+                  LocalTime.of(21, 0),
                   "90.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Snorkel en el arrecife del resort",
                   "Arrecife del resort",
-                  9,
-                  30,
-                  12,
-                  0,
+                  LocalTime.of(9, 30),
+                  LocalTime.of(12, 0),
                   "40.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   2,
                   "Crucero para ver delfines",
                   "Mar abierto",
-                  16,
-                  0,
-                  18,
-                  0,
+                  LocalTime.of(16, 0),
+                  LocalTime.of(18, 0),
                   "60.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   2,
                   "Tarde de spa",
                   "Spa del resort",
-                  20,
-                  0,
-                  21,
-                  30,
+                  LocalTime.of(20, 0),
+                  LocalTime.of(21, 30),
                   "80.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Comida en la parrilla del resort",
                   "Restaurante del resort",
-                  12,
-                  30,
-                  14,
-                  0,
+                  LocalTime.of(12, 30),
+                  LocalTime.of(14, 0),
                   "35.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   3,
                   "Picnic en un banco de arena",
                   "Banco de arena",
-                  10,
-                  0,
-                  14,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(14, 0),
                   "120.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   3,
                   "Kayak al atardecer",
                   "Laguna del resort",
-                  17,
-                  0,
-                  18,
-                  30,
+                  LocalTime.of(17, 0),
+                  LocalTime.of(18, 30),
                   "30.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   4,
                   "Bautismo de buceo",
                   "Centro de buceo",
-                  9,
-                  0,
-                  12,
-                  0,
+                  LocalTime.of(9, 0),
+                  LocalTime.of(12, 0),
                   "95.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   4,
                   "Cena de marisco en el restaurante sobre el agua",
                   "Restaurante sobre el agua",
-                  19,
-                  30,
-                  21,
-                  30,
+                  LocalTime.of(19, 30),
+                  LocalTime.of(21, 30),
                   "85.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   5,
                   "Visita a una isla local y su mercado",
                   "Isla local",
-                  10,
-                  0,
-                  13,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(13, 0),
                   "20.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   5,
                   "Pesca al atardecer",
                   "Mar abierto",
-                  16,
-                  0,
-                  18,
-                  0,
+                  LocalTime.of(16, 0),
+                  LocalTime.of(18, 0),
                   "45.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   6,
                   "Desayuno tranquilo y salida del hotel",
                   "Restaurante del resort",
-                  8,
-                  0,
-                  9,
-                  30,
+                  LocalTime.of(8, 0),
+                  LocalTime.of(9, 30),
                   null,
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   6,
                   "Traslado en hidroavión al aeropuerto",
                   "Embarcadero del resort",
-                  12,
-                  0,
-                  13,
-                  0,
+                  LocalTime.of(12, 0),
+                  LocalTime.of(13, 0),
                   "250.00",
                   ActivityCategory.TRANSPORT,
                   null)),
-          "Lo mejor de Tokio",
+          TOKYO_EXAMPLE,
           List.of(
-              activity(
+              new SampleActivity(
                   0,
                   "Templo Senso-ji y Asakusa",
                   "Asakusa",
-                  9,
-                  0,
-                  12,
-                  0,
+                  LocalTime.of(9, 0),
+                  LocalTime.of(12, 0),
                   null,
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   0,
                   "Almuerzo de sushi en el mercado exterior de Tsukiji",
                   "Tsukiji",
-                  12,
-                  30,
-                  14,
-                  0,
+                  LocalTime.of(12, 30),
+                  LocalTime.of(14, 0),
                   "40.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Cruce de Shibuya y santuario Meiji",
                   "Shibuya",
-                  10,
-                  0,
-                  13,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(13, 0),
                   null,
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Cena de ramen en Shinjuku",
                   "Shinjuku",
-                  19,
-                  30,
-                  21,
-                  0,
+                  LocalTime.of(19, 30),
+                  LocalTime.of(21, 0),
                   "15.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   2,
                   "Excursión al monte Fuji",
                   "Kawaguchiko",
                   null,
                   null,
-                  null,
-                  null,
                   "90.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   0,
                   "Tokyo Skytree de noche",
                   "Sumida",
-                  18,
-                  0,
-                  20,
-                  0,
+                  LocalTime.of(18, 0),
+                  LocalTime.of(20, 0),
                   "22.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   3,
                   "Museo de arte digital teamLab",
                   "Toyosu",
-                  10,
-                  0,
-                  12,
-                  30,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(12, 30),
                   "35.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   3,
                   "Akihabara: electrónica y salas recreativas",
                   "Akihabara",
-                  14,
-                  0,
-                  17,
-                  0,
+                  LocalTime.of(14, 0),
+                  LocalTime.of(17, 0),
                   null,
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   4,
                   "Jardines del Este del Palacio Imperial",
                   "Chiyoda",
-                  9,
-                  30,
-                  11,
-                  30,
+                  LocalTime.of(9, 30),
+                  LocalTime.of(11, 30),
                   null,
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   4,
                   "Parque Ueno y Museo Nacional",
                   "Ueno",
-                  13,
-                  0,
-                  16,
-                  0,
+                  LocalTime.of(13, 0),
+                  LocalTime.of(16, 0),
                   "10.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   5,
                   "Excursión a Nikko",
                   "Nikko",
                   null,
                   null,
-                  null,
-                  null,
                   "55.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   5,
                   "Cena en un izakaya de Golden Gai",
                   "Shinjuku",
-                  20,
-                  0,
-                  22,
-                  0,
+                  LocalTime.of(20, 0),
+                  LocalTime.of(22, 0),
                   "45.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   6,
                   "Últimas compras en Ginza",
                   "Ginza",
-                  10,
-                  0,
-                  12,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(12, 0),
                   null,
                   ActivityCategory.LEISURE,
                   null),
-              activity(
+              new SampleActivity(
                   6,
                   "Narita Express al aeropuerto",
                   "Estación de Tokio",
-                  14,
-                  0,
-                  15,
-                  30,
+                  LocalTime.of(14, 0),
+                  LocalTime.of(15, 30),
                   "30.00",
                   ActivityCategory.TRANSPORT,
                   null)),
-          "Lisbon getaway",
+          LISBON_TRIP,
           List.of(
-              activity(
+              new SampleActivity(
                   0,
                   "Alfama walking tour",
                   "Alfama",
-                  10,
-                  0,
-                  12,
-                  30,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(12, 30),
                   "0.00",
                   ActivityCategory.SIGHTSEEING,
                   0x2E6F9E),
-              activity(
+              new SampleActivity(
                   0,
                   "Lunch at Time Out Market",
                   "Cais do Sodré",
-                  13,
-                  30,
-                  14,
-                  30,
+                  LocalTime.of(13, 30),
+                  LocalTime.of(14, 30),
                   "18.50",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Belém Tower",
                   "Belém",
-                  9,
-                  30,
-                  11,
-                  0,
+                  LocalTime.of(9, 30),
+                  LocalTime.of(11, 0),
                   "6.00",
                   ActivityCategory.SIGHTSEEING,
                   0xC9822B),
-              activity(
+              new SampleActivity(
                   1,
                   "Pastéis de Belém tasting",
                   "Belém",
-                  11,
-                  15,
-                  12,
-                  0,
+                  LocalTime.of(11, 15),
+                  LocalTime.of(12, 0),
                   "7.50",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Tram 28 ride",
                   "Graça",
-                  16,
-                  0,
-                  17,
-                  0,
+                  LocalTime.of(16, 0),
+                  LocalTime.of(17, 0),
                   "3.10",
                   ActivityCategory.TRANSPORT,
                   null),
-              activity(
+              new SampleActivity(
                   2,
                   "Day trip to Sintra",
                   "Sintra",
                   null,
                   null,
-                  null,
-                  null,
                   "45.00",
                   ActivityCategory.LEISURE,
                   null),
-              activity(
-                  2, "Fado dinner", "Alfama", 20, 30, 23, 0, "55.00", ActivityCategory.FOOD, null)),
+              new SampleActivity(
+                  2,
+                  "Fado dinner",
+                  "Alfama",
+                  LocalTime.of(20, 30),
+                  LocalTime.of(23, 0),
+                  "55.00",
+                  ActivityCategory.FOOD,
+                  null)),
           "Summer in Rome",
           List.of(
-              activity(
+              new SampleActivity(
                   1,
                   "Colosseum guided tour",
                   "Piazza del Colosseo",
-                  9,
-                  0,
-                  11,
-                  0,
+                  LocalTime.of(9, 0),
+                  LocalTime.of(11, 0),
                   "16.00",
                   ActivityCategory.SIGHTSEEING,
                   0xB5651D),
-              activity(
+              new SampleActivity(
                   1,
                   "Pasta lunch in Trastevere",
                   "Trastevere",
-                  13,
-                  0,
-                  14,
-                  30,
+                  LocalTime.of(13, 0),
+                  LocalTime.of(14, 30),
                   "22.00",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   2,
                   "Vatican Museums",
                   "Vatican City",
-                  10,
-                  0,
-                  14,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(14, 0),
                   "20.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   4,
                   "Train to Naples",
                   "Roma Termini",
-                  8,
-                  15,
-                  9,
-                  45,
+                  LocalTime.of(8, 15),
+                  LocalTime.of(9, 45),
                   "14.00",
                   ActivityCategory.TRANSPORT,
                   null)),
           "Weekend in Porto",
           List.of(
-              activity(
+              new SampleActivity(
                   0,
                   "Ribeira walk",
                   "Ribeira",
-                  10,
-                  0,
-                  12,
-                  0,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(12, 0),
                   null,
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   0,
                   "Francesinha lunch",
                   "Baixa",
-                  13,
-                  0,
-                  14,
-                  0,
+                  LocalTime.of(13, 0),
+                  LocalTime.of(14, 0),
                   "12.50",
                   ActivityCategory.FOOD,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Livraria Lello",
                   "Rua das Carmelitas",
-                  11,
-                  0,
-                  12,
-                  0,
+                  LocalTime.of(11, 0),
+                  LocalTime.of(12, 0),
                   "8.00",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
+              new SampleActivity(
                   1,
                   "Port wine cellar visit",
                   "Vila Nova de Gaia",
-                  15,
-                  0,
-                  17,
-                  0,
+                  LocalTime.of(15, 0),
+                  LocalTime.of(17, 0),
                   "15.00",
                   ActivityCategory.LEISURE,
                   0x7A2E4D)),
-          "Andalusia route",
+          ANDALUSIA_TRIP,
           List.of(
-              activity(
+              new SampleActivity(
                   0,
                   "Alcázar of Seville",
                   "Seville",
-                  10,
-                  0,
-                  12,
-                  30,
+                  LocalTime.of(10, 0),
+                  LocalTime.of(12, 30),
                   "14.50",
                   ActivityCategory.SIGHTSEEING,
                   null),
-              activity(
-                  1, "Tapas night", "Triana", 21, 0, 23, 0, "30.00", ActivityCategory.FOOD, null),
-              activity(
+              new SampleActivity(
+                  1,
+                  "Tapas night",
+                  "Triana",
+                  LocalTime.of(21, 0),
+                  LocalTime.of(23, 0),
+                  "30.00",
+                  ActivityCategory.FOOD,
+                  null),
+              new SampleActivity(
                   3,
                   "Train to Granada",
                   "Santa Justa station",
-                  9,
-                  0,
-                  11,
-                  30,
+                  LocalTime.of(9, 0),
+                  LocalTime.of(11, 30),
                   "25.00",
                   ActivityCategory.TRANSPORT,
                   null)));
@@ -955,32 +932,9 @@ public class DataLoader implements CommandLineRunner {
     }
   }
 
-  private static SampleActivity activity(
-      int day,
-      String name,
-      String location,
-      Integer startHour,
-      Integer startMinute,
-      Integer endHour,
-      Integer endMinute,
-      String cost,
-      ActivityCategory category,
-      Integer picture) {
-    return new SampleActivity(
-        day,
-        name,
-        location,
-        startHour == null ? null : LocalTime.of(startHour, startMinute),
-        endHour == null ? null : LocalTime.of(endHour, endMinute),
-        cost,
-        category,
-        picture);
-  }
-
   private static SampleTrip trip(
-      String name, String destination, int y1, int m1, int d1, int y2, int m2, int d2) {
-    return new SampleTrip(
-        name, destination, LocalDate.of(y1, m1, d1), LocalDate.of(y2, m2, d2), null, null, null);
+      String name, String destination, LocalDate startDate, LocalDate endDate) {
+    return new SampleTrip(name, destination, startDate, endDate, null, null, null);
   }
 
   private static SampleTrip example(

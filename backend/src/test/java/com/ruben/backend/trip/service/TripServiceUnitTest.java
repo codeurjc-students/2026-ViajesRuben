@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -606,7 +607,7 @@ class TripServiceUnitTest {
 
     assertThat(tripService.findAllPage("   ", pageable).content()).isEmpty();
     assertThat(tripService.findAllPage(null, pageable).content()).isEmpty();
-    verify(tripRepository, Mockito.times(2)).searchAll(null, pageable);
+    verify(tripRepository, times(2)).searchAll(null, pageable);
   }
 
   @Test
