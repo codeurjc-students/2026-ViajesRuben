@@ -146,8 +146,9 @@ class AdminTripUiE2ETest {
     wait.until(ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), tripName));
     wait.until(ExpectedConditions.textToBePresentInElementLocated(MAIN, "Itinerario"));
     String detail = driver.findElement(MAIN).getText();
-    assertThat(detail).contains("Moderlandia", "Volver a Viajes", "Eliminar viaje");
-    assertThat(detail).doesNotContain("Nueva actividad");
+    assertThat(detail)
+        .contains("Moderlandia", "Volver a Viajes", "Eliminar viaje")
+        .doesNotContain("Nueva actividad");
     assertThat(driver.findElements(By.xpath("//a[normalize-space()='Editar']"))).isEmpty();
     assertThat(driver.findElements(By.xpath("//button[normalize-space()='Eliminar']"))).isEmpty();
 

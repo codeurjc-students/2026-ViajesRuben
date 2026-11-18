@@ -50,8 +50,8 @@ export default function CopyTripModal({
     setError(undefined);
     try {
       onCopied(await copyPublicTrip(tripId, startDate || undefined));
-    } catch (failure) {
-      setError(copyErrorMessage(failure));
+    } catch (copyError) {
+      setError(copyErrorMessage(copyError));
     } finally {
       setBusy(false);
     }

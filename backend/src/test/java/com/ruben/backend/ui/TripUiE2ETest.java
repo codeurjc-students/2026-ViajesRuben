@@ -195,8 +195,9 @@ class TripUiE2ETest {
 
     String trips = driver.findElement(By.id("trips")).getText();
 
-    assertThat(trips).contains("Weekend in Porto", "Alps in winter");
-    assertThat(trips).doesNotContain("Lisbon getaway");
+    assertThat(trips)
+        .contains("Weekend in Porto", "Alps in winter")
+        .doesNotContain("Lisbon getaway");
   }
 
   @Test

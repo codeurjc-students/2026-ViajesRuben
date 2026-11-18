@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -663,7 +664,7 @@ class ActivityServiceUnitTest {
     List<Activity> copies = savedCopies();
     assertThat(copies.get(0).getImage()).isSameAs(duplicate).isNotSameAs(original);
     assertThat(copies.get(1).getImage()).isNull();
-    verify(imageService, Mockito.times(1)).copy(any());
+    verify(imageService, times(1)).copy(any());
   }
 
   @Test

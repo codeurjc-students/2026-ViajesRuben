@@ -44,10 +44,10 @@ export default function DeleteActivityModal({
     try {
       await deleteActivity(activity.tripId, activity.id);
       onDeleted();
-    } catch (failure) {
+    } catch (deleteError) {
       // An activity that is already gone is what the user wanted.
-      if (failure instanceof ApiError && failure.status === 404) onDeleted();
-      else setError(deleteErrorMessage(failure));
+      if (deleteError instanceof ApiError && deleteError.status === 404) onDeleted();
+      else setError(deleteErrorMessage(deleteError));
     } finally {
       setBusy(false);
     }

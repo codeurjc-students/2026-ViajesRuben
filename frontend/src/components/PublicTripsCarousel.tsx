@@ -93,7 +93,7 @@ export default function PublicTripsCarousel() {
           Cargando itinerarios públicos…
         </output>
       )}
-      {current && current.content.length === 0 && (
+      {current?.content.length === 0 && (
         <p className="bg-white rounded p-3">Todavía no hay itinerarios públicos.</p>
       )}
       {current && current.content.length > 0 && (

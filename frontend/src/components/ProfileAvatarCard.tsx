@@ -36,8 +36,8 @@ export default function ProfileAvatarCard({
     try {
       await deleteAvatar(profile.id);
       onChanged({ ...profile, avatarId: null });
-    } catch (failure) {
-      setError(PROFILE_MESSAGES[profileErrorCode(failure)]);
+    } catch (uploadError) {
+      setError(PROFILE_MESSAGES[profileErrorCode(uploadError)]);
     } finally {
       setDeleting(false);
     }

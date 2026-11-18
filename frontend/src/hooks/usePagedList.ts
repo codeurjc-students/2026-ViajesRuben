@@ -44,8 +44,8 @@ export function usePagedList<T>(fetchPage: (page: number) => Promise<Page<T>>): 
         setLoaded(true);
         nextPage.current = page.page + 1;
       })
-      .catch((failure) => {
-        if (mine === generation.current) setError(failure);
+      .catch((loadError) => {
+        if (mine === generation.current) setError(loadError);
       })
       .finally(() => {
         if (mine !== generation.current) return;

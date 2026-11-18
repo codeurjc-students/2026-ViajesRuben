@@ -44,10 +44,10 @@ export default function DeleteTripModal({
     try {
       await deleteTrip(trip.id);
       onDeleted();
-    } catch (failure) {
+    } catch (deleteError) {
       // A trip that is already gone is what the user wanted.
-      if (failure instanceof ApiError && failure.status === 404) onDeleted();
-      else setError(deleteErrorMessage(failure));
+      if (deleteError instanceof ApiError && deleteError.status === 404) onDeleted();
+      else setError(deleteErrorMessage(deleteError));
     } finally {
       setBusy(false);
     }
