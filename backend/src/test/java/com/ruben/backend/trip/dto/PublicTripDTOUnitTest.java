@@ -68,6 +68,7 @@ class PublicTripDTOUnitTest {
             .toList();
 
     assertThat(components)
+        .isNotEmpty()
         .doesNotContain(
             "email", "authorEmail", "creatorEmail", "creatorId", "creator", "participants");
     assertThat(PublicTripDTO.from(trip()).toString()).doesNotContain("ana@tripmate.com");
