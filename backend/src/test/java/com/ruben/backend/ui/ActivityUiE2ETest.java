@@ -137,9 +137,9 @@ class ActivityUiE2ETest {
 
   private void waitForLoadedPicture(String cssSelector) {
     wait.until(
-        driver ->
+        browser ->
             Boolean.TRUE.equals(
-                ((JavascriptExecutor) driver)
+                ((JavascriptExecutor) browser)
                     .executeScript(
                         "const img = document.querySelector(arguments[0]);"
                             + " return !!img && img.complete && img.naturalWidth > 0;",

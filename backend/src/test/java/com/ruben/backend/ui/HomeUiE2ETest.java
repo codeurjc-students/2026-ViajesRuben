@@ -83,7 +83,7 @@ class HomeUiE2ETest {
   // --- tests ---
 
   @Test
-  void anAnonymousVisitorSeesThePublicItinerariesPagesThemAndBrowsesEveryDayOfOne() {
+  void anAnonymousVisitorSeesThePublicItinerariesAndPagesThemOnTheHomePage() {
     driver.get(baseUrl + "/");
 
     // The hero invites to register or log in.
@@ -133,6 +133,12 @@ class HomeUiE2ETest {
     assertThat(second.get(1).getText()).contains("Por Carlos Ruiz");
     assertThat(driver.findElement(next).isEnabled()).isFalse();
     click(previous);
+    waitForCards(3);
+  }
+
+  @Test
+  void anAnonymousVisitorOpensAPublicItineraryAndBrowsesEveryDayOfIt() {
+    driver.get(baseUrl + "/");
     waitForCards(3);
 
     // Opening a public itinerary shows the trip and its first day, read-only.

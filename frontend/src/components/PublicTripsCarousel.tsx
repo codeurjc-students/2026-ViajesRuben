@@ -89,9 +89,9 @@ export default function PublicTripsCarousel() {
         )}
       </div>
       {!current && (
-        <p className="bg-white rounded p-3" role="status">
+        <output className="d-block mb-3 bg-white rounded p-3">
           Cargando itinerarios públicos…
-        </p>
+        </output>
       )}
       {current && current.content.length === 0 && (
         <p className="bg-white rounded p-3">Todavía no hay itinerarios públicos.</p>

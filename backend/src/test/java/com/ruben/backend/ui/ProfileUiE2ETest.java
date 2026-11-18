@@ -123,9 +123,9 @@ class ProfileUiE2ETest {
   /** Waits until the browser has decoded the picture, so a broken image does not pass. */
   private void waitForLoadedPicture(String cssSelector) {
     wait.until(
-        driver ->
+        browser ->
             Boolean.TRUE.equals(
-                ((JavascriptExecutor) driver)
+                ((JavascriptExecutor) browser)
                     .executeScript(
                         "const img = document.querySelector(arguments[0]);"
                             + " return !!img && img.complete && img.naturalWidth > 0;",

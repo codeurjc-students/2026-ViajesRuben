@@ -181,7 +181,8 @@ class DataLoaderIntegrationTest {
 
     assertThat(authService.login(new LoginRequest("ana@tripmate.com", "Other-2026")).user().email())
         .isEqualTo("ana@tripmate.com");
-    assertThatThrownBy(() -> authService.login(new LoginRequest("ana@tripmate.com", "Demo-2026")))
+    LoginRequest withTheDefaultPassword = new LoginRequest("ana@tripmate.com", "Demo-2026");
+    assertThatThrownBy(() -> authService.login(withTheDefaultPassword))
         .isInstanceOf(BadCredentialsException.class);
   }
 

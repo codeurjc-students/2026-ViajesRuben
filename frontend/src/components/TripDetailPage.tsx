@@ -69,9 +69,7 @@ export default function TripDetailPage() {
         </Alert>
       )}
       {!trip ? (
-        <p className="bg-white rounded p-3" role="status">
-          Cargando viaje…
-        </p>
+        <output className="d-block mb-3 bg-white rounded p-3">Cargando viaje…</output>
       ) : (
         <Card as="article" className="trip-detail">
           <div className="trip-detail__cover">

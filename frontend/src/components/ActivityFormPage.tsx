@@ -92,9 +92,7 @@ export default function ActivityFormPage() {
         </h1>
         {trip && <p className="text-white mb-4">{`Viaje: ${trip.name}`}</p>}
         {loading ? (
-          <p className="bg-white rounded p-3" role="status">
-            Cargando actividad…
-          </p>
+          <output className="d-block mb-3 bg-white rounded p-3">Cargando actividad…</output>
         ) : (
           <Card className="activity-form-card">
             <ActivityForm

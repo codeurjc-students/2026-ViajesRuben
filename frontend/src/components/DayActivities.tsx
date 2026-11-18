@@ -40,7 +40,7 @@ export default function DayActivities({
           </span>
         )}
       </h3>
-      {!loaded && <p role="status">Cargando actividades…</p>}
+      {!loaded && <output className="d-block mb-3">Cargando actividades…</output>}
       {loaded && items.length === 0 && (
         <p className="itinerary__empty">
           {isCreator
