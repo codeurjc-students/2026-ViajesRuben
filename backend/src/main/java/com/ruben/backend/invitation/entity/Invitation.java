@@ -15,6 +15,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 /**
  * An invitation to join a trip, addressed to an email. The email may have no account yet: the
@@ -70,7 +71,9 @@ public class Invitation {
     this.invitedUser = invitedUser;
     this.token = token;
     this.status = InvitationStatus.PENDING;
-    this.sentAt = Instant.now();
+    // The database keeps microseconds: cut here, so the answer to the creation matches what is
+    // read.
+    this.sentAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
   }
 
   public Long getId() {

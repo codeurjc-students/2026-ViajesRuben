@@ -14,13 +14,15 @@ import type { Trip } from '../types';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
 import ConflictAlert from './ConflictAlert';
 import DeleteTripModal from './DeleteTripModal';
+import InvitationsSection from './InvitationsSection';
 import ItinerarySection from './ItinerarySection';
 import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
 /**
  * `/trips/:tripId`: the trip's summary and its itinerary. Participants will go in between (I3). The
- * administrator reviewing another user's trip (B8) sees it read-only, with only a delete button.
+ * creator also sees the invitations (I1). The administrator reviewing another user's trip (B8) sees
+ * it read-only, with only a delete button.
  */
 export default function TripDetailPage() {
   const { tripId } = useParams();
@@ -154,6 +156,7 @@ export default function TripDetailPage() {
           }}
         />
       )}
+      {trip && isCreator && <InvitationsSection tripId={trip.id} />}
     </Container>
   );
 }
