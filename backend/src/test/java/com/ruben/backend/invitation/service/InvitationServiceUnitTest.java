@@ -18,6 +18,7 @@ import com.ruben.backend.invitation.dto.InvitationRequest;
 import com.ruben.backend.invitation.entity.Invitation;
 import com.ruben.backend.invitation.entity.InvitationStatus;
 import com.ruben.backend.invitation.repository.InvitationRepository;
+import com.ruben.backend.notification.event.InvitationCreatedEvent;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.service.TripAccessService;
 import com.ruben.backend.user.UserTestData;
@@ -37,6 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +53,7 @@ class InvitationServiceUnitTest {
   @Mock private UserRepository userRepository;
   @Mock private TripAccessService tripAccessService;
   @Mock private AuthService authService;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   private InvitationService invitationService;
   private User ana;
@@ -59,7 +62,8 @@ class InvitationServiceUnitTest {
   @BeforeEach
   void setUp() {
     invitationService =
-        new InvitationService(invitationRepository, userRepository, tripAccessService, authService);
+        new InvitationService(
+            invitationRepository, userRepository, tripAccessService, authService, eventPublisher);
     ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
     trip = new Trip(ana, "Trip", "Rome", LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 17));
     ReflectionTestUtils.setField(trip, "id", 1L);
@@ -110,6 +114,49 @@ class InvitationServiceUnitTest {
     assertThat(dto.invitedEmail()).isEqualTo("new@example.com");
     assertThat(dto.status()).isEqualTo(InvitationStatus.PENDING);
     assertThat(dto.sentAt()).isNotNull();
+  }
+
+  @Test
+  void createPublishesTheEventThatSendsTheEmailWithWhatTheEmailNeeds() {
+    anaOwnsTheTrip();
+    saveAssignsId(5L);
+
+    invitationService.create(1L, new InvitationRequest("New@Example.com"));
+
+    ArgumentCaptor<InvitationCreatedEvent> captor =
+        ArgumentCaptor.forClass(InvitationCreatedEvent.class);
+    verify(eventPublisher).publishEvent(captor.capture());
+    InvitationCreatedEvent event = captor.getValue();
+    assertThat(event.invitationId()).isEqualTo(5L);
+    assertThat(event.invitedEmail()).isEqualTo("new@example.com");
+    assertThat(event.token()).isEqualTo(savedInvitation().getToken());
+    assertThat(event.inviterName()).isEqualTo(ana.getName());
+    assertThat(event.tripName()).isEqualTo("Trip");
+  }
+
+  @Test
+  void createPublishesNothingWhenTheInvitationIsRefused() {
+    anaOwnsTheTrip();
+    when(invitationRepository.existsByTripIdAndInvitedEmailAndStatus(
+            1L, "new@example.com", InvitationStatus.PENDING))
+        .thenReturn(true);
+
+    assertThatThrownBy(() -> invitationService.create(1L, new InvitationRequest("new@example.com")))
+        .isInstanceOf(ConflictException.class);
+    assertThatThrownBy(() -> invitationService.create(1L, new InvitationRequest("ana@example.com")))
+        .isInstanceOf(BadRequestException.class);
+
+    verifyNoInteractions(eventPublisher);
+  }
+
+  @Test
+  void createPublishesNothingWhenTheUserMayNotInvite() {
+    when(tripAccessService.findForWrite(1L)).thenThrow(new ForbiddenException("no"));
+
+    assertThatThrownBy(() -> invitationService.create(1L, new InvitationRequest("x@example.com")))
+        .isInstanceOf(ForbiddenException.class);
+
+    verifyNoInteractions(eventPublisher);
   }
 
   @Test

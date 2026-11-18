@@ -10,6 +10,7 @@ import com.ruben.backend.invitation.dto.InvitationRequest;
 import com.ruben.backend.invitation.entity.Invitation;
 import com.ruben.backend.invitation.entity.InvitationStatus;
 import com.ruben.backend.invitation.repository.InvitationRepository;
+import com.ruben.backend.notification.event.InvitationCreatedEvent;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.service.TripAccessService;
 import com.ruben.backend.user.dto.UserDTO;
@@ -22,6 +23,7 @@ import java.util.Locale;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,22 +50,26 @@ public class InvitationService {
   private final UserRepository userRepository;
   private final TripAccessService tripAccessService;
   private final AuthService authService;
+  private final ApplicationEventPublisher eventPublisher;
 
   public InvitationService(
       InvitationRepository invitationRepository,
       UserRepository userRepository,
       TripAccessService tripAccessService,
-      AuthService authService) {
+      AuthService authService,
+      ApplicationEventPublisher eventPublisher) {
     this.invitationRepository = invitationRepository;
     this.userRepository = userRepository;
     this.tripAccessService = tripAccessService;
     this.authService = authService;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
-   * Invites an email to the trip. The email may have no account: that person registers and answers
-   * later (I2). Two simultaneous identical requests may both pass the duplicate check; that race is
-   * accepted, the only effect being a second pending invitation.
+   * Invites an email to the trip and publishes the event that sends it the email after the commit.
+   * The email may have no account: that person registers and answers later (I2). Two simultaneous
+   * identical requests may both pass the duplicate check; that race is accepted, the only effect
+   * being a second pending invitation.
    *
    * @throws BadRequestException the email is the creator's own
    * @throws ConflictException the email already has a pending invitation to the trip
@@ -94,6 +100,11 @@ public class InvitationService {
         current.id(),
         tripId,
         invitation.getId());
+    // Delivered to its listener only after this transaction commits: the email is never sent for an
+    // invitation that was rolled back, and a failed email never undoes the invitation.
+    eventPublisher.publishEvent(
+        new InvitationCreatedEvent(
+            invitation.getId(), email, invitation.getToken(), current.name(), trip.getName()));
     return InvitationDTO.from(invitation);
   }
 
