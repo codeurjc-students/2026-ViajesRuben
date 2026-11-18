@@ -9,6 +9,29 @@ describe('B2 authForm', () => {
     expect(emailError('ana@')).toBe('invalid');
   });
 
+  test.each([
+    'a@b.c',
+    'a@b..c',
+    'a@.b.c',
+    'ana.garcia+trips@mail.example.co.uk',
+    '  ana@example.com  ',
+  ])('emailError accepts %j', (email) => {
+    expect(emailError(email)).toBeUndefined();
+  });
+
+  test.each(['a@b.', 'a@.b', '@b.c', 'a@@b.c', 'a@b@c.d', 'a @b.c', 'a@b .c', 'a@bc', 'ana@'])(
+    'emailError rejects %j',
+    (email) => {
+      expect(emailError(email)).toBe('invalid');
+    },
+  );
+
+  test('emailError answers at once for a very long address with no dot in its domain', () => {
+    const started = Date.now();
+    expect(emailError(`a@${'b'.repeat(100_000)}`)).toBe('invalid');
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
   test('submitErrorCode maps each failure to a code', () => {
     expect(submitErrorCode(new ApiError(401))).toBe('badCredentials');
     expect(submitErrorCode(new ApiError(403))).toBe('blocked');
