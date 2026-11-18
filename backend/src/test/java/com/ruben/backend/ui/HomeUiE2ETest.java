@@ -179,8 +179,11 @@ class HomeUiE2ETest {
     click(link("Ver todos"));
 
     wait.until(ExpectedConditions.urlMatches(".*/public$"));
-    wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Viajes públicos"));
+    assertThat(
+            wait.until(
+                ExpectedConditions.textToBePresentInElementLocated(
+                    By.tagName("h1"), "Viajes públicos")))
+        .isTrue();
   }
 
   @Test
@@ -190,8 +193,11 @@ class HomeUiE2ETest {
     click(link("Regístrate gratis"));
 
     wait.until(ExpectedConditions.urlContains("/register"));
-    wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), "Crear cuenta"));
+    assertThat(
+            wait.until(
+                ExpectedConditions.textToBePresentInElementLocated(
+                    By.tagName("h1"), "Crear cuenta")))
+        .isTrue();
   }
 
   @Test

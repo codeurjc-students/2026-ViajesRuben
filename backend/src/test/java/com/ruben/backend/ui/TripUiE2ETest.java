@@ -320,8 +320,10 @@ class TripUiE2ETest {
     logInAs("carlos@tripmate.com");
     driver.get(anaTrip);
 
-    wait.until(
-        ExpectedConditions.textToBePresentInElementLocated(
-            By.tagName("h1"), "No tienes acceso a esta página"));
+    assertThat(
+            wait.until(
+                ExpectedConditions.textToBePresentInElementLocated(
+                    By.tagName("h1"), "No tienes acceso a esta página")))
+        .isTrue();
   }
 }

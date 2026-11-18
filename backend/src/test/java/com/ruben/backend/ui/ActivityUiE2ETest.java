@@ -303,8 +303,11 @@ class ActivityUiE2ETest {
     driver.navigate().back();
 
     wait.until(ExpectedConditions.not(ExpectedConditions.urlToBe(url)));
-    wait.until(ExpectedConditions.attributeToBe(tab("Día 1"), "aria-selected", "true"));
+    assertThat(wait.until(ExpectedConditions.attributeToBe(tab("Día 1"), "aria-selected", "true")))
+        .isTrue();
     waitForItineraryText("Alfama walking tour");
+    assertThat(driver.findElement(By.cssSelector("section.itinerary")).getText())
+        .contains("Alfama walking tour");
   }
 
   @Test

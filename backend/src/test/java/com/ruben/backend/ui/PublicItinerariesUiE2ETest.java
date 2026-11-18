@@ -103,7 +103,11 @@ class PublicItinerariesUiE2ETest {
     click(By.xpath("//nav//a[normalize-space()='Viajes públicos']"));
 
     wait.until(ExpectedConditions.urlMatches(".*/public$"));
-    wait.until(ExpectedConditions.visibilityOfElementLocated(tripLink("Roma en cinco días")));
+    assertThat(
+            wait.until(
+                    ExpectedConditions.visibilityOfElementLocated(tripLink("Roma en cinco días")))
+                .isDisplayed())
+        .isTrue();
   }
 
   @Test
