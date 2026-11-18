@@ -2,6 +2,7 @@ package com.ruben.backend;
 
 import com.ruben.backend.activity.repository.ActivityRepository;
 import com.ruben.backend.image.repository.ImageRepository;
+import com.ruben.backend.invitation.repository.InvitationRepository;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -10,13 +11,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Empties the database for the system tests, in foreign-key order (activities point at trips, users
- * and images, trips at users, images and other trips, users at images). A feature that adds an
- * entity adds its repository here, once, and every test that calls {@link #clear()} keeps working.
+ * Empties the database for the system tests, in foreign-key order (invitations point at trips and
+ * users, activities at trips, users and images, trips at users, images and other trips, users at
+ * images). A feature that adds an entity adds its repository here, once, and every test that calls
+ * {@link #clear()} keeps working.
  */
 @Component
 public class DatabaseCleaner {
 
+  private final InvitationRepository invitationRepository;
   private final ActivityRepository activityRepository;
   private final TripRepository tripRepository;
   private final UserRepository userRepository;
@@ -26,11 +29,13 @@ public class DatabaseCleaner {
   @PersistenceContext private EntityManager entityManager;
 
   public DatabaseCleaner(
+      InvitationRepository invitationRepository,
       ActivityRepository activityRepository,
       TripRepository tripRepository,
       UserRepository userRepository,
       ImageRepository imageRepository,
       TransactionTemplate transactions) {
+    this.invitationRepository = invitationRepository;
     this.activityRepository = activityRepository;
     this.tripRepository = tripRepository;
     this.userRepository = userRepository;
@@ -39,6 +44,7 @@ public class DatabaseCleaner {
   }
 
   public void clear() {
+    invitationRepository.deleteAll();
     activityRepository.deleteAll();
     // A copy points at its original (I9): unlink them all before deleting any trip.
     transactions.executeWithoutResult(

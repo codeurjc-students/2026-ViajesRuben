@@ -21,6 +21,7 @@ import com.ruben.backend.image.dto.ImageContentDTO;
 import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
+import com.ruben.backend.invitation.service.InvitationService;
 import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
@@ -75,6 +76,7 @@ class TripServiceUnitTest {
   @Mock private ImageService imageService;
   @Mock private TripAccessService tripAccessService;
   @Mock private ActivityService activityService;
+  @Mock private InvitationService invitationService;
 
   private TripService tripService;
   private User ana;
@@ -89,7 +91,8 @@ class TripServiceUnitTest {
             authService,
             imageService,
             tripAccessService,
-            activityService);
+            activityService,
+            invitationService);
     ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
     bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
   }
@@ -501,6 +504,20 @@ class TripServiceUnitTest {
   }
 
   @Test
+  @Tag("I1")
+  void deleteRemovesTheInvitationsBeforeTheActivitiesAndTheTrip() {
+    anaIsLoggedIn();
+    Trip trip = tripOf(ana, 1L);
+
+    tripService.delete(1L);
+
+    InOrder order = Mockito.inOrder(invitationService, activityService, tripRepository);
+    order.verify(invitationService).deleteAllByTrip(1L);
+    order.verify(activityService).deleteAllByTrip(1L);
+    order.verify(tripRepository).delete(trip);
+  }
+
+  @Test
   @Tag("I9")
   void deleteMakesTheCopiesIndependentAfterTheActivitiesAndBeforeTheTrip() {
     anaIsLoggedIn();
@@ -559,7 +576,7 @@ class TripServiceUnitTest {
 
     assertThatThrownBy(() -> tripService.delete(1L)).isInstanceOf(ForbiddenException.class);
     verify(tripRepository, never()).delete(any());
-    verifyNoInteractions(imageService, activityService);
+    verifyNoInteractions(imageService, activityService, invitationService);
   }
 
   @Test
