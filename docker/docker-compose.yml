@@ -57,10 +57,11 @@ services:
 
   mailpit:
     # Test inbox: it catches every email the application sends, so none reaches a real person.
-    # Web inbox at http://localhost:8025; its SMTP port (1025) is only reachable by `app`.
+    # Web inbox at http://localhost:8025; its SMTP port (1025) is only reachable by `app`. The inbox is published
+    # on this machine only (127.0.0.1): the emails hold the links of the invitations, so nobody else may read them.
     image: axllent/mailpit:v1.33.1
     ports:
-      - "8025:8025"
+      - "127.0.0.1:8025:8025"
 
 volumes:
   db-data:

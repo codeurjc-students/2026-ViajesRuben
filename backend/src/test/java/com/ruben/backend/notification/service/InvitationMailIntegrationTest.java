@@ -202,6 +202,9 @@ class InvitationMailIntegrationTest {
       }
       assertThat(logs.list).hasSize(1);
       assertThat(logs.list.getFirst().getLevel()).isEqualTo(Level.WARN);
+      // The email is sent in the background: not on the thread that created the invitation.
+      assertThat(logs.list.getFirst().getThreadName())
+          .isNotEqualTo(Thread.currentThread().getName());
       assertThat(logs.list.getFirst().getFormattedMessage())
           .contains("invitation " + invitation.id())
           .doesNotContain("friend@example.com");
