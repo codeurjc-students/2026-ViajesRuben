@@ -56,6 +56,17 @@ public class DataLoader implements CommandLineRunner {
   private static final String PHOTOS = "sample_images/";
 
   /**
+   * Names of the sample trips that appear in more than one list below (the trips, the published
+   * ones and the itineraries are matched by name).
+   */
+  private static final String LISBON_TRIP = "Lisbon getaway";
+
+  private static final String ANDALUSIA_TRIP = "Andalusia route";
+  private static final String ROME_EXAMPLE = "Roma en cinco días";
+  private static final String MALDIVES_EXAMPLE = "Escapada a las Maldivas";
+  private static final String TOKYO_EXAMPLE = "Lo mejor de Tokio";
+
+  /**
    * A trip of the sample data. `budget`, `description` and `cover` (the file name of a photo in the
    * photos folder) are optional.
    */
@@ -90,7 +101,7 @@ public class DataLoader implements CommandLineRunner {
               "Ana García",
               "ana@tripmate.com",
               List.of(
-                  trip("Lisbon getaway", "Lisbon", 2027, 5, 1, 2027, 5, 5),
+                  trip(LISBON_TRIP, "Lisbon", 2027, 5, 1, 2027, 5, 5),
                   trip("Summer in Rome", "Rome", 2027, 7, 10, 2027, 7, 17),
                   trip("Trip to Japan", "Tokyo", 2027, 9, 3, 2027, 9, 15),
                   trip("Long weekend in Paris", "Paris", 2027, 10, 8, 2027, 10, 12),
@@ -106,7 +117,7 @@ public class DataLoader implements CommandLineRunner {
               "Carlos Ruiz",
               "carlos@tripmate.com",
               List.of(
-                  trip("Andalusia route", "Seville", 2027, 4, 5, 2027, 4, 11),
+                  trip(ANDALUSIA_TRIP, "Seville", 2027, 4, 5, 2027, 4, 11),
                   trip("Week in New York", "New York", 2027, 8, 2, 2027, 8, 9),
                   trip("Summer in Croatia", "Split", 2027, 8, 20, 2027, 8, 30))),
           new SampleUser(
@@ -123,7 +134,7 @@ public class DataLoader implements CommandLineRunner {
   static final List<SampleTrip> SAMPLE_EXAMPLES =
       List.of(
           example(
-              "Roma en cinco días",
+              ROME_EXAMPLE,
               "Roma, Italia",
               LocalDate.of(2027, 5, 10),
               LocalDate.of(2027, 5, 14),
@@ -131,7 +142,7 @@ public class DataLoader implements CommandLineRunner {
               "La Roma antigua, el Vaticano y la mejor pasta de la ciudad, a un ritmo relajado.",
               "Rome_trip_example.png"),
           example(
-              "Escapada a las Maldivas",
+              MALDIVES_EXAMPLE,
               "Maldivas",
               LocalDate.of(2027, 9, 6),
               LocalDate.of(2027, 9, 12),
@@ -139,7 +150,7 @@ public class DataLoader implements CommandLineRunner {
               "Una semana de playas, snorkel y atardeceres sobre el agua.",
               "Maldivas_trip_example.png"),
           example(
-              "Lo mejor de Tokio",
+              TOKYO_EXAMPLE,
               "Tokio, Japón",
               LocalDate.of(2027, 10, 4),
               LocalDate.of(2027, 10, 10),
@@ -154,12 +165,7 @@ public class DataLoader implements CommandLineRunner {
    * when it is created, so one that somebody unpublished stays unpublished after a restart.
    */
   static final List<String> PUBLISHED_SAMPLES =
-      List.of(
-          "Roma en cinco días",
-          "Escapada a las Maldivas",
-          "Lo mejor de Tokio",
-          "Lisbon getaway",
-          "Andalusia route");
+      List.of(ROME_EXAMPLE, MALDIVES_EXAMPLE, TOKYO_EXAMPLE, LISBON_TRIP, ANDALUSIA_TRIP);
 
   /**
    * The itinerary of some sample trips, by trip name; the other trips start empty. The third day of
@@ -167,7 +173,7 @@ public class DataLoader implements CommandLineRunner {
    */
   static final Map<String, List<SampleActivity>> SAMPLE_ACTIVITIES =
       Map.of(
-          "Roma en cinco días",
+          ROME_EXAMPLE,
           List.of(
               activity(
                   0,
@@ -301,7 +307,7 @@ public class DataLoader implements CommandLineRunner {
                   "14.00",
                   ActivityCategory.TRANSPORT,
                   null)),
-          "Escapada a las Maldivas",
+          MALDIVES_EXAMPLE,
           List.of(
               activity(
                   0,
@@ -457,7 +463,7 @@ public class DataLoader implements CommandLineRunner {
                   "250.00",
                   ActivityCategory.TRANSPORT,
                   null)),
-          "Lo mejor de Tokio",
+          TOKYO_EXAMPLE,
           List.of(
               activity(
                   0,
@@ -613,7 +619,7 @@ public class DataLoader implements CommandLineRunner {
                   "30.00",
                   ActivityCategory.TRANSPORT,
                   null)),
-          "Lisbon getaway",
+          LISBON_TRIP,
           List.of(
               activity(
                   0,
@@ -775,7 +781,7 @@ public class DataLoader implements CommandLineRunner {
                   "15.00",
                   ActivityCategory.LEISURE,
                   0x7A2E4D)),
-          "Andalusia route",
+          ANDALUSIA_TRIP,
           List.of(
               activity(
                   0,
