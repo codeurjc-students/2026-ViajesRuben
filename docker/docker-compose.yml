@@ -43,6 +43,24 @@ services:
       JWT_SECRET: ${JWT_SECRET:-IqlIb/uwom5HUyTyHj+6CFj/Dj9htDhTQWs2vU3/4HA=}
       SSL_KEYSTORE: ${SSL_KEYSTORE:-classpath:keystore.p12}
       SSL_KEYSTORE_PASSWORD: ${SSL_KEYSTORE_PASSWORD:-password}
+      # Outgoing email (invitations). By default it goes to the mailpit service below; set MAIL_HOST and the
+      # credentials of a real SMTP server to send real emails (see docs/execution.md).
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      MAIL_FROM: "${MAIL_FROM:-TripMate <no-reply@tripmate.local>}"
+      # Address that the links in the emails start with; it must be reachable from where the email is read.
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-https://localhost}
+
+  mailpit:
+    # Test inbox: it catches every email the application sends, so none reaches a real person.
+    # Web inbox at http://localhost:8025; its SMTP port (1025) is only reachable by `app`.
+    image: axllent/mailpit:v1.33.1
+    ports:
+      - "8025:8025"
 
 volumes:
   db-data:

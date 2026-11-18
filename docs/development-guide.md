@@ -16,6 +16,7 @@ This guide describes the current technical state of TripMate: how it is built, h
   - [Server architecture](#server-architecture)
   - [Client architecture](#client-architecture)
   - [Security](#security)
+  - [Emails](#emails)
   - [REST API](#rest-api)
   - [Frontend routing and error page](#frontend-routing-and-error-page)
 - [Quality control](#quality-control)
@@ -205,10 +206,13 @@ flowchart LR
 flowchart LR
   B["Browser"] -- "HTTPS :443<br/>SPA + REST API" --> A["app container<br/>rubenruiz7/tripmate<br/>Spring Boot :443"]
   A -- "JDBC<br/>(internal network)" --> D[("db container<br/>mysql:9<br/>volume db-data")]
+  A -- "SMTP :1025<br/>(internal network)" --> M["mailpit container<br/>axllent/mailpit<br/>test inbox"]
+  B -- "HTTP :8025<br/>test inbox" --> M
 ```
 
 - The **`app` container** serves the SPA and the REST API from the same origin, so the browser needs no proxy. Requests to a client route (for example `https://localhost/trips`, also after a page refresh) return `index.html` so that React Router renders the screen. Unknown `/api/**` URLs keep returning the JSON error and a missing file (for example `/missing.png`) returns 404.
 - The **`db` container** is not published on the host: only `app` reaches it, through the Compose network. Its data lives in the named volume `db-data`.
+- The **`mailpit` container** is a test mail server: it receives the emails of the `app` container over the Compose network (SMTP, port 1025, not published on the host) and shows them in a web inbox on port 8025, which is published. It keeps nothing after the container is removed. `app` does not wait for it, so the application also starts with another SMTP server (see [Emails](#emails)).
 
 **Image layers.** `docker/Dockerfile` has three stages and the build context is the repository root (`.dockerignore` is an allowlist, so only the sources needed by the build are sent to Docker):
 
@@ -244,6 +248,11 @@ The image tag in `docker/docker-compose.yml` is always the `MAJOR.MINOR` tag of 
 | `ADMIN_PASSWORD_HASH`                   | BCrypt hash of the password `admin`      | `app`   | BCrypt hash of the administrator password                                                        |
 | `JWT_SECRET`                            | development key                          | `app`   | Base64 key that signs the tokens (at least 32 bytes)                                             |
 | `SSL_KEYSTORE`, `SSL_KEYSTORE_PASSWORD` | `classpath:keystore.p12`, `password`     | `app`   | Keystore with the self-signed development certificate                                            |
+| `MAIL_HOST`, `MAIL_PORT`                | `mailpit`, `1025`                        | `app`   | SMTP server of the invitation emails: the test inbox by default                                  |
+| `MAIL_USERNAME`, `MAIL_PASSWORD`        | empty                                    | `app`   | Credentials of the SMTP server (an app password in Gmail)                                        |
+| `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS` | `false`, `false`                         | `app`   | `true` when the server asks for credentials and for an encrypted connection (Gmail)              |
+| `MAIL_FROM`                             | `TripMate <no-reply@tripmate.local>`     | `app`   | Sender of the emails                                                                             |
+| `APP_PUBLIC_URL`                        | `https://localhost`                      | `app`   | Address that the links in the emails start with; it must be reachable from where they are read   |
 
 The defaults are for development only: **outside development, `ADMIN_PASSWORD_HASH`, `JWT_SECRET`, `MYSQL_ROOT_PASSWORD` and the keystore must be replaced** (see [Running the application](#running-the-application) to create them). To change a value, set the variable before the command, for example `SAMPLE_DATA=false docker compose -f docker/docker-compose.yml up -d`.
 
@@ -471,6 +480,24 @@ Authentication and authorization are implemented with Spring Security.
 - **Errors:** security errors use the same JSON body as the rest of the API: `timestamp`, `status`, `error`, `message` and `path`.
 - **Known limitation:** changing the password does not invalidate the sessions already open on other devices. The JWT is stateless and is not tied to the password, so a token issued before the change stays valid until it expires (`JWT_EXPIRATION`, 24 hours by default).
 - **Known limitation:** database schema changes need Flyway migrations after 0.1.0. Until then the schema is created and extended by Hibernate (`ddl-auto=update`), which cannot add a `NOT NULL` column to a table that already has rows, nor tighten or change existing columns. B4 is the example: trips gained a mandatory creator, so a development database created before B4 must be recreated once (see [Sample data](#sample-data)).
+
+### Emails
+
+The server sends one kind of email so far: the invitation to a trip (I1). It is built so that the sending can leave the application later (a separate notification service):
+
+```mermaid
+flowchart LR
+  S["InvitationService.create<br/>(transaction)"] -- "InvitationCreatedEvent<br/>(plain data)" --> L["InvitationMailListener<br/>after commit, in the background"]
+  L --> C["InvitationEmailComposer<br/>mail/invitation.txt"]
+  L -- "JavaMailSender" --> M[("SMTP server")]
+```
+
+- **After the commit.** `InvitationService` saves the invitation and publishes an `InvitationCreatedEvent`. The listener (`@TransactionalEventListener(AFTER_COMMIT)` plus `@Async`) receives it only once the transaction has committed, so an invitation that is rolled back sends nothing, and a slow or failing SMTP server never delays the response or undoes the invitation.
+- **Isolated.** The `notification` package (`config`, `event`, `service`) does not use anything of `trip`, `invitation` or `user`; the only thing it shares with them is the event record, which carries plain data and no entities. Its `toString` shows only the invitation id, so the token and the address cannot reach a log through it.
+- **The text.** The subject and the body, in Spanish, are in `src/main/resources/mail/invitation.txt` (first line the subject, then the body, with the placeholders `{inviterName}`, `{tripName}` and `{link}`). `InvitationEmailComposer` fills them in one pass and removes line breaks from the names, so a name cannot add headers. The link is `{APP_PUBLIC_URL}/invitations/{token}`; the page behind it is built in I2.
+- **Configuration.** The SMTP server comes from `spring.mail.*` (environment variables `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS`) and the sender and the public address from `app.mail.from` and `app.mail.public-url` (`MAIL_FROM`, `APP_PUBLIC_URL`). The connection timeouts are five seconds. The tables with the values are in [Docker deployment](#docker-deployment) and in [Execution](execution.md#emails), which also explains how to send real emails with Gmail.
+- **Tests.** The composer and the listener have unit tests (the listener also checks that a failure is logged without the token or the address). `InvitationMailIntegrationTest` runs the whole path against a real SMTP server in the tests (GreenMail): the email arrives after the commit with the right link, nothing is sent for a refused or rolled back invitation, and a server that is down does not undo the invitation.
+- **Known limitation:** an invitation email that cannot be sent is only logged (the invitation number and the kind of error) and is not retried. The invitation stays pending and appears in the creator's list, but the invited person gets nothing until the creator invites them again, which is not possible while the first invitation is pending. Retrying the sending needs a stored state per email (an outbox) and is left for a later release.
 
 ### REST API
 
@@ -945,7 +972,15 @@ This section runs the application from the source code. To run the packaged appl
 
    Tests use `create-drop` through `backend/src/test/resources/application.properties`.
 
-2. **Check the security configuration.** The backend serves HTTPS on port 443 with a self-signed development certificate that is already in the repository (`backend/src/main/resources/keystore.p12`, password `password`, only for development). It also reads the administrator and the token settings from environment variables, with development defaults:
+2. **Start the test inbox** (optional: only to see the invitation emails). Mailpit catches the emails that the backend sends, so nothing reaches a real address. The first time:
+
+   ```bash
+   docker run -d --name tripmate-mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit:v1.33.1
+   ```
+
+   The next times, `docker start tripmate-mailpit`. The emails are read at http://localhost:8025. The backend sends to `localhost:1025` by default, so nothing else has to be configured, except the address of the links: they start with `APP_PUBLIC_URL` (`https://localhost` by default), and the backend alone does not serve the web client, so start it with `APP_PUBLIC_URL=http://localhost:5173`, the address of the Vite server (step 5). The other variables are in [Execution](execution.md#email-settings). Without the inbox the invitations still work: the email fails, is logged, and nothing else changes. On Docker Desktop for Windows the SMTP port published on the host did not answer on the development machine (see [Problems and solutions](#problems-and-solutions)); if the emails do not arrive, run the application with Docker Compose instead.
+
+3. **Check the security configuration.** The backend serves HTTPS on port 443 with a self-signed development certificate that is already in the repository (`backend/src/main/resources/keystore.p12`, password `password`, only for development). It also reads the administrator and the token settings from environment variables, with development defaults:
 
    | Variable                | Default                                       | Description                                                                                                                |
    | ----------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -980,7 +1015,7 @@ This section runs the application from the source code. To run the packaged appl
 
    The certificate is self-signed, so browsers and tools warn about it when they connect to the backend directly (for example `curl` needs `-k`). The frontend does not show the warning because Vite proxies the requests.
 
-3. **Start the backend** (it loads the sample data and creates the administrator on start-up):
+4. **Start the backend** (it loads the sample data and creates the administrator on start-up):
 
    ```bash
    cd backend
@@ -989,7 +1024,7 @@ This section runs the application from the source code. To run the packaged appl
 
    On Linux a normal user cannot use ports below 1024: run the backend on another port (`SERVER_PORT=8443 ./mvnw spring-boot:run`) and give the same address to the frontend with `BACKEND_URL=https://localhost:8443`. The CI workflow does the same.
 
-4. **Start the frontend** in another terminal:
+5. **Start the frontend** in another terminal:
 
    ```bash
    cd frontend
@@ -999,13 +1034,14 @@ This section runs the application from the source code. To run the packaged appl
 
    The Vite proxy sends `/api` to `https://localhost` and accepts its self-signed certificate. If the backend uses another address, set `BACKEND_URL` before `npm run dev` (for example `BACKEND_URL=https://localhost:8443`).
 
-5. **Open the application** at http://localhost:5173
+6. **Open the application** at http://localhost:5173
 
-| Service         | URL                               |
-| --------------- | --------------------------------- |
-| Web application | http://localhost:5173             |
-| REST API        | https://localhost/api/v1/         |
-| Swagger UI      | https://localhost/swagger-ui.html |
+| Service                       | URL                               |
+| ----------------------------- | --------------------------------- |
+| Web application               | http://localhost:5173             |
+| REST API                      | https://localhost/api/v1/         |
+| Swagger UI                    | https://localhost/swagger-ui.html |
+| Test inbox (Mailpit, step 2)  | http://localhost:8025             |
 
 With the default configuration, you can log in as the administrator with `admin@tripmate.com` and the password `admin`. Quick check with `curl`:
 
@@ -1014,7 +1050,7 @@ curl -k -i -X POST https://localhost/api/v1/auth/login -H 'Content-Type: applica
   -d '{"email":"admin@tripmate.com","password":"admin"}'
 ```
 
-To stop everything, press `Ctrl + C` in the backend and frontend terminals and run `docker stop tripmate-mysql`.
+To stop everything, press `Ctrl + C` in the backend and frontend terminals and run `docker stop tripmate-mysql` (and `docker stop tripmate-mailpit` if you started the test inbox).
 
 ### Sample data
 
@@ -1145,6 +1181,8 @@ Relevant technical decisions taken during the development, with their reasons.
 | Oct 2026 | The text of the example trips (names, places, descriptions and activities) is written in Spanish in `DataLoader`; the rest of the sample data, the identifiers and the comments stay in English                                                                                   | English text, as the other sample trips                                                                                          | The home page shows the examples exactly as stored, to Spanish-speaking visitors, and there is no translation layer for data; it is content, not an identifier                                                                                                                                                                                                                                                                                                                                                                       |
 | Oct 2026 | The home page shows the examples three at a time and, only when there are more than three, pages through them with previous and next buttons, not with "More results"                                                                                                             | A button that appends the next page; always showing the buttons                                                                  | The design asked for a fixed row of three cards that changes, so the page replaces the cards; with the three sample examples there is nothing to page, so the buttons stay hidden; the endpoint is the usual paginated one                                                                                                                                                                                                                                                                                                           |
 | Oct 2026 | The category of an activity is a closed list (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`)                                                                                                                                                            | Free text                                                                                                                        | The spending chart by category (I5) and the AI proposals (A1) need values that can be grouped; the Spanish names are written in the frontend component                                                                                                                                                                                                                                                                                                                                                                               |
+| Nov 2026 | Invitation emails (I1) are sent by a listener in the background after the invitation's transaction commits (`@TransactionalEventListener(AFTER_COMMIT)` with `@Async`), triggered by an `InvitationCreatedEvent` that carries plain data | Sending the email inside the service method, in the same transaction | A slow or failing SMTP server must not delay the answer or undo the invitation, and a rolled back invitation must not send anything. The listener is in its own `notification` package, which only knows the event, so it can become a separate service later. The cost is that a failed email is only logged and not retried |
+| Nov 2026 | Mailpit (`axllent/mailpit`, pinned tag) as the test inbox in the Compose files and for local runs | MailHog; a real SMTP account (Gmail) for everyone | One container with an SMTP server and a web inbox, no account and no secrets, and it never delivers to a real address. MailHog has had no release since August 2020. A real SMTP server is still possible with the `MAIL_*` variables |
 
 ## Problems and solutions
 
@@ -1158,3 +1196,4 @@ Technical problems found during the development and how they were solved.
 | Oct 22, 2026 | The client – server integration tests could not connect to the backend after enabling HTTPS (self-signed certificate)             | `NODE_TLS_REJECT_UNAUTHORIZED=0` is set only in `vitest.int.config.ts`, and the Vite proxy uses `secure: false`                         |
 | Oct 22, 2026 | The backend unit-test coverage fell to 58% after adding the security classes, below the 70% required                              | Added unit tests for the classes that were only covered by the slower system tests (error handlers, controller, security configuration) |
 | Oct 22, 2026 | A test with an expired token failed with _"expiresAt must be after issuedAt"_ when the token was created with a negative lifetime | Spring refuses to build such a token; the test now creates it directly with the encoder, issued two hours ago and expired one hour ago  |
+| Nov 18, 2026 | The invitation emails never reached Mailpit when the backend ran on the host and Mailpit was published with `-p 1025:1025` (Docker Desktop on Windows): the SMTP connection was accepted but the server greeting never arrived, on any host port, while Mailpit and its web port worked. The application logged `could not be sent (MailSendException)` after the 5 second timeout | Not a bug of the application: a message sent from another container to `mailpit:1025` over a Docker network was received and shown in the inbox, which is the path the Compose files use, so there the emails arrive. The cause on the host was not found. On such a machine, run the application with Docker Compose to see the emails, or send them through a real SMTP server |

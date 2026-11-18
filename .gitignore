@@ -1,2 +1,6 @@
 .vscode/*
 !.vscode/settings.json
+
+# Local settings with secrets, for example the MAIL_* values of a real SMTP server: never committed
+.env
+.env.*
