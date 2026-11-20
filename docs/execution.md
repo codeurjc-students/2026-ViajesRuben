@@ -107,7 +107,7 @@ The invitation is saved first and the email is sent afterwards, in the backgroun
 
 ### Seeing the emails: the test inbox
 
-You do not need an email account to try invitations. The Compose file also starts **Mailpit**, a test mail server that catches every email the application sends: nothing leaves your machine, so no real person receives anything. Open its inbox at **http://localhost:8025** (port 8025 must be free).
+You do not need an email account to try invitations. The Compose file also starts **Mailpit**, a test mail server that catches every email the application sends: nothing leaves your machine, so no real person receives anything. Open its inbox at **http://localhost:8025** (port 8025 must be free). The inbox is published only on your own computer (`127.0.0.1`), because the emails contain the links of the invitations: on a server you cannot open it from another machine, so use a real SMTP server there (see below).
 
 To try it, log in as Ana (`ana@tripmate.com`, `Demo-2026`), open one of her trips, type any email in "Invitar por email" and press "Enviar invitación". The invitation appears in the list as "Pendiente" and the email appears in the Mailpit inbox in about a second. The link in it opens a placeholder page of the application (the default `APP_PUBLIC_URL` is `https://localhost`).
 
