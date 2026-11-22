@@ -5,6 +5,7 @@ import AdminUsersPage from './components/AdminUsersPage';
 import AppLayout from './components/AppLayout';
 import ErrorPage from './components/ErrorPage';
 import HomePage from './components/HomePage';
+import InvitationPage from './components/InvitationPage';
 import LoginPage from './components/LoginPage';
 import PlaceholderPage from './components/PlaceholderPage';
 import ProfilePage from './components/ProfilePage';
@@ -30,12 +31,13 @@ export const routes: RouteObject[] = [
           { path: '/public/:tripId', element: <PublicTripPage /> },
           { path: '/login', element: <LoginPage /> },
           { path: '/register', element: <RegisterPage /> },
-          // The link of an invitation email; open to anyone, because the person may not have an account yet.
-          { path: '/invitations/:token', element: <PlaceholderPage title="Invitación" /> },
           {
             // Every screen below needs a logged-in user.
             element: <RequireAuth />,
             children: [
+              // The link of an invitation email: someone without an account is sent to log in or
+              // register and comes back here (the login keeps where they were heading).
+              { path: '/invitations/:token', element: <InvitationPage /> },
               { path: '/trips', element: <TripList /> },
               { path: '/trips/new', element: <TripFormPage /> },
               { path: '/trips/:tripId', element: <TripDetailPage /> },
