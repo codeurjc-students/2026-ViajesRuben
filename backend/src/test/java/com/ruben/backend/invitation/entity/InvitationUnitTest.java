@@ -35,6 +35,45 @@ class InvitationUnitTest {
   }
 
   @Test
+  @Tag("I2")
+  void acceptingRecordsTheAnswerAndTheAccountWhenThereWasNone() {
+    User carlos = UserTestData.user(8L, "carlos@example.com", Role.USER, UserStatus.ACTIVE);
+    Invitation invitation = new Invitation(trip, ana, "carlos@example.com", null, "token-1");
+    assertThat(invitation.getRespondedAt()).isNull();
+
+    invitation.accept(carlos);
+
+    assertThat(invitation.getStatus()).isEqualTo(InvitationStatus.ACCEPTED);
+    assertThat(invitation.getInvitedUser()).isSameAs(carlos);
+    assertThat(invitation.getRespondedAt()).isNotNull();
+    assertThat(invitation.getRespondedAt().getNano() % 1000).isZero();
+  }
+
+  @Test
+  @Tag("I2")
+  void acceptingKeepsTheAccountTheInvitationAlreadyHad() {
+    User carlos = UserTestData.user(8L, "carlos@example.com", Role.USER, UserStatus.ACTIVE);
+    User other = UserTestData.user(9L, "other@example.com", Role.USER, UserStatus.ACTIVE);
+    Invitation invitation = new Invitation(trip, ana, "carlos@example.com", carlos, "token-1");
+
+    invitation.accept(other);
+
+    assertThat(invitation.getInvitedUser()).isSameAs(carlos);
+  }
+
+  @Test
+  @Tag("I2")
+  void rejectingRecordsTheAnswer() {
+    Invitation invitation = new Invitation(trip, ana, "carlos@example.com", null, "token-1");
+
+    invitation.reject();
+
+    assertThat(invitation.getStatus()).isEqualTo(InvitationStatus.REJECTED);
+    assertThat(invitation.getInvitedUser()).isNull();
+    assertThat(invitation.getRespondedAt()).isNotNull();
+  }
+
+  @Test
   void theSendingTimeIsNowAndHasNoMoreThanMicroseconds() {
     Instant before = Instant.now();
 

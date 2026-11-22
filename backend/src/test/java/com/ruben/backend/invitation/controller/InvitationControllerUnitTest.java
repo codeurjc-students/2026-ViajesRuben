@@ -26,7 +26,7 @@ import org.springframework.http.ResponseEntity;
 class InvitationControllerUnitTest {
 
   private static final InvitationDTO INVITATION =
-      new InvitationDTO(5L, "new@example.com", InvitationStatus.PENDING, Instant.now());
+      new InvitationDTO(5L, "new@example.com", InvitationStatus.PENDING, Instant.now(), null);
 
   @Mock private InvitationService invitationService;
   @InjectMocks private InvitationController controller;

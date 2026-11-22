@@ -31,6 +31,21 @@ class InvitationDTOUnitTest {
     assertThat(dto.invitedEmail()).isEqualTo("new@example.com");
     assertThat(dto.status()).isEqualTo(InvitationStatus.PENDING);
     assertThat(dto.sentAt()).isEqualTo(invitation.getSentAt());
+    assertThat(dto.respondedAt()).isNull();
+  }
+
+  @Test
+  @Tag("I2")
+  void showsWhenTheInvitationWasAnswered() {
+    User ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
+    Trip trip = new Trip(ana, "Trip", "Rome", LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 17));
+    Invitation invitation = new Invitation(trip, ana, "new@example.com", null, "secret-token");
+    invitation.reject();
+
+    InvitationDTO dto = InvitationDTO.from(invitation);
+
+    assertThat(dto.status()).isEqualTo(InvitationStatus.REJECTED);
+    assertThat(dto.respondedAt()).isEqualTo(invitation.getRespondedAt()).isNotNull();
   }
 
   @Test
@@ -38,6 +53,6 @@ class InvitationDTOUnitTest {
     assertThat(InvitationDTO.class.getRecordComponents())
         .extracting(RecordComponent::getName)
         .doesNotContain("token")
-        .containsExactly("id", "invitedEmail", "status", "sentAt");
+        .containsExactly("id", "invitedEmail", "status", "sentAt", "respondedAt");
   }
 }
