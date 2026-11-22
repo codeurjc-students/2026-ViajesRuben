@@ -49,7 +49,7 @@ public class TripController {
   @Operation(
       summary = "List one's own trips",
       description =
-          "Only the trips the logged-in user created. Paginated: `?page=0&size=10` (10 per page by"
+          "The trips the logged-in user created or joined by accepting an invitation. Paginated: `?page=0&size=10` (10 per page by"
               + " default, 50 at most). Sorted by start date by default; `sort` accepts `id`,"
               + " `name`, `destination`, `startDate`, `endDate` and `createdAt`.")
   @ApiResponse(responseCode = "200", description = "One page of trips")
@@ -96,7 +96,7 @@ public class TripController {
   @Operation(
       summary = "Get a trip by id",
       description =
-          "The creator, or the administrator (read only). `coverImageId` is null without cover; otherwise the picture is at"
+          "The creator, a participant, or the administrator (read only). `coverImageId` is null without cover; otherwise the picture is at"
               + " `GET /api/v1/images/{coverImageId}`.")
   @ApiResponse(responseCode = "200", description = "The trip")
   @ApiResponse(
@@ -252,7 +252,7 @@ public class TripController {
   @Operation(
       summary = "Get the bytes of a trip's cover",
       description =
-          "The creator, or the administrator. Not cached, because it changes when the cover is replaced; the SPA"
+          "The creator, a participant, or the administrator. Not cached, because it changes when the cover is replaced; the SPA"
               + " uses `GET /api/v1/images/{coverImageId}` instead.")
   @ApiResponse(
       responseCode = "200",

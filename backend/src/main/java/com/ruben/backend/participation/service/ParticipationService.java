@@ -1,9 +1,11 @@
 package com.ruben.backend.participation.service;
 
+import com.ruben.backend.common.error.ConflictException;
 import com.ruben.backend.participation.entity.Participation;
 import com.ruben.backend.participation.repository.ParticipationRepository;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.user.entity.User;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +33,20 @@ public class ParticipationService {
     return participationRepository.existsByTripIdAndUserEmail(tripId, email);
   }
 
-  /** Adds the user to the trip; the caller has checked that they are not in it yet. */
+  /**
+   * Adds the user to the trip. The caller has checked that they are not in it yet, but two
+   * simultaneous requests can both pass that check: the unique constraint then refuses the second
+   * one, which is reported as a conflict instead of a server error.
+   *
+   * @throws ConflictException the user already participates in the trip
+   */
   @Transactional
   public void add(Trip trip, User user) {
-    participationRepository.saveAndFlush(new Participation(trip, user));
+    try {
+      participationRepository.saveAndFlush(new Participation(trip, user));
+    } catch (DataIntegrityViolationException e) {
+      throw new ConflictException("Already a participant");
+    }
   }
 
   /** Deletes every participation of the trip; the trip's deletion calls it first (pattern 5). */

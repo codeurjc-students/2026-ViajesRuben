@@ -101,7 +101,7 @@ On Windows PowerShell: `$env:SAMPLE_DATA="false"; docker compose -f oci://docker
 
 ## Emails
 
-When the creator of a trip invites someone (the "Invitaciones" section of the trip page), the application sends an email in Spanish to that address: who invites, which trip, and a link `{APP_PUBLIC_URL}/invitations/{token}` to answer the invitation. The page behind the link is a placeholder until answering invitations is built, but the link already identifies the invitation.
+When the creator of a trip invites someone (the "Invitaciones" section of the trip page), the application sends an email in Spanish to that address: who invites, which trip, and a link `{APP_PUBLIC_URL}/invitations/{token}` to answer the invitation. The link opens the invitation page, where the invited person accepts or rejects (after logging in or registering).
 
 The invitation is saved first and the email is sent afterwards, in the background. If the email cannot be sent (the mail server is down, the password is wrong, the address is refused) the invitation is still created and stays pending, the error is written to the log of the application (`... could not be sent (MailAuthenticationException)`, with the invitation number and the kind of error, never the address or the link) and the email is **not retried**. To see the log: `docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest logs app`.
 
@@ -109,7 +109,7 @@ The invitation is saved first and the email is sent afterwards, in the backgroun
 
 You do not need an email account to try invitations. The Compose file also starts **Mailpit**, a test mail server that catches every email the application sends: nothing leaves your machine, so no real person receives anything. Open its inbox at **http://localhost:8025** (port 8025 must be free). The inbox is published only on your own computer (`127.0.0.1`), because the emails contain the links of the invitations: on a server you cannot open it from another machine, so use a real SMTP server there (see below).
 
-To try it, log in as Ana (`ana@tripmate.com`, `Demo-2026`), open one of her trips, type any email in "Invitar por email" and press "Enviar invitación". The invitation appears in the list as "Pendiente" and the email appears in the Mailpit inbox in about a second. The link in it opens a placeholder page of the application (the default `APP_PUBLIC_URL` is `https://localhost`).
+To try it, log in as Ana (`ana@tripmate.com`, `Demo-2026`), open one of her trips, type any email in "Invitar por email" and press "Enviar invitación". The invitation appears in the list as "Pendiente" and the email appears in the Mailpit inbox in about a second. The link in it opens the invitation page of the application (the default `APP_PUBLIC_URL` is `https://localhost`): log in or register with that email and accept or reject it.
 
 Mailpit keeps the emails only while its container exists: `down` deletes them (see [Stopping and resetting](#stopping-and-resetting)).
 
