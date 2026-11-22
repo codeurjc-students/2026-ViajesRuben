@@ -20,9 +20,9 @@ import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
 /**
- * `/trips/:tripId`: the trip's summary and its itinerary. Participants will go in between (I3). The
- * creator also sees the invitations (I1). The administrator reviewing another user's trip (B8) sees
- * it read-only, with only a delete button.
+ * `/trips/:tripId`: the trip's summary and its itinerary. The creator also sees the invitations
+ * (I1). A participant (I2) sees the trip read-only, with no buttons. The administrator reviewing
+ * another user's trip (B8) sees it read-only, with only a delete button.
  */
 export default function TripDetailPage() {
   const { tripId } = useParams();

@@ -1,0 +1,38 @@
+.pending-invitations {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.pending-invitations__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pending-invitations__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.625rem 0;
+  border-top: 1px solid var(--tm-card-border);
+}
+
+.pending-invitations__text {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.pending-invitations__date {
+  color: var(--tm-via);
+  font-size: 0.875rem;
+}
+
+.pending-invitations__actions {
+  display: flex;
+  gap: 0.5rem;
+}

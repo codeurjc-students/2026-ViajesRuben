@@ -5,7 +5,11 @@ import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
 import { getActivities, getActivity, getTripCost } from './services/activityService';
-import { getInvitationByToken, getInvitations } from './services/invitationService';
+import {
+  getInvitationByToken,
+  getInvitations,
+  getMyInvitations,
+} from './services/invitationService';
 import { getPublicActivities, getPublicTrip, getPublicTrips } from './services/publicTripService';
 import { getTrips as getAdminTrips } from './services/adminTripService';
 import { getTrip, getTrips } from './services/tripService';
@@ -45,6 +49,7 @@ vi.mock('./services/publicTripService', () => ({
 vi.mock('./services/invitationService', () => ({
   getInvitations: vi.fn(),
   getInvitationByToken: vi.fn(),
+  getMyInvitations: vi.fn(),
 }));
 vi.mock('./services/adminTripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
@@ -59,6 +64,7 @@ beforeEach(() => {
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getInvitationByToken).mockReset();
+  vi.mocked(getMyInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
 });
