@@ -47,6 +47,26 @@ describe('I1 InvitationsSection list', () => {
     expect(getInvitations).toHaveBeenCalledWith(5, 0);
   });
 
+  test('I2 shows each state of an invitation with its own badge', async () => {
+    vi.mocked(getInvitations).mockResolvedValue(
+      pageOf([
+        invitationOf({ id: 3, invitedEmail: 'c@example.com', status: 'REJECTED' }),
+        invitationOf({ id: 2, invitedEmail: 'b@example.com', status: 'ACCEPTED' }),
+        invitationOf({ id: 1, invitedEmail: 'a@example.com', status: 'PENDING' }),
+      ]),
+    );
+    renderSection();
+
+    await screen.findByText('a@example.com');
+
+    expect(screen.getByText('c@example.com').closest('li')).toHaveTextContent('Rechazada');
+    expect(screen.getByText('b@example.com').closest('li')).toHaveTextContent('Aceptada');
+    expect(screen.getByText('a@example.com').closest('li')).toHaveTextContent('Pendiente');
+    expect(screen.getByText('Aceptada')).toHaveClass('bg-success');
+    expect(screen.getByText('Rechazada')).toHaveClass('bg-secondary');
+    expect(screen.getByText('Pendiente')).toHaveClass('bg-warning');
+  });
+
   test('invites the creator to send the first one when there are none', async () => {
     renderSection();
 

@@ -339,6 +339,29 @@ describe('I1 TripDetailPage invitations', () => {
     expect(getInvitations).toHaveBeenCalledWith(5, 0);
   });
 
+  test('I2 a participant sees the trip and its itinerary read-only, with no way to change anything', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1, published: false });
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([activityOf({ id: 8, name: 'Museo', date: trip.startDate })]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Verano en Roma' })).toBeInTheDocument();
+    expect(await screen.findByText('Museo')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver a Mis viajes' })).toHaveAttribute(
+      'href',
+      '/trips',
+    );
+    for (const name of ['Editar', 'Eliminar', 'Publicar', 'Despublicar', 'Eliminar viaje']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name })).not.toBeInTheDocument();
+    }
+    expect(screen.queryByRole('link', { name: 'Nueva actividad' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Editar «Museo»' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Invitaciones' })).not.toBeInTheDocument();
+    expect(getInvitations).not.toHaveBeenCalled();
+  });
+
   test('does not show them, nor ask for them, to anyone else', async () => {
     vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
     renderRoutes(routes, '/trips/5');

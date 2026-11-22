@@ -2,6 +2,7 @@ package com.ruben.backend.trip.service;
 
 import com.ruben.backend.common.error.ForbiddenException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
+import com.ruben.backend.participation.service.ParticipationService;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.dto.UserDTO;
@@ -20,23 +21,28 @@ public class TripAccessService {
 
   private final TripRepository tripRepository;
   private final AuthService authService;
+  private final ParticipationService participationService;
 
-  public TripAccessService(TripRepository tripRepository, AuthService authService) {
+  public TripAccessService(
+      TripRepository tripRepository,
+      AuthService authService,
+      ParticipationService participationService) {
     this.tripRepository = tripRepository;
     this.authService = authService;
+    this.participationService = participationService;
   }
 
   /**
-   * Who may see a trip: its creator, and the administrator, who reviews any trip (B8). Participants
-   * (I3) are added here, in one place. 404 comes before 403, so a missing trip is reported as
-   * missing to anyone.
+   * Who may see a trip: its creator, the administrator, who reviews any trip (B8), and the
+   * participants, who joined by accepting an invitation (I2). Reading never lets a participant
+   * change anything. 404 comes before 403, so a missing trip is reported as missing to anyone.
    *
    * @throws ResourceNotFoundException no trip has that id
    * @throws ForbiddenException the user may not see the trip
    */
   @Transactional(readOnly = true)
   public Trip findForRead(Long id) {
-    return find(id, true);
+    return find(id, true, true);
   }
 
   /**
@@ -48,7 +54,7 @@ public class TripAccessService {
    */
   @Transactional(readOnly = true)
   public Trip findForDelete(Long id) {
-    return find(id, true);
+    return find(id, true, false);
   }
 
   /**
@@ -61,7 +67,7 @@ public class TripAccessService {
    */
   @Transactional(readOnly = true)
   public Trip findForUnpublish(Long id) {
-    return find(id, true);
+    return find(id, true, false);
   }
 
   /**
@@ -73,7 +79,7 @@ public class TripAccessService {
    */
   @Transactional(readOnly = true)
   public Trip findForWrite(Long id) {
-    return find(id, false);
+    return find(id, false, false);
   }
 
   /**
@@ -89,14 +95,18 @@ public class TripAccessService {
         .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
   }
 
-  private Trip find(Long id, boolean administratorAllowed) {
+  private Trip find(Long id, boolean administratorAllowed, boolean participantAllowed) {
     Trip trip =
         tripRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
     UserDTO current = authService.getCurrentUser();
     boolean isCreator = trip.getCreator().getId().equals(current.id());
-    if (!isCreator && !(administratorAllowed && current.role() == Role.ADMIN)) {
+    boolean isAllowedAdministrator = administratorAllowed && current.role() == Role.ADMIN;
+    // The participations are only queried when the cheaper rules did not already allow the user.
+    if (!isCreator
+        && !isAllowedAdministrator
+        && !(participantAllowed && participationService.isParticipant(id, current.id()))) {
       throw new ForbiddenException("Only the creator can access this trip");
     }
     return trip;

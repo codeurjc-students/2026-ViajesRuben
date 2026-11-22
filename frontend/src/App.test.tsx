@@ -5,7 +5,11 @@ import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
 import { getActivities, getActivity, getTripCost } from './services/activityService';
-import { getInvitations } from './services/invitationService';
+import {
+  getInvitationByToken,
+  getInvitations,
+  getMyInvitations,
+} from './services/invitationService';
 import { getPublicActivities, getPublicTrip, getPublicTrips } from './services/publicTripService';
 import { getTrips as getAdminTrips } from './services/adminTripService';
 import { getTrip, getTrips } from './services/tripService';
@@ -14,7 +18,15 @@ import { getCurrentUser } from './services/authService';
 import { getProfile } from './services/userService';
 import { AuthContext } from './context/AuthContext';
 import type { User } from './types';
-import { activityOf, ANA, authValue, pageOf, publicTripOf, tripOf } from './testHelpers';
+import {
+  activityOf,
+  ANA,
+  authValue,
+  pageOf,
+  publicTripOf,
+  receivedInvitationOf,
+  tripOf,
+} from './testHelpers';
 
 vi.mock('./services/tripService', () => ({
   getTrip: vi.fn(),
@@ -34,7 +46,11 @@ vi.mock('./services/publicTripService', () => ({
   getPublicTrip: vi.fn(),
   getPublicActivities: vi.fn(),
 }));
-vi.mock('./services/invitationService', () => ({ getInvitations: vi.fn() }));
+vi.mock('./services/invitationService', () => ({
+  getInvitations: vi.fn(),
+  getInvitationByToken: vi.fn(),
+  getMyInvitations: vi.fn(),
+}));
 vi.mock('./services/adminTripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
@@ -47,6 +63,8 @@ beforeEach(() => {
   vi.mocked(getPublicActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getInvitationByToken).mockReset();
+  vi.mocked(getMyInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
 });
@@ -253,10 +271,21 @@ test.each([
   expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
 });
 
-test('I1 the link of an invitation email opens its page even without a session', () => {
+test('I2 the link of an invitation email shows the invitation to the logged-in user', async () => {
+  vi.mocked(getInvitationByToken).mockResolvedValue(receivedInvitationOf());
+
+  renderAt('/invitations/some-token');
+
+  expect(await screen.findByRole('button', { name: 'Aceptar' })).toBeInTheDocument();
+  expect(getInvitationByToken).toHaveBeenCalledWith('some-token');
+  expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+});
+
+test('I2 an anonymous visitor opening the link of an invitation is sent to /login', () => {
   renderAt('/invitations/some-token', null);
 
-  expect(screen.getByRole('heading', { name: 'Invitación', level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+  expect(getInvitationByToken).not.toHaveBeenCalled();
 });
 
 test('B3 /profile shows the profile page of the logged-in user in the layout', async () => {

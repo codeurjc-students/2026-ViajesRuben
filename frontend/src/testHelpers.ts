@@ -7,6 +7,7 @@ import type {
   Invitation,
   Page,
   PublicTripSummary,
+  ReceivedInvitation,
   Trip,
   TripConflicts,
   User,
@@ -154,6 +155,23 @@ export function invitationOf(overrides: Partial<Invitation> = {}): Invitation {
     invitedEmail: 'friend@example.com',
     status: 'PENDING',
     sentAt: '2026-11-18T10:15:30Z',
+    respondedAt: null,
+    ...overrides,
+  };
+}
+
+/** Builds a pending invitation as its addressee sees it, for tests. */
+export function receivedInvitationOf(
+  overrides: Partial<ReceivedInvitation> = {},
+): ReceivedInvitation {
+  return {
+    id: 1,
+    tripId: 5,
+    tripName: 'Verano en Roma',
+    inviterName: 'Ana',
+    status: 'PENDING',
+    sentAt: '2026-11-18T10:15:30Z',
+    respondedAt: null,
     ...overrides,
   };
 }

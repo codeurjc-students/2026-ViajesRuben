@@ -7,10 +7,12 @@ import com.ruben.backend.common.error.ForbiddenException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.invitation.dto.InvitationDTO;
 import com.ruben.backend.invitation.dto.InvitationRequest;
+import com.ruben.backend.invitation.dto.ReceivedInvitationDTO;
 import com.ruben.backend.invitation.entity.Invitation;
 import com.ruben.backend.invitation.entity.InvitationStatus;
 import com.ruben.backend.invitation.repository.InvitationRepository;
 import com.ruben.backend.notification.event.InvitationCreatedEvent;
+import com.ruben.backend.participation.service.ParticipationService;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.service.TripAccessService;
 import com.ruben.backend.user.dto.UserDTO;
@@ -30,8 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The invitations of a trip. Only the trip's creator may invite and see them, decided through
- * {@link TripAccessService}; an invitation id of another trip is not found. The token of an
- * invitation never leaves this package's entity.
+ * {@link TripAccessService}; an invitation id of another trip is not found. The invited person,
+ * identified by the normalised email of the logged-in account, sees and answers their own (I2). The
+ * token of an invitation never leaves this package's entity. Invitations never expire.
  */
 @Service
 public class InvitationService {
@@ -40,6 +43,9 @@ public class InvitationService {
 
   /** The only properties a client may sort by. */
   private static final Set<String> SORTABLE = Set.of("id", "invitedEmail", "status", "sentAt");
+
+  /** The only properties the addressee may sort the received invitations by. */
+  private static final Set<String> SORTABLE_RECEIVED = Set.of("id", "sentAt");
 
   /** 32 random bytes, 43 characters once encoded: not guessable. */
   private static final int TOKEN_BYTES = 32;
@@ -51,18 +57,21 @@ public class InvitationService {
   private final TripAccessService tripAccessService;
   private final AuthService authService;
   private final ApplicationEventPublisher eventPublisher;
+  private final ParticipationService participationService;
 
   public InvitationService(
       InvitationRepository invitationRepository,
       UserRepository userRepository,
       TripAccessService tripAccessService,
       AuthService authService,
-      ApplicationEventPublisher eventPublisher) {
+      ApplicationEventPublisher eventPublisher,
+      ParticipationService participationService) {
     this.invitationRepository = invitationRepository;
     this.userRepository = userRepository;
     this.tripAccessService = tripAccessService;
     this.authService = authService;
     this.eventPublisher = eventPublisher;
+    this.participationService = participationService;
   }
 
   /**
@@ -72,7 +81,8 @@ public class InvitationService {
    * being a second pending invitation.
    *
    * @throws BadRequestException the email is the creator's own
-   * @throws ConflictException the email already has a pending invitation to the trip
+   * @throws ConflictException the email already participates in the trip, or already has a pending
+   *     invitation to it
    * @throws ResourceNotFoundException no trip has that id
    * @throws ForbiddenException the user is not the trip's creator
    */
@@ -81,7 +91,7 @@ public class InvitationService {
     Trip trip = tripAccessService.findForWrite(tripId);
     UserDTO current = authService.getCurrentUser();
     String email = normalizeEmail(request.email());
-    ensureNotMember(current, email);
+    ensureNotMember(current, trip, email);
     if (invitationRepository.existsByTripIdAndInvitedEmailAndStatus(
         tripId, email, InvitationStatus.PENDING)) {
       throw new ConflictException("The email already has a pending invitation to this trip");
@@ -117,7 +127,7 @@ public class InvitationService {
    */
   @Transactional(readOnly = true)
   public PageDTO<InvitationDTO> findPage(Long tripId, Pageable pageable) {
-    checkSortable(pageable);
+    checkSortable(pageable, SORTABLE);
     tripAccessService.findForWrite(tripId);
     return PageDTO.from(
         invitationRepository.findByTripId(tripId, pageable).map(InvitationDTO::from));
@@ -136,6 +146,86 @@ public class InvitationService {
         .orElseThrow(() -> new ResourceNotFoundException("Invitation not found"));
   }
 
+  /**
+   * One page of the pending invitations addressed to the current user's email, newest first by
+   * default. Invitations do not expire: one stays pending until it is answered or its trip is
+   * deleted, which deletes it.
+   *
+   * @throws BadRequestException the page asks to sort by a property that is not sortable
+   */
+  @Transactional(readOnly = true)
+  public PageDTO<ReceivedInvitationDTO> findMine(Pageable pageable) {
+    checkSortable(pageable, SORTABLE_RECEIVED);
+    String email = normalizeEmail(authService.getCurrentUser().email());
+    return PageDTO.from(
+        invitationRepository
+            .findByInvitedEmailAndStatus(email, InvitationStatus.PENDING, pageable)
+            .map(ReceivedInvitationDTO::from));
+  }
+
+  /**
+   * The invitation the link of an email points at, in any status, for the account it was sent to.
+   *
+   * @throws ResourceNotFoundException no invitation has that token
+   * @throws ForbiddenException the invitation is addressed to another email
+   */
+  @Transactional(readOnly = true)
+  public ReceivedInvitationDTO findByToken(String token) {
+    Invitation invitation =
+        invitationRepository
+            .findByToken(token)
+            .orElseThrow(() -> new ResourceNotFoundException("Invitation not found"));
+    ensureInvitee(invitation, authService.getCurrentUser());
+    return ReceivedInvitationDTO.from(invitation);
+  }
+
+  /**
+   * The invited person accepts or rejects. Accepting makes them a participant of the trip and
+   * remembers their account on the invitation, in the same transaction.
+   *
+   * @throws BadRequestException the answer is PENDING
+   * @throws ResourceNotFoundException no invitation has that id (a deleted trip deletes its
+   *     invitations)
+   * @throws ForbiddenException the invitation is addressed to another email
+   * @throws ConflictException the invitation was already answered, or the user is already in the
+   *     trip
+   */
+  @Transactional
+  public ReceivedInvitationDTO respond(Long id, InvitationStatus answer) {
+    if (answer == InvitationStatus.PENDING) {
+      throw new BadRequestException("The answer must be ACCEPTED or REJECTED");
+    }
+    Invitation invitation =
+        invitationRepository
+            .findWithDetailsById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Invitation not found"));
+    UserDTO current = authService.getCurrentUser();
+    ensureInvitee(invitation, current);
+    if (invitation.getStatus() != InvitationStatus.PENDING) {
+      throw new ConflictException("The invitation was already answered");
+    }
+    Trip trip = invitation.getTrip();
+    if (answer == InvitationStatus.ACCEPTED) {
+      if (trip.getCreator().getId().equals(current.id())
+          || participationService.isParticipant(trip.getId(), current.id())) {
+        throw new ConflictException("Already a participant");
+      }
+      User user = userRepository.getReferenceById(current.id());
+      participationService.add(trip, user);
+      invitation.accept(user);
+    } else {
+      invitation.reject();
+    }
+    invitationRepository.saveAndFlush(invitation);
+    log.info(
+        "User {} {} invitation {} to trip {}",
+        current.id(),
+        answer == InvitationStatus.ACCEPTED ? "accepted" : "rejected",
+        id,
+        trip.getId());
+    return ReceivedInvitationDTO.from(invitation);
+  }
+
   /** Deletes every invitation of the trip; the trip's deletion calls it first (pattern 5). */
   @Transactional
   public void deleteAllByTrip(Long tripId) {
@@ -143,13 +233,22 @@ public class InvitationService {
   }
 
   /**
-   * Refuses an email that already belongs to the trip. Today only its creator does, who is the
-   * caller. I2 adds here, with the participations, the trip as a parameter and the check that the
-   * email is not a participant (409), so every "already in the trip" rule stays in this one method.
+   * Refuses an email that already belongs to the trip: the creator's own (400, the caller) or a
+   * participant's (409). Every "already in the trip" rule of an invitation lives in this method.
    */
-  private static void ensureNotMember(UserDTO creator, String email) {
+  private void ensureNotMember(UserDTO creator, Trip trip, String email) {
     if (email.equalsIgnoreCase(creator.email())) {
       throw new BadRequestException("You cannot invite yourself");
+    }
+    if (participationService.isParticipantByEmail(trip.getId(), email)) {
+      throw new ConflictException("Already a participant");
+    }
+  }
+
+  /** Only the account whose email the invitation was sent to may see it or answer it. */
+  private static void ensureInvitee(Invitation invitation, UserDTO current) {
+    if (!invitation.getInvitedEmail().equals(normalizeEmail(current.email()))) {
+      throw new ForbiddenException("The invitation is addressed to another account");
     }
   }
 
@@ -163,12 +262,12 @@ public class InvitationService {
     return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
   }
 
-  private static void checkSortable(Pageable pageable) {
+  private static void checkSortable(Pageable pageable, Set<String> sortable) {
     pageable
         .getSort()
         .forEach(
             order -> {
-              if (!SORTABLE.contains(order.getProperty())) {
+              if (!sortable.contains(order.getProperty())) {
                 throw new BadRequestException("Cannot sort by '" + order.getProperty() + "'");
               }
             });

@@ -6,6 +6,7 @@ import { usePagedList } from '../hooks/usePagedList';
 import { getTrips } from '../services/tripService';
 import EmptyTrips from './EmptyTrips';
 import LoadMoreButton from './LoadMoreButton';
+import PendingInvitations from './PendingInvitations';
 import TripCard from './TripCard';
 import './TripList.css';
 
@@ -45,6 +46,7 @@ export default function TripList() {
           Nuevo viaje
         </Link>
       </div>
+      <PendingInvitations onAccepted={reload} />
       {loaded && trips.length === 0 && <EmptyTrips />}
       {trips.length > 0 && (
         <Row as="ul" id="trips" className="trip-list gy-4">

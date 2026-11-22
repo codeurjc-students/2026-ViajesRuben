@@ -62,6 +62,9 @@ public class Invitation {
   @Column(nullable = false)
   private Instant sentAt;
 
+  /** When the invited person answered; null while the invitation is pending. */
+  private Instant respondedAt;
+
   protected Invitation() {}
 
   public Invitation(Trip trip, User inviter, String invitedEmail, User invitedUser, String token) {
@@ -106,5 +109,26 @@ public class Invitation {
 
   public Instant getSentAt() {
     return sentAt;
+  }
+
+  public Instant getRespondedAt() {
+    return respondedAt;
+  }
+
+  /** The invited person accepts; the account is remembered when the invitation had none. */
+  public void accept(User user) {
+    answer(InvitationStatus.ACCEPTED);
+    if (invitedUser == null) {
+      invitedUser = user;
+    }
+  }
+
+  public void reject() {
+    answer(InvitationStatus.REJECTED);
+  }
+
+  private void answer(InvitationStatus answer) {
+    this.status = answer;
+    this.respondedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
   }
 }

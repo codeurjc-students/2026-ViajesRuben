@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.ruben.backend.common.error.ForbiddenException;
 import com.ruben.backend.common.error.ResourceNotFoundException;
+import com.ruben.backend.participation.service.ParticipationService;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.trip.repository.TripRepository;
 import com.ruben.backend.user.UserTestData;
@@ -31,6 +32,7 @@ class TripAccessServiceUnitTest {
 
   @Mock private TripRepository tripRepository;
   @Mock private AuthService authService;
+  @Mock private ParticipationService participationService;
 
   private TripAccessService tripAccessService;
   private User ana;
@@ -38,7 +40,7 @@ class TripAccessServiceUnitTest {
 
   @BeforeEach
   void setUp() {
-    tripAccessService = new TripAccessService(tripRepository, authService);
+    tripAccessService = new TripAccessService(tripRepository, authService, participationService);
     ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
     bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
   }
@@ -118,6 +120,57 @@ class TripAccessServiceUnitTest {
     assertThatThrownBy(() -> tripAccessService.findForWrite(1L))
         .isInstanceOf(ForbiddenException.class)
         .hasMessage("Only the creator can access this trip");
+  }
+
+  @Test
+  @Tag("I2")
+  void aParticipantMayReadTheTrip() {
+    loggedInAs(ana);
+    Trip trip = tripOf(bob);
+    when(participationService.isParticipant(1L, 7L)).thenReturn(true);
+
+    assertThat(tripAccessService.findForRead(1L)).isSameAs(trip);
+  }
+
+  @Test
+  @Tag("I2")
+  void aParticipantMayNeitherChangeDeleteNorUnpublishTheTrip() {
+    loggedInAs(ana);
+    tripOf(bob);
+
+    assertThatThrownBy(() -> tripAccessService.findForWrite(1L))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> tripAccessService.findForDelete(1L))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> tripAccessService.findForUnpublish(1L))
+        .isInstanceOf(ForbiddenException.class);
+    verifyNoInteractions(participationService);
+  }
+
+  @Test
+  @Tag("I2")
+  void someoneWhoIsNotAParticipantMayNotReadTheTrip() {
+    loggedInAs(ana);
+    tripOf(bob);
+    when(participationService.isParticipant(1L, 7L)).thenReturn(false);
+
+    assertThatThrownBy(() -> tripAccessService.findForRead(1L))
+        .isInstanceOf(ForbiddenException.class)
+        .hasMessage("Only the creator can access this trip");
+  }
+
+  @Test
+  @Tag("I2")
+  void theParticipationsAreNotQueriedForTheCreatorOrTheAdministrator() {
+    loggedInAs(ana);
+    tripOf(ana);
+    tripAccessService.findForRead(1L);
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    loggedInAs(admin);
+
+    tripAccessService.findForRead(1L);
+
+    verifyNoInteractions(participationService);
   }
 
   @Test

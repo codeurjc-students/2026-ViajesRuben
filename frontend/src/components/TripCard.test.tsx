@@ -60,6 +60,19 @@ describe('B4 TripCard', () => {
     );
   });
 
+  test('I2 the card of a joined trip links to it with no edit or delete action', () => {
+    renderAsUser(<TripCard trip={{ ...trip, creatorId: ANA.id + 1 }} onDeleted={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: 'Verano en Roma' })).toHaveAttribute(
+      'href',
+      '/trips/3',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Eliminar Verano en Roma' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Editar Verano en Roma' })).not.toBeInTheDocument();
+  });
+
   test('hides both actions from anyone who is not the creator', () => {
     renderAsUser(<TripCard trip={{ ...trip, creatorId: ANA.id + 1 }} onDeleted={vi.fn()} />);
 

@@ -1,4 +1,4 @@
-import type { Invitation, Page } from '../types';
+import type { Invitation, InvitationAnswer, Page, ReceivedInvitation } from '../types';
 import { request, sendJson } from './apiError';
 import { DEFAULT_PAGE_SIZE } from './tripService';
 
@@ -23,4 +23,36 @@ export function getInvitations(
  */
 export function createInvitation(tripId: number, email: string): Promise<Invitation> {
   return sendJson<Invitation>('POST', invitationsUrl(tripId), { email });
+}
+
+const RECEIVED_URL = '/api/v1/invitations';
+
+/**
+ * One page of the pending invitations addressed to the logged-in user, newest first. Answered
+ * invitations are not listed.
+ */
+export function getMyInvitations(
+  page = 0,
+  size = DEFAULT_PAGE_SIZE,
+): Promise<Page<ReceivedInvitation>> {
+  return request<Page<ReceivedInvitation>>(`${RECEIVED_URL}?page=${page}&size=${size}`);
+}
+
+/**
+ * The invitation the token of an email link points at, in any status. Answers 403 when it was sent
+ * to another account and 404 when there is none, or its trip was deleted.
+ */
+export function getInvitationByToken(token: string): Promise<ReceivedInvitation> {
+  return request<ReceivedInvitation>(`${RECEIVED_URL}/token/${encodeURIComponent(token)}`);
+}
+
+/**
+ * Accepts or rejects an invitation; accepting makes the user a participant of the trip. Answers
+ * 403 for another account, 404 when it does not exist and 409 when it was already answered.
+ */
+export function respondToInvitation(
+  id: number,
+  status: InvitationAnswer,
+): Promise<ReceivedInvitation> {
+  return sendJson<ReceivedInvitation>('PUT', `${RECEIVED_URL}/${id}/status`, { status });
 }

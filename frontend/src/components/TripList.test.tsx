@@ -2,14 +2,21 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { vi, test, expect, beforeEach } from 'vitest';
 import TripList from './TripList';
 import { renderAsUser, renderRoutes } from '../renderHelpers';
+import { getMyInvitations, respondToInvitation } from '../services/invitationService';
 import { deleteTrip, getTrips } from '../services/tripService';
-import { pageOf, tripOf, tripsFrom } from '../testHelpers';
+import { pageOf, receivedInvitationOf, tripOf, tripsFrom } from '../testHelpers';
 
 vi.mock('../services/tripService', () => ({ getTrips: vi.fn(), deleteTrip: vi.fn() }));
+vi.mock('../services/invitationService', () => ({
+  getMyInvitations: vi.fn(),
+  respondToInvitation: vi.fn(),
+}));
 
 beforeEach(() => {
   vi.mocked(getTrips).mockReset();
   vi.mocked(deleteTrip).mockReset();
+  vi.mocked(getMyInvitations).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(respondToInvitation).mockReset();
 });
 
 test('renders the trips of the user by name', async () => {
@@ -112,4 +119,54 @@ test('B4 deleting a trip from its card reloads the list from the first page', as
   expect(getTrips).toHaveBeenCalledTimes(2);
   expect(getTrips).toHaveBeenLastCalledWith(0);
   expect(await screen.findByText('1 viaje')).toBeInTheDocument();
+});
+
+test('I2 shows the pending invitations above the trips', async () => {
+  vi.mocked(getTrips).mockResolvedValue(pageOf([tripOf({ id: 1, name: 'Escapada a Lisboa' })]));
+  vi.mocked(getMyInvitations).mockResolvedValue(
+    pageOf([receivedInvitationOf({ tripName: 'Verano en Roma' })]),
+  );
+
+  renderAsUser(<TripList />);
+
+  const heading = await screen.findByRole('heading', { name: 'Invitaciones pendientes' });
+  const trips = await screen.findByText('Escapada a Lisboa');
+  expect(heading.compareDocumentPosition(trips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test('I2 does not show the section when there are no pending invitations', async () => {
+  vi.mocked(getTrips).mockResolvedValue(pageOf([tripOf({ id: 1, name: 'Escapada a Lisboa' })]));
+
+  renderAsUser(<TripList />);
+
+  await screen.findByText('Escapada a Lisboa');
+  expect(
+    screen.queryByRole('heading', { name: 'Invitaciones pendientes' }),
+  ).not.toBeInTheDocument();
+});
+
+test('I2 after accepting an invitation the trip list is loaded again and shows the new trip', async () => {
+  vi.mocked(getTrips)
+    .mockResolvedValueOnce(pageOf([tripOf({ id: 1, name: 'Escapada a Lisboa' })]))
+    .mockResolvedValueOnce(
+      pageOf([
+        tripOf({ id: 1, name: 'Escapada a Lisboa' }),
+        tripOf({ id: 5, name: 'Verano en Roma', creatorId: 99 }),
+      ]),
+    );
+  const invitation = receivedInvitationOf({ id: 3, tripId: 5, tripName: 'Verano en Roma' });
+  vi.mocked(getMyInvitations).mockResolvedValue(pageOf([invitation]));
+  vi.mocked(respondToInvitation).mockResolvedValue({ ...invitation, status: 'ACCEPTED' });
+  renderAsUser(<TripList />);
+
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Aceptar invitación a Verano en Roma' }),
+  );
+
+  expect(await screen.findByRole('link', { name: 'Verano en Roma' })).toHaveAttribute(
+    'href',
+    '/trips/5',
+  );
+  expect(getTrips).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole('button', { name: 'Eliminar Verano en Roma' })).not.toBeInTheDocument();
 });

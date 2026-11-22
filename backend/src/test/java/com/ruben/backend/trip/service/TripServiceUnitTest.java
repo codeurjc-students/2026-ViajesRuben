@@ -22,6 +22,7 @@ import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
 import com.ruben.backend.invitation.service.InvitationService;
+import com.ruben.backend.participation.service.ParticipationService;
 import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
@@ -77,6 +78,7 @@ class TripServiceUnitTest {
   @Mock private TripAccessService tripAccessService;
   @Mock private ActivityService activityService;
   @Mock private InvitationService invitationService;
+  @Mock private ParticipationService participationService;
 
   private TripService tripService;
   private User ana;
@@ -92,7 +94,8 @@ class TripServiceUnitTest {
             imageService,
             tripAccessService,
             activityService,
-            invitationService);
+            invitationService,
+            participationService);
     ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
     bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
   }
@@ -252,12 +255,12 @@ class TripServiceUnitTest {
   // --- list ---
 
   @Test
-  void findPageReturnsTheCurrentUsersTripsKeepingThePosition() {
+  void findPageReturnsTheTripsVisibleToTheCurrentUserKeepingThePosition() {
     anaIsLoggedIn();
     Pageable pageable = PageRequest.of(1, 2, Sort.by("startDate"));
     Trip first = newTrip(ana, 1L);
     Trip second = newTrip(ana, 2L);
-    when(tripRepository.findByCreatorId(7L, pageable))
+    when(tripRepository.findVisibleTo(7L, pageable))
         .thenReturn(new PageImpl<>(List.of(first, second), pageable, 4));
 
     PageDTO<TripDTO> page = tripService.findPage(pageable);
@@ -278,7 +281,7 @@ class TripServiceUnitTest {
             0,
             10,
             Sort.by("id", "name", "destination", "startDate", "endDate", "createdAt").descending());
-    when(tripRepository.findByCreatorId(7L, pageable)).thenReturn(new PageImpl<>(List.of()));
+    when(tripRepository.findVisibleTo(7L, pageable)).thenReturn(new PageImpl<>(List.of()));
 
     assertThat(tripService.findPage(pageable).content()).isEmpty();
   }
@@ -505,13 +508,16 @@ class TripServiceUnitTest {
 
   @Test
   @Tag("I1")
-  void deleteRemovesTheInvitationsBeforeTheActivitiesAndTheTrip() {
+  @Tag("I2")
+  void deleteRemovesTheParticipationsAndInvitationsBeforeTheActivitiesAndTheTrip() {
     anaIsLoggedIn();
     Trip trip = tripOf(ana, 1L);
 
     tripService.delete(1L);
 
-    InOrder order = Mockito.inOrder(invitationService, activityService, tripRepository);
+    InOrder order =
+        Mockito.inOrder(participationService, invitationService, activityService, tripRepository);
+    order.verify(participationService).deleteAllByTrip(1L);
     order.verify(invitationService).deleteAllByTrip(1L);
     order.verify(activityService).deleteAllByTrip(1L);
     order.verify(tripRepository).delete(trip);
@@ -576,7 +582,7 @@ class TripServiceUnitTest {
 
     assertThatThrownBy(() -> tripService.delete(1L)).isInstanceOf(ForbiddenException.class);
     verify(tripRepository, never()).delete(any());
-    verifyNoInteractions(imageService, activityService, invitationService);
+    verifyNoInteractions(imageService, activityService, invitationService, participationService);
   }
 
   @Test

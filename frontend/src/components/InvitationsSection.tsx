@@ -7,6 +7,7 @@ import Form from 'react-bootstrap/Form';
 import { useAuth } from '../hooks/useAuth';
 import { usePagedList } from '../hooks/usePagedList';
 import { createInvitation, getInvitations } from '../services/invitationService';
+import type { InvitationStatus } from '../types';
 import {
   invitationEmailError,
   invitationSubmitError,
@@ -16,6 +17,13 @@ import {
 import { formatTripDate } from '../utils/tripFormat';
 import LoadMoreButton from './LoadMoreButton';
 import './InvitationsSection.css';
+
+/** How each state of an invitation is shown to the creator. */
+const STATUS_BADGES: Record<InvitationStatus, { label: string; bg: string; text?: string }> = {
+  PENDING: { label: 'Pendiente', bg: 'warning', text: 'dark' },
+  ACCEPTED: { label: 'Aceptada', bg: 'success' },
+  REJECTED: { label: 'Rechazada', bg: 'secondary' },
+};
 
 const EMAIL_MESSAGES: Record<InvitationEmailError, string> = {
   required: 'Escribe el email de la persona a la que quieres invitar.',
@@ -111,8 +119,11 @@ export default function InvitationsSection({ tripId }: Readonly<{ tripId: number
               <span className="invitations__email">{invitation.invitedEmail}</span>
               <span className="invitations__meta">
                 <time dateTime={invitation.sentAt}>{formatTripDate(invitation.sentAt)}</time>
-                <Badge bg="warning" text="dark">
-                  Pendiente
+                <Badge
+                  bg={STATUS_BADGES[invitation.status].bg}
+                  text={STATUS_BADGES[invitation.status].text}
+                >
+                  {STATUS_BADGES[invitation.status].label}
                 </Badge>
               </span>
             </li>
