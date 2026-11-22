@@ -1807,6 +1807,436 @@
       ]
     },
     {
+      "name": "Invite someone to a trip",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/invitations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "invitations"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"friend@example.com\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Only the trip's creator, not even the administrator. `email` is required, at most 255 characters and a valid address; it is trimmed and lower cased, and it may have no account yet (that person registers and answers later). Creates a pending invitation and sends that address an email in Spanish with the trip, who invites and a link `{APP_PUBLIC_URL}/invitations/{token}`. The email is sent after the invitation is saved, in the background, so a failed email never undoes the invitation: it is logged and not retried. The token is never returned by the API. Answers 201 with `Location`, 400 (invalid email, or the creator's own), 401, 403, 404 or 409 (that email already has a pending invitation to the trip)."
+      },
+      "response": [
+        {
+          "name": "Invitation created",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"friend@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Location",
+              "value": "/api/v1/trips/12/invitations/31"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 31,\n  \"invitedEmail\": \"friend@example.com\",\n  \"status\": \"PENDING\",\n  \"sentAt\": \"2026-11-18T10:15:30.123456Z\"\n}"
+        },
+        {
+          "name": "Pending invitation already exists",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"friend@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-11-18T10:15:30.123Z\",\n  \"status\": 409,\n  \"error\": \"Conflict\",\n  \"message\": \"The email already has a pending invitation to this trip\",\n  \"path\": \"/api/v1/trips/12/invitations\"\n}"
+        },
+        {
+          "name": "The creator's own email",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-11-18T10:15:30.123Z\",\n  \"status\": 400,\n  \"error\": \"Bad Request\",\n  \"message\": \"You cannot invite yourself\",\n  \"path\": \"/api/v1/trips/12/invitations\"\n}"
+        },
+        {
+          "name": "Another user or the administrator",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"friend@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-11-18T10:15:30.123Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Only the creator can access this trip\",\n  \"path\": \"/api/v1/trips/12/invitations\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get invitations of a trip (paginated)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/invitations?page=0&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "invitations"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number, starting at 0"
+            },
+            {
+              "key": "size",
+              "value": "10",
+              "description": "Items per page (default 10, maximum 50)"
+            }
+          ]
+        },
+        "description": "Only the trip's creator, not even the administrator. One page of the trip's invitations, newest first: `content`, `page`, `size`, `totalElements` and `last`. Each invitation has `id`, `invitedEmail`, `status` (`PENDING`) and `sentAt`; the token of the link is never included. `sort` accepts `id`, `invitedEmail`, `status` and `sentAt`; another property is a 400. 401, 403 and 404 when the trip does not exist."
+      },
+      "response": [
+        {
+          "name": "Invitations of a trip",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 31,\n      \"invitedEmail\": \"friend@example.com\",\n      \"status\": \"PENDING\",\n      \"sentAt\": \"2026-11-18T10:15:30.123456Z\"\n    },\n    {\n      \"id\": 30,\n      \"invitedEmail\": \"laura@example.com\",\n      \"status\": \"PENDING\",\n      \"sentAt\": \"2026-11-17T09:00:00.000000Z\"\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 2,\n  \"last\": true\n}"
+        },
+        {
+          "name": "Another user or the administrator",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
+              ]
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-11-18T10:15:30.123Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Only the creator can access this trip\",\n  \"path\": \"/api/v1/trips/12/invitations\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get invitation by id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/invitations/31",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "invitations",
+            "31"
+          ]
+        },
+        "description": "Only the trip's creator. The invitation of that trip; it is what the `Location` of its creation points to. 400 if an id is not a number, 401, 403, and 404 when the trip does not exist or has no such invitation."
+      },
+      "response": [
+        {
+          "name": "The invitation",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations/31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations",
+                "31"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 31,\n  \"invitedEmail\": \"friend@example.com\",\n  \"status\": \"PENDING\",\n  \"sentAt\": \"2026-11-18T10:15:30.123456Z\"\n}"
+        },
+        {
+          "name": "No such invitation",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/invitations/999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "invitations",
+                "999"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-11-18T10:15:30.123Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"Invitation not found\",\n  \"path\": \"/api/v1/trips/12/invitations/999\"\n}"
+        }
+      ]
+    },
+    {
       "name": "Get public trips (paginated)",
       "request": {
         "method": "GET",

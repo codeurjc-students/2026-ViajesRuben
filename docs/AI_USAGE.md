@@ -402,3 +402,19 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I10`.
 - **Human Validation:** The student reviewed and approved the plan and reviewed the generated code and the test output stage by stage.
+
+#### Record 4.5 — Invite users to a trip by email (I1)
+
+- **Date:** 18/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I1.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.327; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I1`, and to write some parts of the code and tests, the Mailpit setup in the Compose files, and the documentation. The test-auditor and guide-reviewer subagents were run.
+  - The student set the scope and the rules in the request and approved the plan with small changes. He also edited and added some parts of the code, reviewed it entirely, and checked for potential mistakes.
+  - Running the tests against a real database and a real mail server found two problems that the generated tests had not anticipated: the creation time of an invitation had more precision than the database stores, and a Mailpit port published by Docker Desktop did not answer on the development machine.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I1`.
+- **Human Validation:** The student reviewed and approved the plan and reviewed the generated code and the test output stage by stage.

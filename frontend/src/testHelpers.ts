@@ -4,6 +4,7 @@ import type {
   Activity,
   AdminTrip,
   AdminUser,
+  Invitation,
   Page,
   PublicTripSummary,
   Trip,
@@ -142,6 +143,17 @@ export function publicTripOf(overrides: Partial<PublicTripSummary> = {}): Public
       { day: 1, activityName: 'Coliseo' },
       { day: 2, activityName: 'Vaticano' },
     ],
+    ...overrides,
+  };
+}
+
+/** Builds a pending invitation of the API for tests. */
+export function invitationOf(overrides: Partial<Invitation> = {}): Invitation {
+  return {
+    id: 1,
+    invitedEmail: 'friend@example.com',
+    status: 'PENDING',
+    sentAt: '2026-11-18T10:15:30Z',
     ...overrides,
   };
 }

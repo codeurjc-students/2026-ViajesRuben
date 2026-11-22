@@ -1,0 +1,9 @@
+{inviterName} te ha invitado a un viaje en TripMate
+¡Hola!
+
+{inviterName} te invita a unirte al viaje «{tripName}» en TripMate.
+
+Para responder a la invitación, abre este enlace:
+{link}
+
+Si no esperabas este mensaje, puedes ignorarlo.

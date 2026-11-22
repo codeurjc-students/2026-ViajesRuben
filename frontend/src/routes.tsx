@@ -30,6 +30,8 @@ export const routes: RouteObject[] = [
           { path: '/public/:tripId', element: <PublicTripPage /> },
           { path: '/login', element: <LoginPage /> },
           { path: '/register', element: <RegisterPage /> },
+          // The link of an invitation email; open to anyone, because the person may not have an account yet.
+          { path: '/invitations/:token', element: <PlaceholderPage title="Invitación" /> },
           {
             // Every screen below needs a logged-in user.
             element: <RequireAuth />,
