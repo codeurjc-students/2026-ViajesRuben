@@ -18,6 +18,19 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
   Page<Trip> findByCreatorId(Long creatorId, Pageable pageable);
 
   /**
+   * One page of the trips a user can see in "My trips": the ones they created and the ones they
+   * joined (I2). Sorting and paging happen in the query.
+   */
+  @Query(
+      value =
+          "select t from Trip t where t.creator.id = :userId or exists (select p.id from"
+              + " Participation p where p.trip = t and p.user.id = :userId)",
+      countQuery =
+          "select count(t) from Trip t where t.creator.id = :userId or exists (select p.id from"
+              + " Participation p where p.trip = t and p.user.id = :userId)")
+  Page<Trip> findVisibleTo(@Param("userId") Long userId, Pageable pageable);
+
+  /**
    * One page of the published trips of every user (the public itineraries); `search` matches the
    * name or the destination, ignoring case, and null matches all. The creator is fetched in the
    * same query, because the public list shows the author's name.

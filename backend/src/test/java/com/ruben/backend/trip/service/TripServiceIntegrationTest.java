@@ -17,6 +17,7 @@ import com.ruben.backend.image.ImageTestData;
 import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.repository.ImageRepository;
+import com.ruben.backend.participation.service.ParticipationService;
 import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
@@ -57,6 +58,7 @@ class TripServiceIntegrationTest {
   @Autowired private TripService tripService;
   @Autowired private PublicTripService publicTripService;
   @Autowired private UserService userService;
+  @Autowired private ParticipationService participationService;
   @Autowired private TripRepository tripRepository;
   @Autowired private ImageRepository imageRepository;
   @Autowired private ActivityRepository activityRepository;
@@ -240,6 +242,49 @@ class TripServiceIntegrationTest {
         .containsExactly("Ana trip 11", "Ana trip 12");
     assertThat(second.last()).isTrue();
     assertThat(first.content()).extracting(TripDTO::creatorId).containsOnly(ana.id());
+  }
+
+  private void join(UserDTO user, TripDTO trip) {
+    participationService.add(
+        tripRepository.findById(trip.id()).orElseThrow(),
+        userRepository.getReferenceById(user.id()));
+  }
+
+  @Test
+  @Tag("I2")
+  void findPageListsTheTripsTheUserCreatedAndTheOnesTheyJoinedAndNoOtherTrips() {
+    createTrips(2, "Ana trip");
+    logInAs(bob);
+    TripDTO joined = tripService.create(request("Bob joined", 5));
+    tripService.create(request("Bob private", 6));
+    TripDTO alsoJoined = tripService.create(request("Bob joined too", 7));
+    join(ana, joined);
+    join(ana, alsoJoined);
+    logInAs(ana);
+
+    PageDTO<TripDTO> first = tripService.findPage(PageRequest.of(0, 3, Sort.by("startDate")));
+    PageDTO<TripDTO> second = tripService.findPage(PageRequest.of(1, 3, Sort.by("startDate")));
+
+    assertThat(first.content())
+        .extracting(TripDTO::name)
+        .containsExactly("Ana trip 1", "Ana trip 2", "Bob joined");
+    assertThat(first.totalElements()).isEqualTo(4);
+    assertThat(second.content()).extracting(TripDTO::name).containsExactly("Bob joined too");
+    assertThat(second.last()).isTrue();
+  }
+
+  @Test
+  @Tag("I2")
+  void aParticipantReadsTheTripButCannotChangeOrDeleteIt() {
+    logInAs(bob);
+    TripDTO trip = tripService.create(request("Bob trip", 1));
+    join(ana, trip);
+    logInAs(ana);
+
+    assertThat(tripService.findById(trip.id()).name()).isEqualTo("Bob trip");
+    assertThatThrownBy(() -> tripService.update(trip.id(), request("Mine now", 1)))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> tripService.delete(trip.id())).isInstanceOf(ForbiddenException.class);
   }
 
   @Test

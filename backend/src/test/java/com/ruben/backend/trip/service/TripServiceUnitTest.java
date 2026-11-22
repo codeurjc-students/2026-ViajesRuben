@@ -252,12 +252,12 @@ class TripServiceUnitTest {
   // --- list ---
 
   @Test
-  void findPageReturnsTheCurrentUsersTripsKeepingThePosition() {
+  void findPageReturnsTheTripsVisibleToTheCurrentUserKeepingThePosition() {
     anaIsLoggedIn();
     Pageable pageable = PageRequest.of(1, 2, Sort.by("startDate"));
     Trip first = newTrip(ana, 1L);
     Trip second = newTrip(ana, 2L);
-    when(tripRepository.findByCreatorId(7L, pageable))
+    when(tripRepository.findVisibleTo(7L, pageable))
         .thenReturn(new PageImpl<>(List.of(first, second), pageable, 4));
 
     PageDTO<TripDTO> page = tripService.findPage(pageable);
@@ -278,7 +278,7 @@ class TripServiceUnitTest {
             0,
             10,
             Sort.by("id", "name", "destination", "startDate", "endDate", "createdAt").descending());
-    when(tripRepository.findByCreatorId(7L, pageable)).thenReturn(new PageImpl<>(List.of()));
+    when(tripRepository.findVisibleTo(7L, pageable)).thenReturn(new PageImpl<>(List.of()));
 
     assertThat(tripService.findPage(pageable).content()).isEmpty();
   }

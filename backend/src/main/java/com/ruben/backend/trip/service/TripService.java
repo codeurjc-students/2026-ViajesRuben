@@ -62,14 +62,14 @@ public class TripService {
   }
 
   /**
-   * One page of the trips the current user created.
+   * One page of the trips the current user created or joined (I2).
    *
    * @throws BadRequestException the page asks to sort by a property that is not sortable
    */
   public PageDTO<TripDTO> findPage(Pageable pageable) {
     checkSortable(pageable);
     Long userId = authService.getCurrentUser().id();
-    return PageDTO.from(tripRepository.findByCreatorId(userId, pageable).map(TripDTO::from));
+    return PageDTO.from(tripRepository.findVisibleTo(userId, pageable).map(TripDTO::from));
   }
 
   /**
