@@ -10,6 +10,7 @@ import com.ruben.backend.image.dto.ImageResult;
 import com.ruben.backend.image.entity.Image;
 import com.ruben.backend.image.service.ImageService;
 import com.ruben.backend.invitation.service.InvitationService;
+import com.ruben.backend.participation.service.ParticipationService;
 import com.ruben.backend.trip.dto.AdminTripDTO;
 import com.ruben.backend.trip.dto.TripDTO;
 import com.ruben.backend.trip.dto.TripRequest;
@@ -43,6 +44,7 @@ public class TripService {
   private final TripAccessService tripAccessService;
   private final ActivityService activityService;
   private final InvitationService invitationService;
+  private final ParticipationService participationService;
 
   public TripService(
       TripRepository tripRepository,
@@ -51,7 +53,8 @@ public class TripService {
       ImageService imageService,
       TripAccessService tripAccessService,
       ActivityService activityService,
-      InvitationService invitationService) {
+      InvitationService invitationService,
+      ParticipationService participationService) {
     this.tripRepository = tripRepository;
     this.userRepository = userRepository;
     this.authService = authService;
@@ -59,6 +62,7 @@ public class TripService {
     this.tripAccessService = tripAccessService;
     this.activityService = activityService;
     this.invitationService = invitationService;
+    this.participationService = participationService;
   }
 
   /**
@@ -191,16 +195,17 @@ public class TripService {
   }
 
   /**
-   * The creator, or the administrator (B8), deletes the trip: its invitations (I1), its activities
-   * (with their pictures), the link of its copies (I9), then the trip, then its cover image, in
-   * this order because each points at the next. Features that add children of a trip
-   * (participations) delete them here first, explicitly, before the trip.
+   * The creator, or the administrator (B8), deletes the trip: its participations (I2), its
+   * invitations (I1), its activities (with their pictures), the link of its copies (I9), then the
+   * trip, then its cover image, in this order because each points at the next. Features that add
+   * children of a trip delete them here first, explicitly, before the trip.
    */
   @Transactional
   public void delete(Long id) {
     Trip trip = tripAccessService.findForDelete(id);
     Image cover = trip.getCoverImage();
     Long creatorId = trip.getCreator().getId();
+    participationService.deleteAllByTrip(id);
     invitationService.deleteAllByTrip(id);
     activityService.deleteAllByTrip(id);
     tripRepository.clearCopiedFrom(id);
