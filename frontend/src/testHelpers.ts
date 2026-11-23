@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import type { AuthContextValue } from './context/AuthContext';
 import type {
   Activity,
+  ActivityLogEntry,
   AdminTrip,
   AdminUser,
   Invitation,
@@ -136,6 +137,21 @@ export function activityOf(overrides: Partial<Activity> = {}): Activity {
     cost: null,
     category: null,
     imageId: null,
+    ...overrides,
+  };
+}
+
+/** Builds a line of the trip's change log for tests: Bob added "Museo" a moment ago. */
+export function logEntryOf(overrides: Partial<ActivityLogEntry> = {}): ActivityLogEntry {
+  return {
+    id: 1,
+    activityId: 1,
+    activityName: 'Museo',
+    userId: 2,
+    userName: 'Bob',
+    action: 'CREATED',
+    changedFields: [],
+    createdAt: new Date().toISOString(),
     ...overrides,
   };
 }

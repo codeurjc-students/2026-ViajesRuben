@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router/dom';
 import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
+import { getActivityLog } from './services/activityLogService';
 import { getActivities, getActivity, getTripCost } from './services/activityService';
 import {
   getInvitationByToken,
@@ -34,6 +35,7 @@ vi.mock('./services/tripService', () => ({
   getTrips: vi.fn(),
   setPublication: vi.fn(),
 }));
+vi.mock('./services/activityLogService', () => ({ getActivityLog: vi.fn() }));
 vi.mock('./services/activityService', () => ({
   getActivities: vi.fn(),
   getActivity: vi.fn(),
@@ -64,6 +66,7 @@ beforeEach(() => {
   vi.mocked(getPublicTrip).mockReset();
   vi.mocked(getPublicActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getActivityLog).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getParticipants).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getInvitationByToken).mockReset();

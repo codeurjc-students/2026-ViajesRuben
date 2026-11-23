@@ -1,4 +1,5 @@
 export type { Activity, ActivityCategory, ActivityData, TripCost } from './activity';
+export type { ActivityLogAction, ActivityLogEntry } from './activityLog';
 export type { BudgetConflict, OutsideDates, Overlap, TripConflicts } from './conflict';
 export type { ImageInfo } from './image';
 export type {

@@ -1,13 +1,22 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
+import { getActivityLog } from '../services/activityLogService';
 import { deleteActivity, getActivities, getTripCost } from '../services/activityService';
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { getInvitations } from '../services/invitationService';
 import { getParticipants, removeParticipant } from '../services/participantService';
 import { deleteTrip, getTrip, setPublication } from '../services/tripService';
-import { activityOf, ANA, conflictsOf, pageOf, participantOf, tripOf } from '../testHelpers';
+import {
+  activityOf,
+  ANA,
+  conflictsOf,
+  logEntryOf,
+  pageOf,
+  participantOf,
+  tripOf,
+} from '../testHelpers';
 import type { User } from '../types';
 import TripDetailPage from './TripDetailPage';
 
@@ -16,6 +25,7 @@ vi.mock('../services/tripService', () => ({
   getTrip: vi.fn(),
   setPublication: vi.fn(),
 }));
+vi.mock('../services/activityLogService', () => ({ getActivityLog: vi.fn() }));
 vi.mock('../services/activityService', () => ({
   getActivities: vi.fn(),
   deleteActivity: vi.fn(),
@@ -55,6 +65,7 @@ beforeEach(() => {
   vi.mocked(setPublication).mockReset();
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(deleteActivity).mockReset();
+  vi.mocked(getActivityLog).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
   vi.mocked(getConflicts).mockReset().mockResolvedValue(conflictsOf());
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
@@ -512,6 +523,84 @@ describe('I3 TripDetailPage participants', () => {
 
     expect(screen.queryByRole('heading', { name: 'Participantes' })).not.toBeInTheDocument();
     expect(getParticipants).not.toHaveBeenCalled();
+  });
+});
+
+describe('I4 TripDetailPage change log', () => {
+  const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
+
+  test('shows the change log below the itinerary to the creator', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getActivityLog).mockResolvedValue(
+      pageOf([logEntryOf({ userName: 'Laura', action: 'UPDATED', activityName: 'Museo' })]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    const heading = await screen.findByRole('heading', { name: 'Historial de cambios' });
+
+    const region = screen.getByRole('region', { name: 'Historial de cambios' });
+    expect(await within(region).findByRole('listitem')).toHaveTextContent('Laura editó «Museo»');
+    expect(getActivityLog).toHaveBeenCalledWith(5, 0);
+    const itinerary = screen.getByRole('heading', { name: 'Itinerario' });
+    expect(
+      itinerary.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test('shows it to a participant', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    renderRoutes(routes, '/trips/5');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Historial de cambios' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Aún no hay cambios')).toBeInTheDocument();
+    expect(getActivityLog).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('shows it to the administrator reviewing the trip', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Historial de cambios' }),
+    ).toBeInTheDocument();
+    expect(getActivityLog).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('does not ask for it before the trip is known', async () => {
+    vi.mocked(getTrip).mockRejectedValue(new ApiError(403));
+    renderRoutes(routes, '/trips/5');
+
+    await screen.findByText('Página de error');
+
+    expect(getActivityLog).not.toHaveBeenCalled();
+  });
+
+  test('deleting an activity here reads the log again, so the deletion shows up', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([activityOf({ id: 3, tripId: 5, name: 'Museo', date: '2027-07-10' })]),
+    );
+    vi.mocked(deleteActivity).mockResolvedValue(undefined);
+    vi.mocked(getActivityLog)
+      .mockResolvedValueOnce(pageOf([]))
+      .mockResolvedValue(
+        pageOf([logEntryOf({ userName: 'Ana', action: 'DELETED', activityName: 'Museo' })]),
+      );
+    renderRoutes(routes, '/trips/5');
+    await screen.findByText('Aún no hay cambios');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Museo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar actividad' }));
+
+    // The log remounts, so its section is looked up again each time.
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('region', { name: 'Historial de cambios' })).getByRole('listitem'),
+      ).toHaveTextContent('Ana eliminó «Museo»'),
+    );
+    expect(getActivityLog).toHaveBeenCalledTimes(2);
   });
 });
 
