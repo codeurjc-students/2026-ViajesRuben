@@ -433,3 +433,19 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I2`.
 - **Human Validation:** The student reviewed and approved the plan and reviewed the generated code and the test output stage by stage, and committed each stage after it.
+
+#### Record 4.7 — Manage participants (I3)
+
+- **Date:** 23/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I3.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.330; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I3`, and to write parts of the code, the tests of the six types, the Postman requests, some parts of the documentation. The test-auditor and guide-reviewer subagents were run before the hand-over.
+  - The student set the scope, the open decisions and the stages in the request, approved the plan, and edited and added parts of the code, the tests and the documentation while reviewing each stage.
+  - Running the tests found three problems that the first version did not anticipate: a rule queried the participations even for the trip's creator, a browser test assumed that the sample trip had no other participants, and the accessible name of the "Quitar" button lost a space.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I3`.
+- **Human Validation:** The student reviewed and approved the plan and the test output stage by stage, and committed each stage after it.
