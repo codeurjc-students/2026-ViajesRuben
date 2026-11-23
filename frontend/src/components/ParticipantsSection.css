@@ -5,6 +5,15 @@
   box-shadow: var(--tm-card-shadow);
 }
 
+.participants__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
 .participants__empty {
   padding: 0.5rem 0;
   color: var(--tm-via);

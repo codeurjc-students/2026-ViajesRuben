@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
+import { useNavigate } from 'react-router';
 import { useAuth } from '../hooks/useAuth';
 import { usePagedList } from '../hooks/usePagedList';
 import { getParticipants } from '../services/participantService';
 import type { Participant } from '../types';
 import { formatTripDate } from '../utils/tripFormat';
+import LeaveTripModal from './LeaveTripModal';
 import LoadMoreButton from './LoadMoreButton';
 import RemoveParticipantModal from './RemoveParticipantModal';
 import UserAvatar from './UserAvatar';
@@ -13,22 +15,30 @@ import './ParticipantsSection.css';
 
 interface ParticipantsSectionProps {
   tripId: number;
-  /** The creator removes anyone; a participant only reads the list. */
+  tripName: string;
+  /**
+   * The creator removes anyone and sees their emails. Anyone else is a participant: they read the
+   * list and can leave the trip.
+   */
   canRemove: boolean;
 }
 
 /**
  * The people who joined the trip, oldest first (I3). Everyone who can see the trip sees their
- * names and avatars; only the creator receives their emails and can remove them.
+ * names and avatars; only the creator receives their emails and can remove them, and a
+ * participant can leave, which takes them back to "Mis viajes" with a notice.
  */
 export default function ParticipantsSection({
   tripId,
+  tripName,
   canRemove,
 }: Readonly<ParticipantsSectionProps>) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const fetchPage = useCallback((page: number) => getParticipants(tripId, page), [tripId]);
   const { items, loaded, loading, last, error, loadMore, reload } = usePagedList(fetchPage);
   const [removing, setRemoving] = useState<Participant>();
+  const [leaving, setLeaving] = useState(false);
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
@@ -38,11 +48,22 @@ export default function ParticipantsSection({
     reload();
   }
 
+  function left() {
+    navigate('/trips', { state: { notice: `Has salido de «${tripName}».` } });
+  }
+
   return (
     <Card as="section" className="participants" aria-labelledby="participants-title">
-      <h2 id="participants-title" className="h3 mb-3">
-        Participantes
-      </h2>
+      <div className="participants__header">
+        <h2 id="participants-title" className="h3 mb-0">
+          Participantes
+        </h2>
+        {!canRemove && user && (
+          <Button variant="outline-danger" size="sm" onClick={() => setLeaving(true)}>
+            Salir del viaje
+          </Button>
+        )}
+      </div>
       {!loaded && <output className="d-block">Cargando participantes…</output>}
       {loaded && items.length === 0 && (
         <p className="participants__empty">
@@ -79,6 +100,15 @@ export default function ParticipantsSection({
         </ul>
       )}
       {loaded && <LoadMoreButton last={last} loading={loading} onClick={loadMore} />}
+      {leaving && user && (
+        <LeaveTripModal
+          tripId={tripId}
+          tripName={tripName}
+          userId={user.id}
+          onCancel={() => setLeaving(false)}
+          onLeft={left}
+        />
+      )}
       {removing && (
         <RemoveParticipantModal
           tripId={tripId}

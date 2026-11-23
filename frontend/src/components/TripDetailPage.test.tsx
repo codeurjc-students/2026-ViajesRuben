@@ -5,7 +5,7 @@ import { deleteActivity, getActivities, getTripCost } from '../services/activity
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { getInvitations } from '../services/invitationService';
-import { getParticipants } from '../services/participantService';
+import { getParticipants, removeParticipant } from '../services/participantService';
 import { deleteTrip, getTrip, setPublication } from '../services/tripService';
 import { activityOf, ANA, conflictsOf, pageOf, participantOf, tripOf } from '../testHelpers';
 import type { User } from '../types';
@@ -59,6 +59,7 @@ beforeEach(() => {
   vi.mocked(getConflicts).mockReset().mockResolvedValue(conflictsOf());
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getParticipants).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(removeParticipant).mockReset();
 });
 
 describe('B4 TripDetailPage', () => {
@@ -415,7 +416,31 @@ describe('I3 TripDetailPage participants', () => {
     expect(await screen.findByRole('heading', { name: 'Participantes' })).toBeInTheDocument();
     expect(await screen.findByText('Bob')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Quitar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salir del viaje' })).toBeInTheDocument();
     expect(getParticipants).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('the creator can neither leave their own trip nor see the button for it', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5');
+
+    await screen.findByRole('heading', { name: 'Participantes' });
+
+    expect(screen.queryByRole('button', { name: 'Salir del viaje' })).not.toBeInTheDocument();
+  });
+
+  test('a participant who leaves goes back to "Mis viajes" with a notice about the trip', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(removeParticipant).mockResolvedValue(undefined);
+    const router = renderRoutes(routes, '/trips/5');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Salir del viaje' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Salir del viaje' }));
+
+    expect(await screen.findByText('Lista de viajes')).toBeInTheDocument();
+    expect(removeParticipant).toHaveBeenCalledWith(5, ANA.id);
+    expect(router.state.location.state).toEqual({ notice: 'Has salido de «Verano en Roma».' });
   });
 
   test('shows nothing new to the administrator reviewing the trip, nor asks for it', async () => {

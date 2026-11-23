@@ -18,7 +18,9 @@ beforeEach(() => {
 });
 
 function renderSection(canRemove: boolean) {
-  return renderAsUser(<ParticipantsSection tripId={5} canRemove={canRemove} />);
+  return renderAsUser(
+    <ParticipantsSection tripId={5} tripName="Verano en Roma" canRemove={canRemove} />,
+  );
 }
 
 const BOB = participantOf({ userId: 2, name: 'Bob', email: 'bob@example.com' });
@@ -130,7 +132,7 @@ describe('I3 ParticipantsSection list', () => {
       [
         {
           path: '/',
-          element: <ParticipantsSection tripId={5} canRemove={false} />,
+          element: <ParticipantsSection tripId={5} tripName="Verano en Roma" canRemove={false} />,
           errorElement: <p>Página de error</p>,
         },
       ],
@@ -138,6 +140,60 @@ describe('I3 ParticipantsSection list', () => {
     );
 
     expect(await screen.findByText('Página de error')).toBeInTheDocument();
+  });
+});
+
+describe('I3 ParticipantsSection leaving', () => {
+  const routes = [
+    {
+      path: '/trips/:tripId',
+      element: <ParticipantsSection tripId={5} tripName="Verano en Roma" canRemove={false} />,
+    },
+    { path: '/trips', element: <p>Lista de viajes</p> },
+  ];
+
+  test('offers "Salir del viaje" to a participant and not to the creator', async () => {
+    vi.mocked(getParticipants).mockResolvedValue(pageOf([BOB]));
+    const { unmount } = renderSection(false);
+
+    await screen.findByText('Bob');
+
+    expect(screen.getByRole('button', { name: 'Salir del viaje' })).toBeInTheDocument();
+    unmount();
+
+    renderSection(true);
+    await screen.findByText('Bob');
+
+    expect(screen.queryByRole('button', { name: 'Salir del viaje' })).not.toBeInTheDocument();
+  });
+
+  test('asks first and stays on the trip when cancelled', async () => {
+    renderRoutes(routes, '/trips/5');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Salir del viaje' }));
+    expect(
+      await screen.findByText(
+        'Dejarás de ver «Verano en Roma». Para volver necesitarás una nueva invitación.',
+      ),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(removeParticipant).not.toHaveBeenCalled();
+    expect(screen.queryByText('Lista de viajes')).not.toBeInTheDocument();
+  });
+
+  test('confirming removes the logged-in user and goes back to "Mis viajes" with a notice', async () => {
+    vi.mocked(removeParticipant).mockResolvedValue(undefined);
+    const router = renderRoutes(routes, '/trips/5');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Salir del viaje' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Salir del viaje' }));
+
+    expect(await screen.findByText('Lista de viajes')).toBeInTheDocument();
+    expect(removeParticipant).toHaveBeenCalledWith(5, ANA.id);
+    expect(router.state.location.pathname).toBe('/trips');
+    expect(router.state.location.state).toEqual({ notice: 'Has salido de «Verano en Roma».' });
   });
 });
 

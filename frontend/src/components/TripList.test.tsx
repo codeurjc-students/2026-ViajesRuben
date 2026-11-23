@@ -170,3 +170,25 @@ test('I2 after accepting an invitation the trip list is loaded again and shows t
   expect(getTrips).toHaveBeenCalledTimes(2);
   expect(screen.queryByRole('button', { name: 'Eliminar Verano en Roma' })).not.toBeInTheDocument();
 });
+
+test('I3 shows the notice left by the page that sent the user here, and lets them dismiss it', async () => {
+  vi.mocked(getTrips).mockResolvedValue(pageOf([]));
+  renderRoutes([{ path: '/', element: <TripList /> }], '/', undefined, {
+    notice: 'Has salido de «Verano en Roma».',
+  });
+
+  expect(await screen.findByText('Has salido de «Verano en Roma».')).toBeVisible();
+
+  fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+  expect(screen.queryByText('Has salido de «Verano en Roma».')).not.toBeInTheDocument();
+});
+
+test('I3 shows no notice when the user arrives without one', async () => {
+  vi.mocked(getTrips).mockResolvedValue(pageOf([]));
+  renderAsUser(<TripList />);
+
+  await screen.findByRole('link', { name: 'Añadir tu primer viaje' });
+
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});

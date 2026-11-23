@@ -161,7 +161,7 @@ export default function TripDetailPage() {
         />
       )}
       {trip && (isCreator || isParticipant) && (
-        <ParticipantsSection tripId={trip.id} canRemove={isCreator} />
+        <ParticipantsSection tripId={trip.id} tripName={trip.name} canRemove={isCreator} />
       )}
       {trip && isCreator && <InvitationsSection tripId={trip.id} />}
     </Container>
