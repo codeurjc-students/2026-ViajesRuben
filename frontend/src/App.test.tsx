@@ -10,6 +10,7 @@ import {
   getInvitations,
   getMyInvitations,
 } from './services/invitationService';
+import { getParticipants } from './services/participantService';
 import { getPublicActivities, getPublicTrip, getPublicTrips } from './services/publicTripService';
 import { getTrips as getAdminTrips } from './services/adminTripService';
 import { getTrip, getTrips } from './services/tripService';
@@ -51,6 +52,7 @@ vi.mock('./services/invitationService', () => ({
   getInvitationByToken: vi.fn(),
   getMyInvitations: vi.fn(),
 }));
+vi.mock('./services/participantService', () => ({ getParticipants: vi.fn() }));
 vi.mock('./services/adminTripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
@@ -63,6 +65,7 @@ beforeEach(() => {
   vi.mocked(getPublicActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getParticipants).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getInvitationByToken).mockReset();
   vi.mocked(getMyInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));

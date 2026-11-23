@@ -6,6 +6,7 @@ import type {
   AdminUser,
   Invitation,
   Page,
+  Participant,
   PublicTripSummary,
   ReceivedInvitation,
   Trip,
@@ -60,6 +61,18 @@ export function authValue(
     logout: vi.fn().mockResolvedValue(undefined),
     register: vi.fn().mockResolvedValue(undefined),
     updateUser: vi.fn(),
+    ...overrides,
+  };
+}
+
+/** Builds a participant of the API for tests: Bob, who joined with no avatar and no email unless overridden. */
+export function participantOf(overrides: Partial<Participant> = {}): Participant {
+  return {
+    userId: 2,
+    name: 'Bob',
+    avatarId: null,
+    email: null,
+    joinedAt: '2026-11-18T10:00:00Z',
     ...overrides,
   };
 }

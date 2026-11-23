@@ -8,6 +8,7 @@ export type {
   ReceivedInvitation,
 } from './invitation';
 export type { Page } from './page';
+export type { Participant } from './participant';
 export type {
   AdminTrip,
   CoverChange,

@@ -5,8 +5,9 @@ import { deleteActivity, getActivities, getTripCost } from '../services/activity
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { getInvitations } from '../services/invitationService';
+import { getParticipants } from '../services/participantService';
 import { deleteTrip, getTrip, setPublication } from '../services/tripService';
-import { activityOf, ANA, conflictsOf, pageOf, tripOf } from '../testHelpers';
+import { activityOf, ANA, conflictsOf, pageOf, participantOf, tripOf } from '../testHelpers';
 import type { User } from '../types';
 import TripDetailPage from './TripDetailPage';
 
@@ -24,6 +25,10 @@ vi.mock('../services/conflictService', () => ({ getConflicts: vi.fn() }));
 vi.mock('../services/invitationService', () => ({
   getInvitations: vi.fn(),
   createInvitation: vi.fn(),
+}));
+vi.mock('../services/participantService', () => ({
+  getParticipants: vi.fn(),
+  removeParticipant: vi.fn(),
 }));
 
 const routes = [
@@ -53,6 +58,7 @@ beforeEach(() => {
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
   vi.mocked(getConflicts).mockReset().mockResolvedValue(conflictsOf());
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getParticipants).mockReset().mockResolvedValue(pageOf([]));
 });
 
 describe('B4 TripDetailPage', () => {
@@ -380,6 +386,46 @@ describe('I1 TripDetailPage invitations', () => {
 
     expect(screen.queryByRole('heading', { name: 'Invitaciones' })).not.toBeInTheDocument();
     expect(getInvitations).not.toHaveBeenCalled();
+  });
+});
+
+describe('I3 TripDetailPage participants', () => {
+  const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
+
+  test('shows the participants of the trip to its creator, who can remove them', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getParticipants).mockResolvedValue(
+      pageOf([participantOf({ name: 'Bob', email: 'bob@example.com' })]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Participantes' })).toBeInTheDocument();
+    expect(await screen.findByText('bob@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quitar a Bob' })).toBeInTheDocument();
+    expect(getParticipants).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('shows the participants to a participant, with no way to remove anyone', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(getParticipants).mockResolvedValue(
+      pageOf([participantOf({ userId: ANA.id, name: 'Ana' }), participantOf({ name: 'Bob' })]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Participantes' })).toBeInTheDocument();
+    expect(await screen.findByText('Bob')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Quitar/ })).not.toBeInTheDocument();
+    expect(getParticipants).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('shows nothing new to the administrator reviewing the trip, nor asks for it', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    await screen.findByRole('heading', { name: 'Verano en Roma' });
+
+    expect(screen.queryByRole('heading', { name: 'Participantes' })).not.toBeInTheDocument();
+    expect(getParticipants).not.toHaveBeenCalled();
   });
 });
 
