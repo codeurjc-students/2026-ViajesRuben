@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.ruben.backend.activity.service.ActivityLogService;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
@@ -80,6 +81,7 @@ class TripServiceUnitTest {
   @Mock private ActivityService activityService;
   @Mock private InvitationService invitationService;
   @Mock private ParticipationService participationService;
+  @Mock private ActivityLogService activityLogService;
 
   private TripService tripService;
   private User ana;
@@ -96,7 +98,8 @@ class TripServiceUnitTest {
             tripAccessService,
             activityService,
             invitationService,
-            participationService);
+            participationService,
+            activityLogService);
     ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
     bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
   }
@@ -532,6 +535,22 @@ class TripServiceUnitTest {
         Mockito.inOrder(participationService, invitationService, activityService, tripRepository);
     order.verify(participationService).deleteAllByTrip(1L);
     order.verify(invitationService).deleteAllByTrip(1L);
+    order.verify(activityService).deleteAllByTrip(1L);
+    order.verify(tripRepository).delete(trip);
+  }
+
+  @Test
+  @Tag("I4")
+  void deleteRemovesTheChangeLogAfterTheInvitationsAndBeforeTheActivities() {
+    anaIsLoggedIn();
+    Trip trip = tripOf(ana, 1L);
+
+    tripService.delete(1L);
+
+    InOrder order =
+        Mockito.inOrder(invitationService, activityLogService, activityService, tripRepository);
+    order.verify(invitationService).deleteAllByTrip(1L);
+    order.verify(activityLogService).deleteAllByTrip(1L);
     order.verify(activityService).deleteAllByTrip(1L);
     order.verify(tripRepository).delete(trip);
   }

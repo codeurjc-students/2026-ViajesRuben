@@ -52,18 +52,21 @@ public class ActivityService {
   private final TripAccessService tripAccessService;
   private final AuthService authService;
   private final ImageService imageService;
+  private final ActivityLogService activityLogService;
 
   public ActivityService(
       ActivityRepository activityRepository,
       UserRepository userRepository,
       TripAccessService tripAccessService,
       AuthService authService,
-      ImageService imageService) {
+      ImageService imageService,
+      ActivityLogService activityLogService) {
     this.activityRepository = activityRepository;
     this.userRepository = userRepository;
     this.tripAccessService = tripAccessService;
     this.authService = authService;
     this.imageService = imageService;
+    this.activityLogService = activityLogService;
   }
 
   /**
@@ -82,7 +85,8 @@ public class ActivityService {
   }
 
   /**
-   * Like {@link #findPage}, for a public (published) trip, which anyone may read.
+   * Like {@link #findPage}, for a public (published) trip, which anyone may read. The names of the
+   * trip's members are not part of what is public, so no activity says who added it.
    *
    * @throws ResourceNotFoundException no published trip has that id
    */
@@ -91,7 +95,9 @@ public class ActivityService {
     checkSortable(pageable);
     tripAccessService.findPublished(tripId);
     return PageDTO.from(
-        activityRepository.findByTrip(tripId, date, pageable).map(ActivityDTO::from));
+        activityRepository
+            .findByTrip(tripId, date, pageable)
+            .map(activity -> ActivityDTO.from(activity).withoutAuthorName()));
   }
 
   /** The first activity of each of the first three days of the trips, in a single query. */
@@ -148,6 +154,7 @@ public class ActivityService {
             request.date());
     applyFields(activity, request);
     activity = activityRepository.saveAndFlush(activity);
+    activityLogService.recordCreated(trip, activity);
     log.info("Activity {} created in trip {}", activity.getId(), tripId);
     return ActivityDTO.from(activity);
   }
@@ -161,37 +168,52 @@ public class ActivityService {
     return ActivityDTO.from(findActivity(tripId, id));
   }
 
-  /** Replaces every editable field; the picture is not touched. */
+  /**
+   * Replaces every editable field; the picture is not touched. The change log gets one line, with
+   * the names of the fields that really changed.
+   */
   @Transactional
   public ActivityDTO update(Long tripId, Long id, ActivityRequest request) {
     Trip trip = tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     checkDateInsideTrip(trip, request);
+    List<String> changedFields = ActivityFieldChanges.between(activity, request);
     activity.setName(request.name().trim());
     activity.setDate(request.date());
     applyFields(activity, request);
     activity = activityRepository.saveAndFlush(activity);
+    activityLogService.recordUpdated(trip, activity, changedFields);
     log.info("Activity {} of trip {} updated", id, tripId);
     return ActivityDTO.from(activity);
   }
 
-  /** Deletes the activity and then its picture, in this order because the activity points at it. */
+  /**
+   * Deletes the activity and then its picture, in this order because the activity points at it. The
+   * log lines of the activity are detached first, for the same reason, and the deletion is logged
+   * last, with the activity's name.
+   */
   @Transactional
   public void delete(Long tripId, Long id) {
-    tripAccessService.findForItineraryWrite(tripId);
+    Trip trip = tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     Image image = activity.getImage();
+    String name = activity.getName();
+    activityLogService.detachActivity(id);
     activityRepository.delete(activity);
     if (image != null) {
       imageService.delete(image.getId());
     }
+    activityLogService.recordDeleted(trip, name);
     log.info("Activity {} of trip {} deleted", id, tripId);
   }
 
-  /** Stores the picture and deletes the previous one, so no image is left behind. */
+  /**
+   * Stores the picture and deletes the previous one, so no image is left behind. Logged as an edit
+   * of the `image` field.
+   */
   @Transactional
   public ImageResult replaceImage(Long tripId, Long id, MultipartFile file) {
-    tripAccessService.findForItineraryWrite(tripId);
+    Trip trip = tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     Image previous = activity.getImage();
     Image image = imageService.save(file);
@@ -200,14 +222,18 @@ public class ActivityService {
     if (previous != null) {
       imageService.delete(previous.getId());
     }
+    activityLogService.recordUpdated(trip, activity, List.of(ActivityFieldChanges.IMAGE));
     log.info("Activity {} {} its image", id, previous == null ? "got" : "replaced");
     return new ImageResult(ImageDTO.from(image), previous == null);
   }
 
-  /** Removes the picture; doing it when there is none changes nothing. */
+  /**
+   * Removes the picture, logged as an edit of the `image` field; doing it when there is none
+   * changes nothing and logs nothing.
+   */
   @Transactional
   public void deleteImage(Long tripId, Long id) {
-    tripAccessService.findForItineraryWrite(tripId);
+    Trip trip = tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     Image image = activity.getImage();
     if (image == null) {
@@ -216,6 +242,7 @@ public class ActivityService {
     activity.setImage(null);
     activityRepository.save(activity);
     imageService.delete(image.getId());
+    activityLogService.recordUpdated(trip, activity, List.of(ActivityFieldChanges.IMAGE));
     log.info("Activity {} lost its image", id);
   }
 
@@ -295,11 +322,7 @@ public class ActivityService {
     activity.setEndTime(request.endTime());
     activity.setCost(request.cost());
     activity.setCategory(request.category());
-    activity.setLocation(blankToNull(request.location()));
-    activity.setDescription(blankToNull(request.description()));
-  }
-
-  private static String blankToNull(String text) {
-    return text == null || text.isBlank() ? null : text.trim();
+    activity.setLocation(ActivityFieldChanges.blankToNull(request.location()));
+    activity.setDescription(ActivityFieldChanges.blankToNull(request.description()));
   }
 }

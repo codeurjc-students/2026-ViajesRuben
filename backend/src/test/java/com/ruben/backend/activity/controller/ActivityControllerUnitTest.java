@@ -42,6 +42,7 @@ class ActivityControllerUnitTest {
           5L,
           3L,
           7L,
+          "Ana",
           "Colosseum",
           null,
           null,

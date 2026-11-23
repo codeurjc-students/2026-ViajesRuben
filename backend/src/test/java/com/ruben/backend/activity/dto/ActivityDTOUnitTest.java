@@ -53,6 +53,7 @@ class ActivityDTOUnitTest {
                 5L,
                 3L,
                 7L,
+                "Test USER",
                 "Colosseum",
                 "Guided tour",
                 "Piazza del Colosseo",
@@ -73,5 +74,29 @@ class ActivityDTOUnitTest {
     assertThat(dto.cost()).isNull();
     assertThat(dto.category()).isNull();
     assertThat(dto.name()).isEqualTo("Colosseum");
+  }
+
+  @Test
+  @Tag("I4")
+  void saysWhoAddedTheActivity() {
+    ActivityDTO dto = ActivityDTO.from(activity());
+
+    assertThat(dto.authorId()).isEqualTo(7L);
+    assertThat(dto.authorName()).isEqualTo("Test USER");
+  }
+
+  @Test
+  @Tag("I4")
+  void withoutAuthorNameKeepsEverythingElseAndHidesOnlyTheName() {
+    Activity activity = activity();
+    activity.setCost(new BigDecimal("16.00"));
+    activity.setCategory(ActivityCategory.FOOD);
+    ActivityDTO dto = ActivityDTO.from(activity);
+
+    ActivityDTO publicDto = dto.withoutAuthorName();
+
+    assertThat(publicDto.authorName()).isNull();
+    assertThat(publicDto).usingRecursiveComparison().ignoringFields("authorName").isEqualTo(dto);
+    assertThat(dto.authorName()).isEqualTo("Test USER");
   }
 }
