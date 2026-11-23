@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Node's fetch needs Node's own FormData and File for the multipart upload, not the jsdom ones.
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { newUser, png } from '../integrationHelpers';
+import { newUser, png, sendCookie } from '../integrationHelpers';
 import type { ActivityData } from '../types';
 import {
   applyActivityImage,
@@ -15,6 +15,7 @@ import {
   uploadActivityImage,
 } from './activityService';
 import { imageUrl } from './imageService';
+import { createInvitation, respondToInvitation } from './invitationService';
 import { createTrip, deleteTrip, getTrip, updateTrip } from './tripService';
 
 const tripData = {
@@ -309,5 +310,86 @@ describe('B5 activityService against the REST API', () => {
     await newUser('Bob');
 
     await expect(getTripCost(trip.id)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+/** Starts sending the session of the user instead of the previous one. */
+function actAs(user: { cookie: string }) {
+  vi.restoreAllMocks();
+  sendCookie(user.cookie);
+}
+
+/** Ana creates a trip, invites a new user and that user accepts; the session left is Ana's. */
+async function tripWithOneParticipant() {
+  const ana = await newUser('Ana');
+  const trip = await createTrip(tripData);
+  const bob = await newUser('Bob');
+  actAs(ana);
+  const invitation = await createInvitation(trip.id, bob.email);
+  actAs(bob);
+  await respondToInvitation(invitation.id, 'ACCEPTED');
+  actAs(ana);
+  return { ana, bob, trip };
+}
+
+describe('I4 activityService against the REST API', () => {
+  test('every activity says who added it', async () => {
+    const { user } = await newUser('Ana');
+    const trip = await createTrip(tripData);
+
+    const created = await createActivity(trip.id, activityData());
+
+    expect(created).toMatchObject({ authorId: user.id, authorName: 'Ana' });
+    await expect(getActivity(trip.id, created.id)).resolves.toMatchObject({ authorName: 'Ana' });
+    const page = await getActivities(trip.id);
+    expect(page.content[0]).toMatchObject({ authorId: user.id, authorName: 'Ana' });
+  });
+
+  test('a participant adds an activity and edits, changes the picture of and deletes the ones of the creator', async () => {
+    const { ana, bob, trip } = await tripWithOneParticipant();
+    const museum = await createActivity(trip.id, activityData({ name: 'Museo' }));
+    actAs(bob);
+
+    const walk = await createActivity(trip.id, activityData({ name: 'Paseo' }));
+    const edited = await updateActivity(trip.id, museum.id, activityData({ name: 'Louvre' }));
+    const picture = await uploadActivityImage(trip.id, museum.id, png());
+    await expect(getActivity(trip.id, museum.id)).resolves.toMatchObject({ imageId: picture.id });
+    await deleteActivityImage(trip.id, museum.id);
+
+    expect(walk).toMatchObject({ authorId: bob.user.id, authorName: 'Bob' });
+    expect(edited).toMatchObject({ name: 'Louvre', authorId: ana.user.id, authorName: 'Ana' });
+    await expect(getActivity(trip.id, museum.id)).resolves.toMatchObject({ imageId: null });
+    await expect(deleteActivity(trip.id, museum.id)).resolves.toBeUndefined();
+    await expect(getActivity(trip.id, museum.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('the creator edits and deletes the activities of a participant', async () => {
+    const { ana, bob, trip } = await tripWithOneParticipant();
+    actAs(bob);
+    const walk = await createActivity(trip.id, activityData({ name: 'Paseo' }));
+    actAs(ana);
+
+    const edited = await updateActivity(trip.id, walk.id, activityData({ name: 'Paseo largo' }));
+    await expect(deleteActivity(trip.id, walk.id)).resolves.toBeUndefined();
+
+    expect(edited).toMatchObject({ name: 'Paseo largo', authorName: 'Bob' });
+    await expect(getActivity(trip.id, walk.id)).rejects.toMatchObject({ status: 404 });
+  });
+
+  test('someone who is not in the trip still cannot change its itinerary', async () => {
+    const { trip } = await tripWithOneParticipant();
+    const activity = await createActivity(trip.id, activityData());
+    vi.restoreAllMocks();
+    await newUser('Carla');
+
+    await expect(createActivity(trip.id, activityData())).rejects.toMatchObject({ status: 403 });
+    await expect(updateActivity(trip.id, activity.id, activityData())).rejects.toMatchObject({
+      status: 403,
+    });
+    await expect(deleteActivity(trip.id, activity.id)).rejects.toMatchObject({ status: 403 });
+    await expect(uploadActivityImage(trip.id, activity.id, png())).rejects.toMatchObject({
+      status: 403,
+    });
+    await expect(deleteActivityImage(trip.id, activity.id)).rejects.toMatchObject({ status: 403 });
   });
 });

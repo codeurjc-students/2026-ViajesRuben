@@ -1,5 +1,6 @@
 package com.ruben.backend.trip.service;
 
+import com.ruben.backend.activity.service.ActivityLogService;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.BadRequestException;
@@ -47,6 +48,7 @@ public class TripService {
   private final ActivityService activityService;
   private final InvitationService invitationService;
   private final ParticipationService participationService;
+  private final ActivityLogService activityLogService;
 
   public TripService(
       TripRepository tripRepository,
@@ -56,7 +58,8 @@ public class TripService {
       TripAccessService tripAccessService,
       ActivityService activityService,
       InvitationService invitationService,
-      ParticipationService participationService) {
+      ParticipationService participationService,
+      ActivityLogService activityLogService) {
     this.tripRepository = tripRepository;
     this.userRepository = userRepository;
     this.authService = authService;
@@ -65,6 +68,7 @@ public class TripService {
     this.activityService = activityService;
     this.invitationService = invitationService;
     this.participationService = participationService;
+    this.activityLogService = activityLogService;
   }
 
   /**
@@ -203,9 +207,9 @@ public class TripService {
 
   /**
    * The creator, or the administrator (B8), deletes the trip: its participations (I2), its
-   * invitations (I1), its activities (with their pictures), the link of its copies (I9), then the
-   * trip, then its cover image, in this order because each points at the next. Features that add
-   * children of a trip delete them here first, explicitly, before the trip.
+   * invitations (I1), its change log (I4), its activities (with their pictures), the link of its
+   * copies (I9), then the trip, then its cover image, in this order because each points at the
+   * next. Features that add children of a trip delete them here first, explicitly, before the trip.
    */
   @Transactional
   public void delete(Long id) {
@@ -214,6 +218,7 @@ public class TripService {
     Long creatorId = trip.getCreator().getId();
     participationService.deleteAllByTrip(id);
     invitationService.deleteAllByTrip(id);
+    activityLogService.deleteAllByTrip(id);
     activityService.deleteAllByTrip(id);
     tripRepository.clearCopiedFrom(id);
     tripRepository.delete(trip);

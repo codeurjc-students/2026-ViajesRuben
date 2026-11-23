@@ -449,3 +449,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I3`.
 - **Human Validation:** The student reviewed and approved the plan and the test output stage by stage, and committed each stage after it.
+
+#### Record 4.8 — Collaborative itinerary with a change log (I4)
+
+- **Date:** 23/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I4, changed by the student so that the creator and the participants edit any activity and every change is recorded in a change log.
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.330; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I4`, and to write parts of the code (the permission rule, the change log, its endpoint, the actions and the "Historial de cambios" section), the tests of the six types, the regenerated OpenAPI and the Postman requests, and some parts of the documentation. The test-auditor and guide-reviewer subagents were run before the hand-over.
+  - The student changed the scope of the feature (participants edit and delete any activity, plus the change log), set the six stages, the issue number and the known limitation about simultaneous edits, approved the plan, and edited and wrote by hand parts of the code, the tests and the documentation while reviewing each stage.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I4`.
+- **Human Validation:** The student reviewed and approved the plan and the test output stage by stage, and committed each stage after it.

@@ -334,7 +334,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            "The user may not see the trip (only its creator, its participants\
+            \ and the administrator may)"
           content:
             "*/*":
               schema:
@@ -350,8 +352,9 @@ paths:
         - activity-controller
       summary: Replace an activity's details
       description:
-        Only the trip's creator. Every field is replaced; the picture is
-        not changed.
+        "The trip's creator or a participant, whoever added the activity.\
+        \ Every field is replaced; the picture is not changed. The log line lists\
+        \ the fields that really changed."
       operationId: updateActivity
       parameters:
         - name: tripId
@@ -394,7 +397,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            Only the trip's creator and its participants may do it (the
+            administrator and anyone else may not)
           content:
             "*/*":
               schema:
@@ -409,7 +414,10 @@ paths:
       tags:
         - activity-controller
       summary: Delete an activity
-      description: Only the trip's creator. The picture is deleted with the activity.
+      description:
+        "The trip's creator or a participant, whoever added the activity.\
+        \ The picture is deleted with the activity; the log keeps the line with its\
+        \ name."
       operationId: deleteActivity
       parameters:
         - name: tripId
@@ -440,7 +448,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            Only the trip's creator and its participants may do it (the
+            administrator and anyone else may not)
           content:
             "*/*":
               schema:
@@ -492,7 +502,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            "The user may not see the trip (only its creator, its participants\
+            \ and the administrator may)"
           content:
             "*/*":
               schema:
@@ -508,9 +520,9 @@ paths:
         - activity-controller
       summary: Upload or replace an activity's picture
       description:
-        "Only the trip's creator. Multipart form with the picture in the\
-        \ `file` part: JPEG, PNG or WebP up to the configured size. The previous picture\
-        \ is deleted."
+        "The trip's creator or a participant. Multipart form with the picture\
+        \ in the `file` part: JPEG, PNG or WebP up to the configured size. The previous\
+        \ picture is deleted. Logged as an edit of the `image` field."
       operationId: replaceActivityImage
       parameters:
         - name: tripId
@@ -562,7 +574,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            Only the trip's creator and its participants may do it (the
+            administrator and anyone else may not)
           content:
             "*/*":
               schema:
@@ -583,7 +597,10 @@ paths:
       tags:
         - activity-controller
       summary: Delete an activity's picture
-      description: Only the trip's creator. Also answers 204 when there was no picture.
+      description:
+        "The trip's creator or a participant. Also answers 204 when there\
+        \ was no picture, and then logs nothing; otherwise it is logged as an edit\
+        \ of the `image` field."
       operationId: deleteActivityImage
       parameters:
         - name: tripId
@@ -608,7 +625,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            Only the trip's creator and its participants may do it (the
+            administrator and anyone else may not)
           content:
             "*/*":
               schema:
@@ -1430,7 +1449,8 @@ paths:
         \ only). Paginated: `?page=0&size=10` (50 at most), sorted by date and start\
         \ time by default; activities without a start time come first on their day.\
         \ `date=yyyy-MM-dd` keeps only the activities of that day. `sort` accepts\
-        \ `id`, `date`, `startTime`, `name`, `cost` and `createdAt`."
+        \ `id`, `date`, `startTime`, `name`, `cost` and `createdAt`. Each activity\
+        \ says who added it (`authorId`, `authorName`)."
       operationId: getActivities
       parameters:
         - name: tripId
@@ -1496,7 +1516,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            "The user may not see the trip (only its creator, its participants\
+            \ and the administrator may)"
           content:
             "*/*":
               schema:
@@ -1512,10 +1534,12 @@ paths:
         - activity-controller
       summary: Create an activity
       description:
-        "Only the trip's creator, who becomes the author. `date` must be\
-        \ within the trip's dates; times are `HH:mm`, the end strictly after the start\
-        \ and not without a start. The picture is set afterwards with `PUT .../{activityId}/image`.\
-        \ The `Location` header is the URL of the new activity."
+        "The trip's creator or a participant, who becomes the author. `date`\
+        \ must be within the trip's dates; times are `HH:mm`, the end strictly after\
+        \ the start and not without a start. The picture is set afterwards with `PUT\
+        \ .../{activityId}/image`. The `Location` header is the URL of the new activity.\
+        \ The change is recorded in the trip's change log (`GET /api/v1/trips/{tripId}/activity-log`),\
+        \ as are the following ones."
       operationId: createActivity
       parameters:
         - name: tripId
@@ -1552,7 +1576,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            Only the trip's creator and its participants may do it (the
+            administrator and anyone else may not)
           content:
             "*/*":
               schema:
@@ -1896,6 +1922,89 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/activity-log:
+    get:
+      tags:
+        - activity-log-controller
+      summary: List the changes made to a trip's itinerary
+      description:
+        "The change log of the trip: who added, edited or deleted which\
+        \ activity, and when. Anyone who can see the trip may read it: its creator,\
+        \ its participants and the administrator. Each line has `action` (`CREATED`,\
+        \ `UPDATED` or `DELETED`), `activityName` and `userName` as they were at the\
+        \ time of the change, `activityId` (null once the activity is deleted), `userId`,\
+        \ `createdAt` and, for an edit, `changedFields`: the names of the fields that\
+        \ changed (`name`, `description`, `location`, `date`, `startTime`, `endTime`,\
+        \ `cost`, `category`, `image`), never their values. Paginated: `?page=0&size=10`\
+        \ (50 at most), newest first by default. `sort` accepts `id` and `createdAt`."
+      operationId: getActivityLog
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "createdAt,DESC"
+              - "id,DESC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of the change log
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOActivityLogEntryDTO"
+        "400":
+          description: "Invalid trip id, page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The user may not see the trip
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/trips/{tripId}/activities/cost:
     get:
       tags:
@@ -1934,7 +2043,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
-          description: The trip belongs to another user
+          description:
+            "The user may not see the trip (only its creator, its participants\
+            \ and the administrator may)"
           content:
             "*/*":
               schema:
@@ -2602,6 +2713,8 @@ components:
         authorId:
           type: integer
           format: int64
+        authorName:
+          type: string
         name:
           type: string
         description:
@@ -2966,6 +3079,53 @@ components:
             $ref: "#/components/schemas/OutsideDatesDTO"
         budget:
           $ref: "#/components/schemas/BudgetConflictDTO"
+    ActivityLogEntryDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        activityId:
+          type: integer
+          format: int64
+        activityName:
+          type: string
+        userId:
+          type: integer
+          format: int64
+        userName:
+          type: string
+        action:
+          type: string
+          enum:
+            - CREATED
+            - UPDATED
+            - DELETED
+        changedFields:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+    PageDTOActivityLogEntryDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityLogEntryDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
     PageDTOActivityDTO:
       type: object
       properties:

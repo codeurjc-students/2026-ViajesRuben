@@ -41,7 +41,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class ActivityController {
 
   private static final String NOT_LOGGED_IN = "Not logged in";
-  private static final String NOT_ALLOWED = "The trip belongs to another user";
+  private static final String CANNOT_SEE =
+      "The user may not see the trip (only its creator, its participants and the administrator"
+          + " may)";
+  private static final String NOT_ALLOWED =
+      "Only the trip's creator and its participants may do it (the administrator and anyone else"
+          + " may not)";
   private static final String NO_ACTIVITY = "No trip has that id, or it has no such activity";
 
   private final ActivityService activityService;
@@ -60,7 +65,8 @@ public class ActivityController {
           "The trip's creator, a participant, or the administrator (read only). Paginated: `?page=0&size=10` (50 at most), sorted by date and"
               + " start time by default; activities without a start time come first on their"
               + " day. `date=yyyy-MM-dd` keeps only the activities of that day. `sort` accepts"
-              + " `id`, `date`, `startTime`, `name`, `cost` and `createdAt`.")
+              + " `id`, `date`, `startTime`, `name`, `cost` and `createdAt`. Each activity says"
+              + " who added it (`authorId`, `authorName`).")
   @ApiResponse(responseCode = "200", description = "One page of activities")
   @ApiResponse(
       responseCode = "400",
@@ -72,7 +78,7 @@ public class ActivityController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "403",
-      description = NOT_ALLOWED,
+      description = CANNOT_SEE,
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "404",
@@ -110,7 +116,7 @@ public class ActivityController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "403",
-      description = NOT_ALLOWED,
+      description = CANNOT_SEE,
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "404",
@@ -124,10 +130,12 @@ public class ActivityController {
   @Operation(
       summary = "Create an activity",
       description =
-          "Only the trip's creator, who becomes the author. `date` must be within the trip's dates;"
-              + " times are `HH:mm`, the end strictly after the start and not without a start."
-              + " The picture is set afterwards with `PUT .../{activityId}/image`. The `Location`"
-              + " header is the URL of the new activity.")
+          "The trip's creator or a participant, who becomes the author. `date` must be within the"
+              + " trip's dates; times are `HH:mm`, the end strictly after the start and not without"
+              + " a start. The picture is set afterwards with `PUT .../{activityId}/image`. The"
+              + " `Location` header is the URL of the new activity. The change is recorded in the"
+              + " trip's change log (`GET /api/v1/trips/{tripId}/activity-log`), as are the"
+              + " following ones.")
   @ApiResponse(responseCode = "201", description = "The activity was created")
   @ApiResponse(
       responseCode = "400",
@@ -168,7 +176,7 @@ public class ActivityController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "403",
-      description = NOT_ALLOWED,
+      description = CANNOT_SEE,
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "404",
@@ -181,7 +189,10 @@ public class ActivityController {
 
   @Operation(
       summary = "Replace an activity's details",
-      description = "Only the trip's creator. Every field is replaced; the picture is not changed.")
+      description =
+          "The trip's creator or a participant, whoever added the activity. Every field is"
+              + " replaced; the picture is not changed. The log line lists the fields that"
+              + " really changed.")
   @ApiResponse(responseCode = "200", description = "The updated activity")
   @ApiResponse(
       responseCode = "400",
@@ -209,7 +220,9 @@ public class ActivityController {
 
   @Operation(
       summary = "Delete an activity",
-      description = "Only the trip's creator. The picture is deleted with the activity.")
+      description =
+          "The trip's creator or a participant, whoever added the activity. The picture is"
+              + " deleted with the activity; the log keeps the line with its name.")
   @ApiResponse(responseCode = "204", description = "The activity was deleted")
   @ApiResponse(
       responseCode = "400",
@@ -237,8 +250,9 @@ public class ActivityController {
   @Operation(
       summary = "Upload or replace an activity's picture",
       description =
-          "Only the trip's creator. Multipart form with the picture in the `file` part: JPEG, PNG"
-              + " or WebP up to the configured size. The previous picture is deleted.")
+          "The trip's creator or a participant. Multipart form with the picture in the `file`"
+              + " part: JPEG, PNG or WebP up to the configured size. The previous picture is"
+              + " deleted. Logged as an edit of the `image` field.")
   @ApiResponse(
       responseCode = "201",
       description = "The activity had no picture; `Location` is the picture URL")
@@ -295,7 +309,7 @@ public class ActivityController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "403",
-      description = NOT_ALLOWED,
+      description = CANNOT_SEE,
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   @ApiResponse(
       responseCode = "404",
@@ -314,7 +328,9 @@ public class ActivityController {
 
   @Operation(
       summary = "Delete an activity's picture",
-      description = "Only the trip's creator. Also answers 204 when there was no picture.")
+      description =
+          "The trip's creator or a participant. Also answers 204 when there was no picture, and"
+              + " then logs nothing; otherwise it is logged as an edit of the `image` field.")
   @ApiResponse(responseCode = "204", description = "The activity has no picture now")
   @ApiResponse(
       responseCode = "401",

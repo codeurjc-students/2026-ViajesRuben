@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
@@ -70,6 +71,7 @@ class ActivityServiceUnitTest {
   @Mock private TripAccessService tripAccessService;
   @Mock private AuthService authService;
   @Mock private ImageService imageService;
+  @Mock private ActivityLogService activityLogService;
 
   private ActivityService activityService;
   private User ana;
@@ -79,12 +81,17 @@ class ActivityServiceUnitTest {
   void setUp() {
     activityService =
         new ActivityService(
-            activityRepository, userRepository, tripAccessService, authService, imageService);
+            activityRepository,
+            userRepository,
+            tripAccessService,
+            authService,
+            imageService,
+            activityLogService);
     ana = UserTestData.user(7L, "ana@example.com", Role.USER, UserStatus.ACTIVE);
     trip = new Trip(ana, "Trip", "Rome", START, END);
     ReflectionTestUtils.setField(trip, "id", 1L);
     lenient().when(tripAccessService.findForRead(1L)).thenReturn(trip);
-    lenient().when(tripAccessService.findForWrite(1L)).thenReturn(trip);
+    lenient().when(tripAccessService.findForItineraryWrite(1L)).thenReturn(trip);
   }
 
   private static ActivityRequest request(String name, LocalDate date) {
@@ -115,7 +122,7 @@ class ActivityServiceUnitTest {
   /** Nobody may touch the trip: the access service refuses, whatever the operation. */
   private void tripIsRefused(RuntimeException refusal) {
     lenient().when(tripAccessService.findForRead(1L)).thenThrow(refusal);
-    lenient().when(tripAccessService.findForWrite(1L)).thenThrow(refusal);
+    lenient().when(tripAccessService.findForItineraryWrite(1L)).thenThrow(refusal);
   }
 
   // --- list ---
@@ -677,6 +684,261 @@ class ActivityServiceUnitTest {
     activityService.copyAll(1L, copyTarget(2L), 5);
 
     assertThat(savedCopies()).isEmpty();
+  }
+
+  // --- collaborative itinerary (I4) ---
+
+  /** A participant who did not create the activity: the author is Ana, the current user is Bob. */
+  private User bobTheParticipant() {
+    User bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
+    lenient().when(authService.getCurrentUser()).thenReturn(UserDTO.from(bob));
+    lenient().when(userRepository.getReferenceById(8L)).thenReturn(bob);
+    return bob;
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantCreatesAnActivityAndBecomesItsAuthor() {
+    User bob = bobTheParticipant();
+    when(activityRepository.saveAndFlush(any(Activity.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    ActivityDTO created = activityService.create(1L, request("Museum", START.plusDays(1)));
+
+    assertThat(created.authorId()).isEqualTo(bob.getId());
+    verify(tripAccessService).findForItineraryWrite(1L);
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantEditsAnActivityOfSomeoneElseAndTheAuthorStays() {
+    bobTheParticipant();
+    Activity activity = activity(5L);
+    when(activityRepository.saveAndFlush(activity)).thenReturn(activity);
+
+    ActivityDTO updated = activityService.update(1L, 5L, request("Forum", END));
+
+    assertThat(updated.name()).isEqualTo("Forum");
+    assertThat(updated.authorId()).isEqualTo(ana.getId());
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantDeletesAnActivityOfSomeoneElse() {
+    bobTheParticipant();
+    Activity activity = activity(5L);
+
+    activityService.delete(1L, 5L);
+
+    verify(activityRepository).delete(activity);
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantReplacesAndDeletesThePictureOfAnActivityOfSomeoneElse() {
+    bobTheParticipant();
+    Activity activity = activity(5L);
+    Image stored = image();
+    when(imageService.save(PICTURE)).thenReturn(stored);
+
+    activityService.replaceImage(1L, 5L, PICTURE);
+    activityService.deleteImage(1L, 5L);
+
+    assertThat(activity.getImage()).isNull();
+    verify(imageService).delete(stored.getId());
+    verify(tripAccessService, times(2)).findForItineraryWrite(1L);
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void everyItineraryWriteAsksTheItineraryRuleBeforeLookingForTheActivity() {
+    tripIsRefused(new ForbiddenException("Only the creator can access this trip"));
+
+    assertThatThrownBy(() -> activityService.create(1L, request("Walk", START)))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.update(1L, 5L, request("Walk", START)))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.delete(1L, 5L)).isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.replaceImage(1L, 5L, PICTURE))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.deleteImage(1L, 5L))
+        .isInstanceOf(ForbiddenException.class);
+    verifyNoInteractions(activityRepository, imageService);
+  }
+
+  // --- change log (I4) ---
+
+  /** An activity whose fields are exactly what {@code request(name, START + 1)} stores. */
+  private Activity activityMatchingTheRequest(Long id, String name) {
+    Activity activity = new Activity(trip, ana, name, START.plusDays(1));
+    ReflectionTestUtils.setField(activity, "id", id);
+    activity.setStartTime(LocalTime.of(10, 0));
+    activity.setEndTime(LocalTime.of(12, 30));
+    activity.setLocation("Piazza");
+    activity.setDescription("Guided tour");
+    activity.setCost(new BigDecimal("16.50"));
+    activity.setCategory(ActivityCategory.SIGHTSEEING);
+    lenient().when(activityRepository.findByIdAndTripId(id, 1L)).thenReturn(Optional.of(activity));
+    return activity;
+  }
+
+  @Test
+  @Tag("I4")
+  void createWritesExactlyOneCreatedLogLine() {
+    when(authService.getCurrentUser()).thenReturn(UserDTO.from(ana));
+    when(userRepository.getReferenceById(7L)).thenReturn(ana);
+    when(activityRepository.saveAndFlush(any(Activity.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    activityService.create(1L, request("Colosseum", START.plusDays(1)));
+
+    org.mockito.ArgumentCaptor<Activity> logged =
+        org.mockito.ArgumentCaptor.forClass(Activity.class);
+    verify(activityLogService)
+        .recordCreated(org.mockito.ArgumentMatchers.eq(trip), logged.capture());
+    assertThat(logged.getValue().getName()).isEqualTo("Colosseum");
+    verifyNoMoreInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void aCreateThatFailsWritesNoLogLine() {
+    assertThatThrownBy(() -> activityService.create(1L, request("Late", END.plusDays(1))))
+        .isInstanceOf(BadRequestException.class);
+    tripIsRefused(new ForbiddenException("Only the creator can access this trip"));
+    assertThatThrownBy(() -> activityService.create(1L, request("Walk", START)))
+        .isInstanceOf(ForbiddenException.class);
+
+    verifyNoInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void updateWritesOneUpdatedLogLineWithOnlyTheFieldsThatChanged() {
+    Activity activity = activityMatchingTheRequest(5L, "Colosseum");
+    when(activityRepository.saveAndFlush(activity)).thenReturn(activity);
+
+    activityService.update(1L, 5L, request("  Forum ", START.plusDays(2)));
+
+    verify(activityLogService).recordUpdated(trip, activity, List.of("name", "date"));
+    verifyNoMoreInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void updateThatChangesNothingStillWritesOneLineWithoutFields() {
+    Activity activity = activityMatchingTheRequest(5L, "Colosseum");
+    when(activityRepository.saveAndFlush(activity)).thenReturn(activity);
+
+    activityService.update(1L, 5L, request(" Colosseum ", START.plusDays(1)));
+
+    verify(activityLogService).recordUpdated(trip, activity, List.of());
+    verifyNoMoreInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void anUpdateThatFailsWritesNoLogLineAndLeavesTheActivityUntouched() {
+    Activity activity = activityMatchingTheRequest(5L, "Colosseum");
+
+    assertThatThrownBy(() -> activityService.update(1L, 5L, request("Late", END.plusDays(1))))
+        .isInstanceOf(BadRequestException.class);
+    when(activityRepository.findByIdAndTripId(6L, 1L)).thenReturn(Optional.empty());
+    assertThatThrownBy(() -> activityService.update(1L, 6L, request("Walk", START)))
+        .isInstanceOf(ResourceNotFoundException.class);
+    tripIsRefused(new ForbiddenException("Only the creator can access this trip"));
+    assertThatThrownBy(() -> activityService.update(1L, 5L, request("Walk", START)))
+        .isInstanceOf(ForbiddenException.class);
+
+    assertThat(activity.getName()).isEqualTo("Colosseum");
+    verifyNoInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void deleteDetachesTheLogLinesThenDeletesThenWritesTheDeletedLineWithTheName() {
+    Activity activity = activity(5L);
+    Image image = image();
+    activity.setImage(image);
+
+    activityService.delete(1L, 5L);
+
+    InOrder order = Mockito.inOrder(activityLogService, activityRepository, imageService);
+    order.verify(activityLogService).detachActivity(5L);
+    order.verify(activityRepository).delete(activity);
+    order.verify(imageService).delete(image.getId());
+    order.verify(activityLogService).recordDeleted(trip, "Colosseum");
+    verifyNoMoreInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void aDeleteThatFailsWritesNoLogLine() {
+    when(activityRepository.findByIdAndTripId(5L, 1L)).thenReturn(Optional.empty());
+    assertThatThrownBy(() -> activityService.delete(1L, 5L))
+        .isInstanceOf(ResourceNotFoundException.class);
+    tripIsRefused(new ForbiddenException("Only the creator can access this trip"));
+    assertThatThrownBy(() -> activityService.delete(1L, 5L)).isInstanceOf(ForbiddenException.class);
+
+    verifyNoInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void replacingThePictureWritesOneUpdatedLineForTheImageField() {
+    Activity activity = activity(5L);
+    when(imageService.save(PICTURE)).thenReturn(image());
+
+    activityService.replaceImage(1L, 5L, PICTURE);
+
+    verify(activityLogService).recordUpdated(trip, activity, List.of("image"));
+    verifyNoMoreInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void aRejectedPictureWritesNoLogLine() {
+    activity(5L);
+    when(imageService.save(PICTURE)).thenThrow(new BadRequestException("The image is empty"));
+
+    assertThatThrownBy(() -> activityService.replaceImage(1L, 5L, PICTURE))
+        .isInstanceOf(BadRequestException.class);
+
+    verifyNoInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void removingThePictureWritesOneUpdatedLineButRemovingNoneWritesNothing() {
+    Activity activity = activity(5L);
+    activity.setImage(image());
+
+    activityService.deleteImage(1L, 5L);
+    activityService.deleteImage(1L, 5L);
+
+    verify(activityLogService, times(1)).recordUpdated(trip, activity, List.of("image"));
+    verifyNoMoreInteractions(activityLogService);
+  }
+
+  @Test
+  @Tag("I4")
+  void findPageSaysWhoAddedEachActivityButAPublicPageDoesNot() {
+    Pageable pageable = PageRequest.of(0, 10);
+    List<Activity> found = List.of(activity(5L));
+    when(activityRepository.findByTrip(1L, null, pageable))
+        .thenReturn(new PageImpl<>(found, pageable, 1));
+    when(tripAccessService.findPublished(1L)).thenReturn(trip);
+
+    assertThat(activityService.findPage(1L, null, pageable).content())
+        .extracting(ActivityDTO::authorName)
+        .containsExactly("Test USER");
+    assertThat(activityService.findPublicPage(1L, null, pageable).content())
+        .extracting(ActivityDTO::authorName)
+        .containsOnlyNulls();
   }
 
   // --- cost and remaining budget ---

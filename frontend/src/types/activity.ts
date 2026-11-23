@@ -7,6 +7,8 @@ export interface Activity {
   id: number;
   tripId: number;
   authorId: number;
+  /** Who added it; null in a public itinerary, which never names the trip's members. */
+  authorName: string | null;
   name: string;
   description: string | null;
   location: string | null;

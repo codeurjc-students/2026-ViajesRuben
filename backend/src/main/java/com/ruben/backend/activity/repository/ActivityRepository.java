@@ -21,9 +21,15 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
   /**
    * One page of a trip's activities, all of them or only those of one day; filtering, sorting and
-   * paging happen in the query.
+   * paging happen in the query. The authors come with it, so their names cost no query each.
    */
-  @Query("select a from Activity a where a.trip.id = :tripId and (:date is null or a.date = :date)")
+  @Query(
+      value =
+          "select a from Activity a join fetch a.author where a.trip.id = :tripId"
+              + " and (:date is null or a.date = :date)",
+      countQuery =
+          "select count(a) from Activity a where a.trip.id = :tripId"
+              + " and (:date is null or a.date = :date)")
   Page<Activity> findByTrip(
       @Param("tripId") Long tripId, @Param("date") LocalDate date, Pageable pageable);
 

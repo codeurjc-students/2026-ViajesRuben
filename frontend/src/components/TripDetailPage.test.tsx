@@ -1,13 +1,22 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
+import { getActivityLog } from '../services/activityLogService';
 import { deleteActivity, getActivities, getTripCost } from '../services/activityService';
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { getInvitations } from '../services/invitationService';
 import { getParticipants, removeParticipant } from '../services/participantService';
 import { deleteTrip, getTrip, setPublication } from '../services/tripService';
-import { activityOf, ANA, conflictsOf, pageOf, participantOf, tripOf } from '../testHelpers';
+import {
+  activityOf,
+  ANA,
+  conflictsOf,
+  logEntryOf,
+  pageOf,
+  participantOf,
+  tripOf,
+} from '../testHelpers';
 import type { User } from '../types';
 import TripDetailPage from './TripDetailPage';
 
@@ -16,6 +25,7 @@ vi.mock('../services/tripService', () => ({
   getTrip: vi.fn(),
   setPublication: vi.fn(),
 }));
+vi.mock('../services/activityLogService', () => ({ getActivityLog: vi.fn() }));
 vi.mock('../services/activityService', () => ({
   getActivities: vi.fn(),
   deleteActivity: vi.fn(),
@@ -55,6 +65,7 @@ beforeEach(() => {
   vi.mocked(setPublication).mockReset();
   vi.mocked(getActivities).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(deleteActivity).mockReset();
+  vi.mocked(getActivityLog).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
   vi.mocked(getConflicts).mockReset().mockResolvedValue(conflictsOf());
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
@@ -219,7 +230,7 @@ describe('B4 TripDetailPage', () => {
     ).toBeTruthy();
   });
 
-  test('B6 gives no edit link to someone who is not the creator', async () => {
+  test('B6 I4 a participant gets the edit link of a conflicting activity too', async () => {
     vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
     vi.mocked(getConflicts).mockResolvedValue(
       conflictsOf({ outsideDates: [{ activityId: 8, name: 'Museo', date: '2027-07-20' }] }),
@@ -228,6 +239,22 @@ describe('B4 TripDetailPage', () => {
 
     await screen.findByRole('alert');
 
+    expect(screen.getByRole('link', { name: 'Editar «Museo»' })).toHaveAttribute(
+      'href',
+      '/trips/5/activities/8/edit',
+    );
+  });
+
+  test('B6 gives no edit link to the administrator reviewing the trip', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(getConflicts).mockResolvedValue(
+      conflictsOf({ outsideDates: [{ activityId: 8, name: 'Museo', date: '2027-07-20' }] }),
+    );
+    renderRoutes(routes, '/trips/5', { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' });
+
+    await screen.findByRole('alert');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('«Museo» está fuera');
     expect(screen.queryByRole('link', { name: 'Editar «Museo»' })).not.toBeInTheDocument();
   });
 
@@ -346,7 +373,7 @@ describe('I1 TripDetailPage invitations', () => {
     expect(getInvitations).toHaveBeenCalledWith(5, 0);
   });
 
-  test('I2 a participant sees the trip and its itinerary read-only, with no way to change anything', async () => {
+  test('I2 a participant sees the trip with no way to change the trip itself or to invite', async () => {
     vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1, published: false });
     vi.mocked(getActivities).mockResolvedValue(
       pageOf([activityOf({ id: 8, name: 'Museo', date: trip.startDate })]),
@@ -359,14 +386,59 @@ describe('I1 TripDetailPage invitations', () => {
       'href',
       '/trips',
     );
+    // The buttons of the trip itself; the activity buttons are named after their activity.
     for (const name of ['Editar', 'Eliminar', 'Publicar', 'Despublicar', 'Eliminar viaje']) {
       expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name })).not.toBeInTheDocument();
     }
-    expect(screen.queryByRole('link', { name: 'Nueva actividad' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Editar «Museo»' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Invitaciones' })).not.toBeInTheDocument();
     expect(getInvitations).not.toHaveBeenCalled();
+  });
+
+  test('I4 a participant plans the itinerary: adds activities and edits or deletes any of them', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([
+        activityOf({
+          id: 8,
+          tripId: 5,
+          name: 'Museo',
+          date: trip.startDate,
+          authorId: ANA.id + 1,
+          authorName: 'Bob',
+        }),
+      ]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByText('Museo')).toBeInTheDocument();
+
+    expect(screen.getByRole('link', { name: 'Nueva actividad' })).toHaveAttribute(
+      'href',
+      '/trips/5/activities/new?day=2027-07-10',
+    );
+    expect(screen.getByRole('link', { name: 'Editar Museo' })).toHaveAttribute(
+      'href',
+      '/trips/5/activities/8/edit',
+    );
+    expect(screen.getByRole('button', { name: 'Eliminar Museo' })).toBeInTheDocument();
+    expect(screen.getByText('Añadida por Bob')).toBeInTheDocument();
+  });
+
+  test('I4 a participant deletes an activity of someone else and the cost and conflicts are asked again', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([activityOf({ id: 3, tripId: 5, name: 'Museo', date: '2027-07-10' })]),
+    );
+    vi.mocked(deleteActivity).mockResolvedValue(undefined);
+    renderRoutes(routes, '/trips/5');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Museo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar actividad' }));
+
+    await waitFor(() => expect(deleteActivity).toHaveBeenCalledWith(5, 3));
+    await waitFor(() => expect(getConflicts).toHaveBeenCalledTimes(2));
+    expect(getTripCost).toHaveBeenCalledTimes(2);
   });
 
   test('does not show them, nor ask for them, to anyone else', async () => {
@@ -451,6 +523,84 @@ describe('I3 TripDetailPage participants', () => {
 
     expect(screen.queryByRole('heading', { name: 'Participantes' })).not.toBeInTheDocument();
     expect(getParticipants).not.toHaveBeenCalled();
+  });
+});
+
+describe('I4 TripDetailPage change log', () => {
+  const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
+
+  test('shows the change log below the itinerary to the creator', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getActivityLog).mockResolvedValue(
+      pageOf([logEntryOf({ userName: 'Laura', action: 'UPDATED', activityName: 'Museo' })]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    const heading = await screen.findByRole('heading', { name: 'Historial de cambios' });
+
+    const region = screen.getByRole('region', { name: 'Historial de cambios' });
+    expect(await within(region).findByRole('listitem')).toHaveTextContent('Laura editó «Museo»');
+    expect(getActivityLog).toHaveBeenCalledWith(5, 0);
+    const itinerary = screen.getByRole('heading', { name: 'Itinerario' });
+    expect(
+      itinerary.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test('shows it to a participant', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    renderRoutes(routes, '/trips/5');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Historial de cambios' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Aún no hay cambios')).toBeInTheDocument();
+    expect(getActivityLog).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('shows it to the administrator reviewing the trip', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Historial de cambios' }),
+    ).toBeInTheDocument();
+    expect(getActivityLog).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('does not ask for it before the trip is known', async () => {
+    vi.mocked(getTrip).mockRejectedValue(new ApiError(403));
+    renderRoutes(routes, '/trips/5');
+
+    await screen.findByText('Página de error');
+
+    expect(getActivityLog).not.toHaveBeenCalled();
+  });
+
+  test('deleting an activity here reads the log again, so the deletion shows up', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([activityOf({ id: 3, tripId: 5, name: 'Museo', date: '2027-07-10' })]),
+    );
+    vi.mocked(deleteActivity).mockResolvedValue(undefined);
+    vi.mocked(getActivityLog)
+      .mockResolvedValueOnce(pageOf([]))
+      .mockResolvedValue(
+        pageOf([logEntryOf({ userName: 'Ana', action: 'DELETED', activityName: 'Museo' })]),
+      );
+    renderRoutes(routes, '/trips/5');
+    await screen.findByText('Aún no hay cambios');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Museo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar actividad' }));
+
+    // The log remounts, so its section is looked up again each time.
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('region', { name: 'Historial de cambios' })).getByRole('listitem'),
+      ).toHaveTextContent('Ana eliminó «Museo»'),
+    );
+    expect(getActivityLog).toHaveBeenCalledTimes(2);
   });
 });
 

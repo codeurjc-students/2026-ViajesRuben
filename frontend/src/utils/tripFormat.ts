@@ -34,6 +34,37 @@ export function formatDayLabel(isoDate: string): string {
   return dayLabelFormat.format(new Date(isoDate));
 }
 
+const relativeFormat = new Intl.RelativeTimeFormat('es-ES', { numeric: 'auto', style: 'short' });
+const dateTimeFormat = new Intl.DateTimeFormat('es-ES', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+const MINUTE = 60;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+/** Beyond this the date says more than "hace 45 d". */
+const RELATIVE_LIMIT = 30 * DAY;
+
+/**
+ * How long ago an instant was, in the words of the browser's Spanish formatter ("now", "5 min ago",
+ * "2 h ago", "yesterday", "3 d ago", in Spanish). A month or more ago it is the date, formatted like
+ * `formatTripDate`. An instant in the future (a clock a little ahead) counts as now.
+ */
+export function formatRelativeTime(isoInstant: string, now: Date = new Date()): string {
+  const seconds = Math.max(0, Math.floor((now.getTime() - new Date(isoInstant).getTime()) / 1000));
+  if (seconds < MINUTE) return relativeFormat.format(-seconds, 'second');
+  if (seconds < HOUR) return relativeFormat.format(-Math.floor(seconds / MINUTE), 'minute');
+  if (seconds < DAY) return relativeFormat.format(-Math.floor(seconds / HOUR), 'hour');
+  if (seconds < RELATIVE_LIMIT) return relativeFormat.format(-Math.floor(seconds / DAY), 'day');
+  return formatTripDate(isoInstant);
+}
+
+/** An instant as the date and time of the user's clock, in Spanish: day, short month, year, time. */
+export function formatDateTime(isoInstant: string): string {
+  return dateTimeFormat.format(new Date(isoInstant));
+}
+
 /** "09:30:00" or "09:30" as "09:30". */
 export function formatTime(time: string): string {
   return time.slice(0, 5);

@@ -12,6 +12,7 @@ import { useTripCost } from '../hooks/useTripCost';
 import { setPublication } from '../services/tripService';
 import type { Trip } from '../types';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
+import ActivityLogSection from './ActivityLogSection';
 import ConflictAlert from './ConflictAlert';
 import DeleteTripModal from './DeleteTripModal';
 import InvitationsSection from './InvitationsSection';
@@ -22,9 +23,10 @@ import './TripDetailPage.css';
 
 /**
  * `/trips/:tripId`: the trip's summary and its itinerary. The creator also sees the invitations
- * (I1) and the participants (I3). A participant (I2) sees the trip read-only, with no buttons, and
- * the list of who else joined it. The administrator reviewing
- * another user's trip (B8) sees it read-only, with only a delete button.
+ * (I1) and the participants (I3). A participant (I2) has no button to change the trip itself, but
+ * plans its itinerary together with the creator (I4), and sees who else joined. Everyone who opens
+ * the trip, the administrator included, reads its change log (I4) below the itinerary. The
+ * administrator reviewing another user's trip (B8) sees it read-only, with only a delete button.
  */
 export default function TripDetailPage() {
   const { tripId } = useParams();
@@ -41,10 +43,14 @@ export default function TripDetailPage() {
   const [updated, setUpdated] = useState<Trip>();
   const [saving, setSaving] = useState(false);
   const [publicationFailed, setPublicationFailed] = useState(false);
+  // Changes with every deletion made here, so the change log is read again (it remounts).
+  const [logVersion, setLogVersion] = useState(0);
   const isCreator = trip !== undefined && user?.id === trip.creatorId;
   const moderating = trip !== undefined && !isCreator && user?.role === 'ADMIN';
   // The server only lets the creator, the administrator and the participants read a trip.
   const isParticipant = trip !== undefined && !isCreator && !moderating;
+  // The creator and the participants plan the itinerary together; the administrator only reads.
+  const canEditItinerary = isCreator || isParticipant;
   const published = (updated?.id === trip?.id ? updated : trip)?.published ?? false;
 
   // Rethrown so the route's error page (inside the layout) is shown.
@@ -150,16 +156,19 @@ export default function TripDetailPage() {
           />
         </Card>
       )}
-      {trip && <ConflictAlert tripId={trip.id} conflicts={conflicts} canEdit={isCreator} />}
+      {trip && <ConflictAlert tripId={trip.id} conflicts={conflicts} canEdit={canEditItinerary} />}
       {trip && (
         <ItinerarySection
           trip={trip}
+          canEdit={canEditItinerary}
           onActivityDeleted={() => {
             reloadConflicts();
             reloadCost();
+            setLogVersion((version) => version + 1);
           }}
         />
       )}
+      {trip && <ActivityLogSection key={logVersion} tripId={trip.id} />}
       {trip && (isCreator || isParticipant) && (
         <ParticipantsSection tripId={trip.id} tripName={trip.name} canRemove={isCreator} />
       )}

@@ -1,0 +1,57 @@
+/* Compact on purpose: it sits below the itinerary and must not compete with it. */
+.activity-log {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.activity-log__title {
+  margin-bottom: 0.5rem;
+}
+
+.activity-log__empty {
+  margin-bottom: 0;
+  color: var(--tm-via);
+}
+
+.activity-log__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-log__entry {
+  padding: 0.375rem 0;
+  border-top: 1px solid var(--tm-card-border);
+}
+
+.activity-log__entry:first-child {
+  border-top: 0;
+}
+
+.activity-log__line,
+.activity-log__fields {
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+}
+
+.activity-log__who {
+  font-weight: 700;
+}
+
+.activity-log__line time {
+  color: var(--tm-via);
+  white-space: nowrap;
+}
+
+.activity-log__fields {
+  color: var(--tm-via);
+  font-size: 0.875rem;
+}
+
+.activity-log__more {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}

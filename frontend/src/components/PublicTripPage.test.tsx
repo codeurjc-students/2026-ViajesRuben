@@ -67,6 +67,20 @@ describe('B1 I7 PublicTripPage', () => {
     expect(getPublicActivities).toHaveBeenCalledWith(10, '2027-05-11', 0);
   });
 
+  test('I4 has no change log and says nothing about who added each activity', async () => {
+    vi.mocked(getPublicActivities)
+      .mockReset()
+      .mockResolvedValue(
+        pageOf([activityOf({ id: 1, name: 'Coliseo', date: '2027-05-10', authorName: null })]),
+      );
+    renderRoutes(routes, '/public/10', ANA);
+
+    expect(await screen.findByRole('heading', { name: 'Coliseo' })).toBeInTheDocument();
+
+    expect(screen.queryByRole('heading', { name: 'Historial de cambios' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Añadida por/)).not.toBeInTheDocument();
+  });
+
   test('is read-only for a logged-in user too: no edit, delete, new, publish or conflicts', async () => {
     renderRoutes(routes, '/public/10', ANA);
     await screen.findByRole('heading', { name: 'Coliseo' });
