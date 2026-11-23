@@ -6,6 +6,7 @@ import type {
   AdminUser,
   Invitation,
   Page,
+  Participant,
   PublicTripSummary,
   ReceivedInvitation,
   Trip,
@@ -64,6 +65,18 @@ export function authValue(
   };
 }
 
+/** Builds a participant of the API for tests: Bob, who joined with no avatar and no email unless overridden. */
+export function participantOf(overrides: Partial<Participant> = {}): Participant {
+  return {
+    userId: 2,
+    name: 'Bob',
+    avatarId: null,
+    email: null,
+    joinedAt: '2026-11-18T10:00:00Z',
+    ...overrides,
+  };
+}
+
 /** Builds a page of the API for tests. */
 export function pageOf<T>(content: T[], overrides: Partial<Page<T>> = {}): Page<T> {
   return {
@@ -91,6 +104,7 @@ export function tripOf(overrides: Partial<Trip> = {}): Trip {
     published: false,
     publishedAt: null,
     copiedFromId: null,
+    participantCount: 0,
     ...overrides,
   };
 }

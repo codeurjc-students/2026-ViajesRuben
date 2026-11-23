@@ -34,6 +34,7 @@ export default function TripCard({ trip, onDeleted }: Readonly<TripCardProps>) {
         </Card.Title>
         <p className="trip-card__meta">{`Destino: ${trip.destination}`}</p>
         <p className="trip-card__meta">{`Fechas: ${formatDateRange(trip.startDate, trip.endDate)}`}</p>
+        <p className="trip-card__meta">{`Participantes: ${trip.participantCount}`}</p>
         {trip.published && (
           <p className="trip-card__meta">
             <Badge bg="success">Público</Badge>

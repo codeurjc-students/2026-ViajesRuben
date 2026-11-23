@@ -297,8 +297,9 @@ paths:
         - activity-controller
       summary: Get an activity by id
       description:
-        "The trip's creator, or the administrator (read only). `imageId`\
-        \ is null without picture; otherwise the picture is at `GET /api/v1/images/{imageId}`."
+        "The trip's creator, a participant, or the administrator (read\
+        \ only). `imageId` is null without picture; otherwise the picture is at `GET\
+        \ /api/v1/images/{imageId}`."
       operationId: getActivity
       parameters:
         - name: tripId
@@ -456,8 +457,8 @@ paths:
         - activity-controller
       summary: Get the bytes of an activity's picture
       description:
-        "The trip's creator, or the administrator. Not cached, because\
-        \ it changes when the picture is replaced; the SPA uses `GET /api/v1/images/{imageId}`\
+        "The trip's creator, a participant, or the administrator. Not cached,\
+        \ because it changes when the picture is replaced; the SPA uses `GET /api/v1/images/{imageId}`\
         \ instead."
       operationId: getActivityImage
       parameters:
@@ -624,8 +625,8 @@ paths:
         - trip-controller
       summary: Get a trip by id
       description:
-        "The creator, or the administrator (read only). `coverImageId`\
-        \ is null without cover; otherwise the picture is at `GET /api/v1/images/{coverImageId}`."
+        "The creator, a participant, or the administrator (read only).\
+        \ `coverImageId` is null without cover; otherwise the picture is at `GET /api/v1/images/{coverImageId}`."
       operationId: getTrip
       parameters:
         - name: id
@@ -827,8 +828,8 @@ paths:
         - trip-controller
       summary: Get the bytes of a trip's cover
       description:
-        "The creator, or the administrator. Not cached, because it changes\
-        \ when the cover is replaced; the SPA uses `GET /api/v1/images/{coverImageId}`\
+        "The creator, a participant, or the administrator. Not cached,\
+        \ because it changes when the cover is replaced; the SPA uses `GET /api/v1/images/{coverImageId}`\
         \ instead."
       operationId: getCover
       parameters:
@@ -967,6 +968,68 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/invitations/{id}/status:
+    put:
+      tags:
+        - received-invitation-controller
+      summary: Accept or reject an invitation
+      description:
+        "Only the account the invitation was sent to. `ACCEPTED` makes\
+        \ the user a participant of the trip, who can then read it; `REJECTED` changes\
+        \ nothing else. An invitation is answered once."
+      operationId: respond
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvitationResponseRequest"
+        required: true
+      responses:
+        "200":
+          description: The invitation with its new status
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ReceivedInvitationDTO"
+        "400":
+          description: "Missing or unknown status, or `PENDING`"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The invitation was sent to another email
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No invitation has that id, or its trip was deleted"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description:
+            "The invitation was already answered, or the user is already\
+            \ in the trip"
           content:
             "*/*":
               schema:
@@ -1129,9 +1192,10 @@ paths:
         - trip-controller
       summary: List one's own trips
       description:
-        "Only the trips the logged-in user created. Paginated: `?page=0&size=10`\
-        \ (10 per page by default, 50 at most). Sorted by start date by default; `sort`\
-        \ accepts `id`, `name`, `destination`, `startDate`, `endDate` and `createdAt`."
+        "The trips the logged-in user created or joined by accepting an\
+        \ invitation. Paginated: `?page=0&size=10` (10 per page by default, 50 at\
+        \ most). Sorted by start date by default; `sort` accepts `id`, `name`, `destination`,\
+        \ `startDate`, `endDate` and `createdAt`."
       operationId: getTrips
       parameters:
         - name: page
@@ -1362,11 +1426,11 @@ paths:
         - activity-controller
       summary: List a trip's activities
       description:
-        "The trip's creator, or the administrator (read only). Paginated:\
-        \ `?page=0&size=10` (50 at most), sorted by date and start time by default;\
-        \ activities without a start time come first on their day. `date=yyyy-MM-dd`\
-        \ keeps only the activities of that day. `sort` accepts `id`, `date`, `startTime`,\
-        \ `name`, `cost` and `createdAt`."
+        "The trip's creator, a participant, or the administrator (read\
+        \ only). Paginated: `?page=0&size=10` (50 at most), sorted by date and start\
+        \ time by default; activities without a start time come first on their day.\
+        \ `date=yyyy-MM-dd` keeps only the activities of that day. `sort` accepts\
+        \ `id`, `date`, `startTime`, `name`, `cost` and `createdAt`."
       operationId: getActivities
       parameters:
         - name: tripId
@@ -1648,6 +1712,87 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/participants:
+    get:
+      tags:
+        - participant-controller
+      summary: List the participants of a trip
+      description:
+        "Anyone who can see the trip: its creator, its participants and\
+        \ the administrator. The creator is not listed, only the people who joined.\
+        \ Each one has `userId`, `name`, `avatarId` (null without avatar; the picture\
+        \ is at `GET /api/v1/images/{avatarId}`) and `joinedAt`. The `email` is only\
+        \ returned to the trip's creator and is null for everyone else. Paginated:\
+        \ `?page=0&size=10` (50 at most), oldest first by default. `sort` accepts\
+        \ `id` and `joinedAt`."
+      operationId: getParticipants
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "joinedAt,ASC"
+              - "id,ASC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of participants
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOParticipantDTO"
+        "400":
+          description: "Invalid trip id, page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The user may not see the trip
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/trips/{tripId}/invitations/{invitationId}:
     get:
       tags:
@@ -1705,12 +1850,13 @@ paths:
         - conflict-controller
       summary: List a trip's itinerary conflicts
       description:
-        "The trip's creator, or the administrator (read only). Warnings,\
-        \ never errors: `overlaps` are pairs of activities of the same day whose times\
-        \ intersect (touching times do not; activities without start and end time\
-        \ are ignored), `outsideDates` are activities before the trip starts or after\
-        \ it ends, and `budget` is set only when the total cost is above the trip's\
-        \ budget (null otherwise). Not paginated: it is one small report."
+        "The trip's creator, a participant, or the administrator (read\
+        \ only). Warnings, never errors: `overlaps` are pairs of activities of the\
+        \ same day whose times intersect (touching times do not; activities without\
+        \ start and end time are ignored), `outsideDates` are activities before the\
+        \ trip starts or after it ends, and `budget` is set only when the total cost\
+        \ is above the trip's budget (null otherwise). Not paginated: it is one small\
+        \ report."
       operationId: getConflicts
       parameters:
         - name: tripId
@@ -1756,10 +1902,10 @@ paths:
         - activity-controller
       summary: Get what a trip's activities cost
       description:
-        "The trip's creator, or the administrator (read only). `totalCost`\
-        \ is the sum of the costs of all the activities (0 without any cost) and `remainingBudget`\
-        \ is the trip's budget minus that total, negative when the activities cost\
-        \ more and null when the trip has no budget."
+        "The trip's creator, a participant, or the administrator (read\
+        \ only). `totalCost` is the sum of the costs of all the activities (0 without\
+        \ any cost) and `remainingBudget` is the trip's budget minus that total, negative\
+        \ when the activities cost more and null when the trip has no budget."
       operationId: getCost
       parameters:
         - name: tripId
@@ -1970,6 +2116,106 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/invitations:
+    get:
+      tags:
+        - received-invitation-controller
+      summary: List my pending invitations
+      description:
+        "The pending invitations addressed to the email of the logged-in\
+        \ user. Paginated: `?page=0&size=10` (50 at most), newest first by default.\
+        \ `sort` accepts `id` and `sentAt`. Answered invitations are not listed."
+      operationId: getMyInvitations
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+        - name: sort
+          in: query
+          description:
+            "Sorting criteria in the format: property,(asc|desc). Default\
+            \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            default:
+              - "sentAt,DESC"
+              - "id,DESC"
+            items:
+              type: string
+      responses:
+        "200":
+          description: One page of invitations
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PageDTOReceivedInvitationDTO"
+        "400":
+          description: "Invalid page, size or sort parameter"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/invitations/token/{token}:
+    get:
+      tags:
+        - received-invitation-controller
+      summary: Get an invitation by the token of its email link
+      description:
+        "Only for the account the invitation was sent to; the answer shows\
+        \ the trip, who invites and the status, whatever it is. Invitations never\
+        \ expire."
+      operationId: getInvitationByToken
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The invitation
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ReceivedInvitationDTO"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The invitation was sent to another email
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No invitation has that token, or its trip was deleted"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/images/{id}:
     get:
       tags:
@@ -2162,6 +2408,68 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "403":
           description: The caller is not the administrator
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/participants/{userId}:
+    delete:
+      tags:
+        - participant-controller
+      summary: "Remove a participant from a trip, or leave it"
+      description:
+        "The trip's creator removes any participant; a participant can\
+        \ only remove themselves, which is leaving the trip. The change is immediate:\
+        \ the removed user's next request to the trip is 403. Their invitation stays\
+        \ as history and they can be invited again. The administrator does not moderate\
+        \ participants."
+      operationId: removeParticipant
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: The participant is no longer in the trip
+        "400":
+          description: An id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description:
+            "A participant removing someone else, the administrator, or\
+            \ anyone who is not in the trip"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "No trip has that id, or that user is not one of its participants"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description:
+            "The user is the trip's creator, who cannot leave their own\
+            \ trip"
           content:
             "*/*":
               schema:
@@ -2386,6 +2694,9 @@ components:
         copiedFromId:
           type: integer
           format: int64
+        participantCount:
+          type: integer
+          format: int64
     PublicationRequest:
       type: object
       properties:
@@ -2393,6 +2704,42 @@ components:
           type: boolean
       required:
         - published
+    InvitationResponseRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACCEPTED
+            - REJECTED
+      required:
+        - status
+    ReceivedInvitationDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tripId:
+          type: integer
+          format: int64
+        tripName:
+          type: string
+        inviterName:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACCEPTED
+            - REJECTED
+        sentAt:
+          type: string
+          format: date-time
+        respondedAt:
+          type: string
+          format: date-time
     AdminUserDTO:
       type: object
       properties:
@@ -2463,7 +2810,12 @@ components:
           type: string
           enum:
             - PENDING
+            - ACCEPTED
+            - REJECTED
         sentAt:
+          type: string
+          format: date-time
+        respondedAt:
           type: string
           format: date-time
     CopyTripRequest:
@@ -2503,6 +2855,40 @@ components:
           format: int64
         last:
           type: boolean
+    PageDTOParticipantDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipantDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
+    ParticipantDTO:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        avatarId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
     PageDTOInvitationDTO:
       type: object
       properties:
@@ -2668,6 +3054,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DayPreviewDTO"
+    PageDTOReceivedInvitationDTO:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReceivedInvitationDTO"
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        last:
+          type: boolean
     PageDTOAdminUserDTO:
       type: object
       properties:

@@ -87,7 +87,8 @@ class PublicTripControllerUnitTest {
         null,
         false,
         null,
-        4L);
+        4L,
+        0);
   }
 
   @Test

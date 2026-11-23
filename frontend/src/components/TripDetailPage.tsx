@@ -16,12 +16,14 @@ import ConflictAlert from './ConflictAlert';
 import DeleteTripModal from './DeleteTripModal';
 import InvitationsSection from './InvitationsSection';
 import ItinerarySection from './ItinerarySection';
+import ParticipantsSection from './ParticipantsSection';
 import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
 /**
  * `/trips/:tripId`: the trip's summary and its itinerary. The creator also sees the invitations
- * (I1). A participant (I2) sees the trip read-only, with no buttons. The administrator reviewing
+ * (I1) and the participants (I3). A participant (I2) sees the trip read-only, with no buttons, and
+ * the list of who else joined it. The administrator reviewing
  * another user's trip (B8) sees it read-only, with only a delete button.
  */
 export default function TripDetailPage() {
@@ -41,6 +43,8 @@ export default function TripDetailPage() {
   const [publicationFailed, setPublicationFailed] = useState(false);
   const isCreator = trip !== undefined && user?.id === trip.creatorId;
   const moderating = trip !== undefined && !isCreator && user?.role === 'ADMIN';
+  // The server only lets the creator, the administrator and the participants read a trip.
+  const isParticipant = trip !== undefined && !isCreator && !moderating;
   const published = (updated?.id === trip?.id ? updated : trip)?.published ?? false;
 
   // Rethrown so the route's error page (inside the layout) is shown.
@@ -155,6 +159,9 @@ export default function TripDetailPage() {
             reloadCost();
           }}
         />
+      )}
+      {trip && (isCreator || isParticipant) && (
+        <ParticipantsSection tripId={trip.id} tripName={trip.name} canRemove={isCreator} />
       )}
       {trip && isCreator && <InvitationsSection tripId={trip.id} />}
     </Container>

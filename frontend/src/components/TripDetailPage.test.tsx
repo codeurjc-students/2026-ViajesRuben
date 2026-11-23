@@ -5,8 +5,9 @@ import { deleteActivity, getActivities, getTripCost } from '../services/activity
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { getInvitations } from '../services/invitationService';
+import { getParticipants, removeParticipant } from '../services/participantService';
 import { deleteTrip, getTrip, setPublication } from '../services/tripService';
-import { activityOf, ANA, conflictsOf, pageOf, tripOf } from '../testHelpers';
+import { activityOf, ANA, conflictsOf, pageOf, participantOf, tripOf } from '../testHelpers';
 import type { User } from '../types';
 import TripDetailPage from './TripDetailPage';
 
@@ -24,6 +25,10 @@ vi.mock('../services/conflictService', () => ({ getConflicts: vi.fn() }));
 vi.mock('../services/invitationService', () => ({
   getInvitations: vi.fn(),
   createInvitation: vi.fn(),
+}));
+vi.mock('../services/participantService', () => ({
+  getParticipants: vi.fn(),
+  removeParticipant: vi.fn(),
 }));
 
 const routes = [
@@ -53,6 +58,8 @@ beforeEach(() => {
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
   vi.mocked(getConflicts).mockReset().mockResolvedValue(conflictsOf());
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getParticipants).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(removeParticipant).mockReset();
 });
 
 describe('B4 TripDetailPage', () => {
@@ -380,6 +387,70 @@ describe('I1 TripDetailPage invitations', () => {
 
     expect(screen.queryByRole('heading', { name: 'Invitaciones' })).not.toBeInTheDocument();
     expect(getInvitations).not.toHaveBeenCalled();
+  });
+});
+
+describe('I3 TripDetailPage participants', () => {
+  const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
+
+  test('shows the participants of the trip to its creator, who can remove them', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getParticipants).mockResolvedValue(
+      pageOf([participantOf({ name: 'Bob', email: 'bob@example.com' })]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Participantes' })).toBeInTheDocument();
+    expect(await screen.findByText('bob@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quitar a Bob' })).toBeInTheDocument();
+    expect(getParticipants).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('shows the participants to a participant, with no way to remove anyone', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(getParticipants).mockResolvedValue(
+      pageOf([participantOf({ userId: ANA.id, name: 'Ana' }), participantOf({ name: 'Bob' })]),
+    );
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Participantes' })).toBeInTheDocument();
+    expect(await screen.findByText('Bob')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Quitar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salir del viaje' })).toBeInTheDocument();
+    expect(getParticipants).toHaveBeenCalledWith(5, 0);
+  });
+
+  test('the creator can neither leave their own trip nor see the button for it', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5');
+
+    await screen.findByRole('heading', { name: 'Participantes' });
+
+    expect(screen.queryByRole('button', { name: 'Salir del viaje' })).not.toBeInTheDocument();
+  });
+
+  test('a participant who leaves goes back to "Mis viajes" with a notice about the trip', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(removeParticipant).mockResolvedValue(undefined);
+    const router = renderRoutes(routes, '/trips/5');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Salir del viaje' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Salir del viaje' }));
+
+    expect(await screen.findByText('Lista de viajes')).toBeInTheDocument();
+    expect(removeParticipant).toHaveBeenCalledWith(5, ANA.id);
+    expect(router.state.location.state).toEqual({ notice: 'Has salido de «Verano en Roma».' });
+  });
+
+  test('shows nothing new to the administrator reviewing the trip, nor asks for it', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    await screen.findByRole('heading', { name: 'Verano en Roma' });
+
+    expect(screen.queryByRole('heading', { name: 'Participantes' })).not.toBeInTheDocument();
+    expect(getParticipants).not.toHaveBeenCalled();
   });
 });
 

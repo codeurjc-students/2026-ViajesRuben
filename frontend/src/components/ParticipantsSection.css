@@ -1,0 +1,58 @@
+.participants {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.participants__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.participants__empty {
+  padding: 0.5rem 0;
+  color: var(--tm-via);
+}
+
+.participants__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.participants__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.625rem 0;
+  border-top: 1px solid var(--tm-card-border);
+}
+
+.participants__who {
+  display: flex;
+  flex: 1 1 10rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.participants__name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.participants__email {
+  color: var(--tm-via);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.participants__meta {
+  color: var(--tm-via);
+  font-size: 0.875rem;
+}

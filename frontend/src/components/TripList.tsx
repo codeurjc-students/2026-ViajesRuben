@@ -1,7 +1,9 @@
+import { useState } from 'react';
+import Alert from 'react-bootstrap/Alert';
 import Col from 'react-bootstrap/Col';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { usePagedList } from '../hooks/usePagedList';
 import { getTrips } from '../services/tripService';
 import EmptyTrips from './EmptyTrips';
@@ -21,6 +23,9 @@ export default function TripList() {
     loadMore,
     reload,
   } = usePagedList(getTrips);
+  // A message left by the page that sent the user here, e.g. after leaving a trip (I3).
+  const notice = (useLocation().state as { notice?: string } | null)?.notice;
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
@@ -46,6 +51,11 @@ export default function TripList() {
           Nuevo viaje
         </Link>
       </div>
+      {notice && !noticeDismissed && (
+        <Alert variant="success" dismissible onClose={() => setNoticeDismissed(true)}>
+          {notice}
+        </Alert>
+      )}
       <PendingInvitations onAccepted={reload} />
       {loaded && trips.length === 0 && <EmptyTrips />}
       {trips.length > 0 && (
