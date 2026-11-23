@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import Card from 'react-bootstrap/Card';
 import { Link, useSearchParams } from 'react-router';
-import { useAuth } from '../hooks/useAuth';
 import { getPublicActivities } from '../services/publicTripService';
 import type { Trip } from '../types';
 import { tripDays } from '../utils/tripDays';
@@ -9,11 +8,16 @@ import DayActivities from './DayActivities';
 import ItineraryDays from './ItineraryDays';
 import './ItinerarySection.css';
 
-/** What the itinerary needs of a trip: a public trip has no creator id, because it is never editable. */
-type ItineraryTrip = Pick<Trip, 'id' | 'startDate' | 'endDate'> & { creatorId?: number };
+/** What the itinerary needs of a trip. */
+type ItineraryTrip = Pick<Trip, 'id' | 'startDate' | 'endDate'>;
 
 interface ItinerarySectionProps {
   trip: ItineraryTrip;
+  /**
+   * Whether the user may add, edit and delete activities: the trip's creator and its participants
+   * (I4), which the page that shows the trip has already worked out. Anyone else only reads.
+   */
+  canEdit?: boolean;
   /** Called after an activity was deleted, e.g. to refresh the trip's conflicts. */
   onActivityDeleted?: () => void;
   /** A public itinerary: read from the public endpoints and never editable, not even by its creator. */
@@ -26,10 +30,10 @@ interface ItinerarySectionProps {
  */
 export default function ItinerarySection({
   trip,
+  canEdit = false,
   onActivityDeleted,
   publicPreview = false,
 }: Readonly<ItinerarySectionProps>) {
-  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const days = useMemo(
     () => tripDays(trip.startDate, trip.endDate),
@@ -37,7 +41,7 @@ export default function ItinerarySection({
   );
   const requested = params.get('day');
   const day = requested && days.includes(requested) ? requested : days[0];
-  const isCreator = !publicPreview && user?.id === trip.creatorId;
+  const editable = canEdit && !publicPreview;
 
   return (
     <Card as="section" className="itinerary" aria-labelledby="itinerary-title">
@@ -45,7 +49,7 @@ export default function ItinerarySection({
         <h2 id="itinerary-title" className="h3 mb-0">
           Itinerario
         </h2>
-        {isCreator && (
+        {editable && (
           <Link to={`/trips/${trip.id}/activities/new?day=${day}`} className="btn btn-primary">
             Nueva actividad
           </Link>
@@ -56,7 +60,7 @@ export default function ItinerarySection({
         key={day}
         trip={trip}
         day={day}
-        isCreator={isCreator}
+        canEdit={editable}
         onActivityDeleted={onActivityDeleted}
         load={publicPreview ? getPublicActivities : undefined}
       />

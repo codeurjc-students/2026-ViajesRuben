@@ -12,7 +12,17 @@ vi.mock('../services/publicTripService', () => ({ getPublicActivities: vi.fn() }
 
 const trip = tripOf({ id: 3, creatorId: ANA.id, startDate: '2027-05-01', endDate: '2027-05-04' });
 
+/** The user may change the itinerary: the creator or a participant. */
 const routes = [
+  {
+    path: '/trips/:tripId',
+    element: <ItinerarySection trip={trip} canEdit />,
+    errorElement: <p>Error</p>,
+  },
+];
+
+/** Anyone else, for example the administrator reviewing the trip. */
+const readOnlyRoutes = [
   { path: '/trips/:tripId', element: <ItinerarySection trip={trip} />, errorElement: <p>Error</p> },
 ];
 
@@ -116,13 +126,53 @@ describe('B5 ItinerarySection', () => {
   });
 
   test('anyone else sees the itinerary without buttons to change it', async () => {
-    renderRoutes(routes, '/trips/3?day=2027-05-02', { ...ANA, id: ANA.id + 1 });
+    renderRoutes(readOnlyRoutes, '/trips/3?day=2027-05-02', { ...ANA, id: ANA.id + 1 });
 
     await screen.findByRole('heading', { name: 'Museo' });
 
     expect(screen.queryByRole('link', { name: 'Nueva actividad' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Editar Museo' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Eliminar Museo' })).not.toBeInTheDocument();
+  });
+
+  test('an empty day does not invite anyone who cannot change the itinerary to add one', async () => {
+    renderRoutes(readOnlyRoutes, '/trips/3');
+
+    expect(await screen.findByText('No hay actividades este día.')).toBeInTheDocument();
+  });
+
+  test('I4 whoever can change the itinerary edits and deletes every activity, whoever added it', async () => {
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([
+        activityOf({ id: 1, name: 'Museo', authorId: 7, authorName: 'Bob' }),
+        activityOf({ id: 2, name: 'Cena', authorId: ANA.id, authorName: 'Ana' }),
+      ]),
+    );
+    // A participant who added neither of them.
+    renderRoutes(routes, '/trips/3?day=2027-05-02', { ...ANA, id: 99, name: 'Carla' });
+
+    await screen.findByRole('heading', { name: 'Museo' });
+
+    for (const name of ['Museo', 'Cena']) {
+      expect(screen.getByRole('link', { name: `Editar ${name}` })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: `Eliminar ${name}` })).toBeInTheDocument();
+    }
+    expect(screen.getByRole('link', { name: 'Nueva actividad' })).toBeInTheDocument();
+  });
+
+  test('I4 every activity says who added it', async () => {
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([
+        activityOf({ id: 1, name: 'Museo', authorName: 'Bob' }),
+        activityOf({ id: 2, name: 'Cena', authorName: 'Ana' }),
+      ]),
+    );
+    renderRoutes(readOnlyRoutes, '/trips/3?day=2027-05-02');
+
+    const items = await screen.findAllByRole('listitem');
+
+    expect(within(items[0]).getByText('Añadida por Bob')).toBeInTheDocument();
+    expect(within(items[1]).getByText('Añadida por Ana')).toBeInTheDocument();
   });
 
   test('shows a single activity as "1 actividad"', async () => {
@@ -183,7 +233,12 @@ describe('B5 ItinerarySection', () => {
       .mockReset()
       .mockResolvedValue(pageOf([activityOf({ id: 9, name: 'Museo', date: '2027-05-01' })]));
     renderRoutes(
-      [{ path: '/public/:tripId', element: <ItinerarySection trip={trip} publicPreview /> }],
+      [
+        {
+          path: '/public/:tripId',
+          element: <ItinerarySection trip={trip} canEdit publicPreview />,
+        },
+      ],
       '/public/3',
     );
 
@@ -198,7 +253,12 @@ describe('B5 ItinerarySection', () => {
   test('B1 I7 an empty day of a public trip does not invite to add an activity', async () => {
     vi.mocked(getPublicActivities).mockReset().mockResolvedValue(pageOf([]));
     renderRoutes(
-      [{ path: '/public/:tripId', element: <ItinerarySection trip={trip} publicPreview /> }],
+      [
+        {
+          path: '/public/:tripId',
+          element: <ItinerarySection trip={trip} canEdit publicPreview />,
+        },
+      ],
       '/public/3',
     );
 

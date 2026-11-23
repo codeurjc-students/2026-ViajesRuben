@@ -9,7 +9,8 @@ interface DayActivitiesProps {
   trip: { id: number };
   /** The day to list, yyyy-MM-dd. The parent gives a new `key` per day, so each day starts clean. */
   day: string;
-  isCreator: boolean;
+  /** Whether the user may add, edit and delete activities: the creator and the participants (I4). */
+  canEdit: boolean;
   onActivityDeleted?: () => void;
   /** Where the activities come from: `getActivities` unless the trip is a public itinerary. */
   load?: typeof getActivities;
@@ -19,7 +20,7 @@ interface DayActivitiesProps {
 export default function DayActivities({
   trip,
   day,
-  isCreator,
+  canEdit,
   onActivityDeleted,
   load = getActivities,
 }: Readonly<DayActivitiesProps>) {
@@ -43,7 +44,7 @@ export default function DayActivities({
       {!loaded && <output className="d-block mb-3">Cargando actividades…</output>}
       {loaded && items.length === 0 && (
         <p className="itinerary__empty">
-          {isCreator
+          {canEdit
             ? 'No hay actividades este día. Añade la primera con «Nueva actividad».'
             : 'No hay actividades este día.'}
         </p>
@@ -54,7 +55,7 @@ export default function DayActivities({
             <ActivityCard
               key={activity.id}
               activity={activity}
-              canEdit={isCreator}
+              canEdit={canEdit}
               onDeleted={() => {
                 reload();
                 onActivityDeleted?.();

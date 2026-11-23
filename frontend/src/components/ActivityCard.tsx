@@ -10,7 +10,7 @@ import './ActivityCard.css';
 
 interface ActivityCardProps {
   activity: Activity;
-  /** The creator of the trip may edit and delete; anyone else only reads. */
+  /** The creator and the participants edit and delete any activity (I4); anyone else only reads. */
   canEdit: boolean;
   /** Called after the activity was deleted from the card, so the list can reload. */
   onDeleted: () => void;
@@ -22,7 +22,7 @@ function schedule(activity: Activity): string {
   return `${formatTime(activity.startTime)} – ${formatTime(activity.endTime)}`;
 }
 
-/** One stop of the day's line: schedule, name, details, image and, for the creator, edit and delete. */
+/** One stop of the day's line: schedule, name, details, who added it, image and, for members, edit and delete. */
 export default function ActivityCard({
   activity,
   canEdit,
@@ -52,6 +52,9 @@ export default function ActivityCard({
         )}
         {activity.description && (
           <p className="activity-card__description">{activity.description}</p>
+        )}
+        {activity.authorName && (
+          <p className="activity-card__author">Añadida por {activity.authorName}</p>
         )}
         {canEdit && (
           <div className="activity-card__actions">

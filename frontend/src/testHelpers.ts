@@ -126,6 +126,7 @@ export function activityOf(overrides: Partial<Activity> = {}): Activity {
     id: 1,
     tripId: 1,
     authorId: 1,
+    authorName: 'Ana',
     name: 'Torre de Belém',
     description: null,
     location: null,

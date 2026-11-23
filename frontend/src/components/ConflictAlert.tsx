@@ -6,7 +6,7 @@ import { formatBudget, formatDayLabel, formatTime, formatTripDate } from '../uti
 interface ConflictAlertProps {
   tripId: number;
   conflicts?: TripConflicts;
-  /** Only the creator can edit an activity, so only the creator gets the "Editar" links. */
+  /** The creator and the participants can edit an activity (I4), so only they get the "Editar" links. */
   canEdit: boolean;
 }
 

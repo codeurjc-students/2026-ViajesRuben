@@ -63,6 +63,13 @@
   white-space: pre-line;
 }
 
+.activity-card__author {
+  margin-bottom: 0;
+  font-size: 0.875rem;
+  color: var(--tm-via);
+  overflow-wrap: anywhere;
+}
+
 .activity-card__actions {
   display: flex;
   gap: 0.5rem;

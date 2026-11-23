@@ -173,20 +173,35 @@ class InvitationResponseUiE2ETest {
     wait.until(ExpectedConditions.visibilityOfElementLocated(tripLink()));
     assertThat(driver.findElements(By.xpath(PENDING))).isEmpty();
 
-    // The trip opens read-only: the itinerary is there, but nothing can be changed.
+    // The trip opens with no way to change the trip itself (its summary card has no buttons), but
+    // the itinerary is planned together with its creator (I4): "Nueva actividad" is there and
+    // every activity can be edited and deleted.
     click(tripLink());
     wait.until(ExpectedConditions.textToBePresentInElementLocated(By.tagName("h1"), TRIP));
     wait.until(
         ExpectedConditions.visibilityOfElementLocated(
             By.xpath("//h2[normalize-space()='Itinerario']")));
+    wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("li.activity-card")));
+    String tripSummary = "//article[contains(@class, 'trip-detail')]";
     for (String name : new String[] {"Editar", "Eliminar", "Publicar", "Despublicar"}) {
       assertThat(
               driver.findElements(
-                  By.xpath("//*[self::a or self::button][normalize-space()='" + name + "']")))
+                  By.xpath(
+                      tripSummary
+                          + "//*[self::a or self::button][normalize-space()='"
+                          + name
+                          + "']")))
           .as(name)
           .isEmpty();
     }
-    assertThat(driver.findElements(By.xpath("//a[normalize-space()='Nueva actividad']"))).isEmpty();
+    assertThat(driver.findElements(By.xpath("//a[normalize-space()='Nueva actividad']")))
+        .hasSize(1);
+    String firstActivity = "(//li[contains(@class, 'activity-card')])[1]";
+    assertThat(driver.findElements(By.xpath(firstActivity + "//a[normalize-space()='Editar']")))
+        .hasSize(1);
+    assertThat(
+            driver.findElements(By.xpath(firstActivity + "//button[normalize-space()='Eliminar']")))
+        .hasSize(1);
     assertThat(driver.findElements(By.xpath(INVITATIONS))).isEmpty();
 
     // Ana sees the invitation as accepted.

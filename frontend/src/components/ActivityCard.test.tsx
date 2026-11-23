@@ -83,6 +83,26 @@ describe('B5 ActivityCard', () => {
     expect(screen.queryByAltText('Imagen de Torre')).not.toBeInTheDocument();
   });
 
+  test('I4 says who added the activity', () => {
+    renderCard({ authorName: 'Bob' });
+
+    expect(screen.getByText('Añadida por Bob')).toBeInTheDocument();
+  });
+
+  test('I4 says nothing about the author when the activity has no author name', () => {
+    renderCard({ authorName: null });
+
+    expect(screen.queryByText(/Añadida por/)).not.toBeInTheDocument();
+  });
+
+  test('I4 whoever can change the itinerary edits and deletes an activity added by someone else', () => {
+    renderCard({ id: 4, tripId: 2, name: 'Torre', authorId: 99, authorName: 'Bob' });
+
+    expect(screen.getByRole('link', { name: 'Editar Torre' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar Torre' })).toBeInTheDocument();
+    expect(screen.getByText('Añadida por Bob')).toBeInTheDocument();
+  });
+
   test('the creator can edit and delete', () => {
     renderCard({ id: 4, tripId: 2, name: 'Torre' });
 
