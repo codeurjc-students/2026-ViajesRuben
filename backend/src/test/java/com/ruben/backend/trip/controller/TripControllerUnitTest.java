@@ -47,7 +47,8 @@ class TripControllerUnitTest {
           null,
           false,
           null,
-          null);
+          null,
+          0);
   private static final TripRequest REQUEST =
       new TripRequest(
           "Rome", "Rome", LocalDate.of(2027, 7, 10), LocalDate.of(2027, 7, 17), null, null);

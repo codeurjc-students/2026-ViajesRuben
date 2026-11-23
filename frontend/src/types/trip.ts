@@ -17,6 +17,8 @@ export interface Trip {
   publishedAt: string | null;
   /** Id of the public trip this one was copied from (I9); null if it is no copy or the original was deleted. */
   copiedFromId: number | null;
+  /** How many people joined the trip (I3); the creator is not counted. */
+  participantCount: number;
 }
 
 /** Mirrors the backend AdminTripDTO: a trip in the administrator's moderation list. */

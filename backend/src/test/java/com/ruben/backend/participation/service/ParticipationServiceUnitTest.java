@@ -2,11 +2,14 @@ package com.ruben.backend.participation.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ruben.backend.common.error.ConflictException;
+import com.ruben.backend.participation.dto.TripParticipantCount;
 import com.ruben.backend.participation.entity.Participation;
 import com.ruben.backend.participation.repository.ParticipationRepository;
 import com.ruben.backend.trip.entity.Trip;
@@ -15,6 +18,8 @@ import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
 import com.ruben.backend.user.entity.UserStatus;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,6 +78,33 @@ class ParticipationServiceUnitTest {
     assertThatThrownBy(() -> participationService.add(trip, carlos))
         .isInstanceOf(ConflictException.class)
         .hasMessageContaining("participant");
+  }
+
+  @Test
+  @Tag("I3")
+  void countByTripAsksTheRepositoryForTheParticipantsOfTheTrip() {
+    when(participationRepository.countByTripId(1L)).thenReturn(3L);
+
+    assertThat(participationService.countByTrip(1L)).isEqualTo(3L);
+  }
+
+  @Test
+  @Tag("I3")
+  void countByTripsGivesEveryTripAnEntryWithZeroWhenNobodyJoined() {
+    when(participationRepository.countByTripIds(List.of(1L, 2L, 3L)))
+        .thenReturn(List.of(new TripParticipantCount(1L, 4L), new TripParticipantCount(3L, 1L)));
+
+    Map<Long, Long> counts = participationService.countByTrips(List.of(1L, 2L, 3L));
+
+    assertThat(counts).containsOnly(entry(1L, 4L), entry(2L, 0L), entry(3L, 1L));
+  }
+
+  @Test
+  @Tag("I3")
+  void countByTripsOfNoTripsAsksNothing() {
+    assertThat(participationService.countByTrips(List.of())).isEmpty();
+
+    verifyNoInteractions(participationRepository);
   }
 
   @Test

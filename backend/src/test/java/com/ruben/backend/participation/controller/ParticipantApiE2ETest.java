@@ -376,6 +376,45 @@ class ParticipantApiE2ETest {
   }
 
   @Test
+  void theTripListAndTheTripReportHowManyPeopleJoinedAndFollowEveryChange() {
+    String trip = TRIPS + "/" + tripId;
+    json(anaToken).get(TRIPS).then().body("content[0].participantCount", equalTo(0));
+
+    join(bobToken, "bob@example.com");
+    join(carlaToken, "carla@example.com");
+
+    // The creator is not counted; a participant sees the same number as the creator.
+    json(anaToken)
+        .get(TRIPS)
+        .then()
+        .statusCode(200)
+        .body("content[0].participantCount", equalTo(2));
+    json(bobToken)
+        .get(TRIPS)
+        .then()
+        .statusCode(200)
+        .body("content[0].participantCount", equalTo(2));
+    json(anaToken).get(trip).then().statusCode(200).body("participantCount", equalTo(2));
+
+    remove(bobToken, bobId).then().statusCode(204);
+
+    json(anaToken).get(TRIPS).then().body("content[0].participantCount", equalTo(1));
+    json(carlaToken).get(trip).then().body("participantCount", equalTo(1));
+    json(anaToken)
+        .body(TRIP_BODY)
+        .put(trip)
+        .then()
+        .statusCode(200)
+        .body("participantCount", equalTo(1));
+    json(anaToken)
+        .body(TRIP_BODY)
+        .post(TRIPS)
+        .then()
+        .statusCode(201)
+        .body("participantCount", equalTo(0));
+  }
+
+  @Test
   void deletingTheTripStillDeletesItsParticipantsAndTheyGet404() {
     join(bobToken, "bob@example.com");
 

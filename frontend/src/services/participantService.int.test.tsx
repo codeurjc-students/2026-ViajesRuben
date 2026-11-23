@@ -169,6 +169,20 @@ describe('I3 participantService against the REST API', () => {
     await expect(removeParticipant(trip.id, 999_999_999)).rejects.toMatchObject({ status: 404 });
   });
 
+  test('the trip list and the trip report how many people joined and follow every change', async () => {
+    const { ana, bob, trip } = await tripWithOneParticipant();
+
+    expect((await getTrips()).content[0].participantCount).toBe(1);
+    expect((await getTrip(trip.id)).participantCount).toBe(1);
+    actAs(bob);
+    expect((await getTrips()).content[0].participantCount).toBe(1);
+    await removeParticipant(trip.id, bob.user.id);
+    actAs(ana);
+
+    expect((await getTrips()).content[0].participantCount).toBe(0);
+    expect((await getTrip(trip.id)).participantCount).toBe(0);
+  });
+
   test('a removed user can be invited again and joins again', async () => {
     const { ana, bob, trip } = await tripWithOneParticipant();
     await removeParticipant(trip.id, bob.user.id);

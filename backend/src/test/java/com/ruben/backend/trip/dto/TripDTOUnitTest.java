@@ -37,7 +37,7 @@ class TripDTOUnitTest {
     trip.setBudget(new BigDecimal("300.00"));
     trip.setDescription("Ancient ruins");
 
-    TripDTO dto = TripDTO.from(trip);
+    TripDTO dto = TripDTO.from(trip, 0);
 
     assertThat(dto)
         .isEqualTo(
@@ -53,7 +53,15 @@ class TripDTOUnitTest {
                 null,
                 false,
                 null,
-                null));
+                null,
+                0));
+  }
+
+  @Test
+  @Tag("I3")
+  void reportsHowManyPeopleJoinedTheTrip() {
+    assertThat(TripDTO.from(trip(), 0).participantCount()).isZero();
+    assertThat(TripDTO.from(trip(), 4).participantCount()).isEqualTo(4);
   }
 
   @Test
@@ -63,8 +71,8 @@ class TripDTOUnitTest {
     Trip copy = trip();
     copy.setCopiedFrom(original);
 
-    assertThat(TripDTO.from(copy).copiedFromId()).isEqualTo(3L);
-    assertThat(TripDTO.from(original).copiedFromId()).isNull();
+    assertThat(TripDTO.from(copy, 0).copiedFromId()).isEqualTo(3L);
+    assertThat(TripDTO.from(original, 0).copiedFromId()).isNull();
   }
 
   @Test
@@ -73,7 +81,7 @@ class TripDTOUnitTest {
     Trip trip = trip();
     trip.publish(Instant.parse("2027-01-01T10:00:00Z"));
 
-    TripDTO dto = TripDTO.from(trip);
+    TripDTO dto = TripDTO.from(trip, 0);
 
     assertThat(dto.published()).isTrue();
     assertThat(dto.publishedAt()).isEqualTo(Instant.parse("2027-01-01T10:00:00Z"));
@@ -87,6 +95,6 @@ class TripDTOUnitTest {
     ReflectionTestUtils.setField(cover, "id", id);
     trip.setCoverImage(cover);
 
-    assertThat(TripDTO.from(trip).coverImageId()).isEqualTo(id);
+    assertThat(TripDTO.from(trip, 0).coverImageId()).isEqualTo(id);
   }
 }

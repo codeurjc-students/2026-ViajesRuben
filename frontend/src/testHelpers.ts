@@ -104,6 +104,7 @@ export function tripOf(overrides: Partial<Trip> = {}): Trip {
     published: false,
     publishedAt: null,
     copiedFromId: null,
+    participantCount: 0,
     ...overrides,
   };
 }

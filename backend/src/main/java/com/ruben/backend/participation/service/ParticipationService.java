@@ -5,6 +5,9 @@ import com.ruben.backend.participation.entity.Participation;
 import com.ruben.backend.participation.repository.ParticipationRepository;
 import com.ruben.backend.trip.entity.Trip;
 import com.ruben.backend.user.entity.User;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,28 @@ public class ParticipationService {
   @Transactional(readOnly = true)
   public boolean isParticipantByEmail(Long tripId, String email) {
     return participationRepository.existsByTripIdAndUserEmail(tripId, email);
+  }
+
+  /** How many people joined the trip; the creator is not one of them. */
+  @Transactional(readOnly = true)
+  public long countByTrip(Long tripId) {
+    return participationRepository.countByTripId(tripId);
+  }
+
+  /**
+   * How many people joined each of the trips, in one query. Every given trip has an entry, 0 when
+   * nobody joined it, so the caller needs no default.
+   */
+  @Transactional(readOnly = true)
+  public Map<Long, Long> countByTrips(Collection<Long> tripIds) {
+    Map<Long, Long> counts = new HashMap<>();
+    tripIds.forEach(id -> counts.put(id, 0L));
+    if (!tripIds.isEmpty()) {
+      participationRepository
+          .countByTripIds(tripIds)
+          .forEach(row -> counts.put(row.tripId(), row.count()));
+    }
+    return counts;
   }
 
   /**

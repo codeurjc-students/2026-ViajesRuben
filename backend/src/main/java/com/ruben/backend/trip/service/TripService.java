@@ -20,9 +20,11 @@ import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,14 +68,18 @@ public class TripService {
   }
 
   /**
-   * One page of the trips the current user created or joined (I2).
+   * One page of the trips the current user created or joined (I2), each with how many people joined
+   * it (I3). The counts of the whole page come from one grouped query, not one per trip.
    *
    * @throws BadRequestException the page asks to sort by a property that is not sortable
    */
+  @Transactional(readOnly = true)
   public PageDTO<TripDTO> findPage(Pageable pageable) {
     checkSortable(pageable);
     Long userId = authService.getCurrentUser().id();
-    return PageDTO.from(tripRepository.findVisibleTo(userId, pageable).map(TripDTO::from));
+    Page<Trip> trips = tripRepository.findVisibleTo(userId, pageable);
+    Map<Long, Long> counts = participationService.countByTrips(trips.map(Trip::getId).getContent());
+    return PageDTO.from(trips.map(trip -> TripDTO.from(trip, counts.get(trip.getId()))));
   }
 
   /**
@@ -102,7 +108,7 @@ public class TripService {
     applyOptionalFields(trip, request);
     trip = tripRepository.saveAndFlush(trip);
     log.info("User {} created trip {}", trip.getCreator().getId(), trip.getId());
-    return TripDTO.from(trip);
+    return TripDTO.from(trip, 0);
   }
 
   /**
@@ -111,7 +117,8 @@ public class TripService {
    */
   @Transactional(readOnly = true)
   public TripDTO findById(Long id) {
-    return TripDTO.from(tripAccessService.findForRead(id));
+    Trip trip = tripAccessService.findForRead(id);
+    return TripDTO.from(trip, participationService.countByTrip(id));
   }
 
   /**
@@ -128,7 +135,7 @@ public class TripService {
     applyOptionalFields(trip, request);
     trip = tripRepository.saveAndFlush(trip);
     log.info("Trip {} updated", trip.getId());
-    return TripDTO.from(trip);
+    return TripDTO.from(trip, participationService.countByTrip(id));
   }
 
   /**
@@ -156,7 +163,7 @@ public class TripService {
         trip.getCreator().getId(),
         published ? "published" : "unpublished",
         authService.getCurrentUser().id());
-    return TripDTO.from(trip);
+    return TripDTO.from(trip, participationService.countByTrip(id));
   }
 
   /**
@@ -191,7 +198,7 @@ public class TripService {
     activityService.copyAll(id, copy, dayOffset);
     log.info(
         "User {} copied public trip {} into trip {}", copy.getCreator().getId(), id, copy.getId());
-    return TripDTO.from(copy);
+    return TripDTO.from(copy, 0);
   }
 
   /**

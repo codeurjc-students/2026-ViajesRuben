@@ -2,6 +2,7 @@ package com.ruben.backend.participation.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 
 import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
@@ -28,7 +29,9 @@ import com.ruben.backend.user.service.AdminAccountInitializer;
 import com.ruben.backend.user.service.UserService;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -211,6 +214,33 @@ class ParticipantIntegrationTest {
     assertThatThrownBy(() -> participantService.remove(tripId, carla.id()))
         .isInstanceOf(ResourceNotFoundException.class);
     assertThat(participationRepository.count()).isEqualTo(1);
+  }
+
+  @Test
+  void theTripListReportsHowManyPeopleJoinedEachTripWithOneGroupedQuery() {
+    TripDTO empty =
+        tripService.create(
+            new TripRequest(
+                "Empty", "Oslo", LocalDate.of(2027, 9, 1), LocalDate.of(2027, 9, 3), null, null));
+    join(bob);
+    join(carla);
+    logInAs(ana);
+
+    assertThat(counts()).containsOnly(entry(tripId, 2L), entry(empty.id(), 0L));
+    assertThat(tripService.findById(tripId).participantCount()).isEqualTo(2);
+
+    // A participant sees the same number, and the creator is not counted.
+    logInAs(bob);
+    assertThat(counts()).containsOnly(entry(tripId, 2L));
+
+    logInAs(ana);
+    participantService.remove(tripId, bob.id());
+    assertThat(counts()).containsOnly(entry(tripId, 1L), entry(empty.id(), 0L));
+  }
+
+  private Map<Long, Long> counts() {
+    return tripService.findPage(PageRequest.of(0, 10)).content().stream()
+        .collect(Collectors.toMap(TripDTO::id, TripDTO::participantCount));
   }
 
   @Test

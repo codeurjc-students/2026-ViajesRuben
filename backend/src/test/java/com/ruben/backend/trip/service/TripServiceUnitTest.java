@@ -39,6 +39,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -149,8 +150,11 @@ class TripServiceUnitTest {
     Trip trip = tripOf(ana, 5L);
     when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
 
+    when(participationService.countByTrip(5L)).thenReturn(1L);
+
     TripDTO published = tripService.changePublication(5L, true);
 
+    assertThat(published.participantCount()).isEqualTo(1);
     assertThat(published.published()).isTrue();
     assertThat(published.publishedAt()).isNotNull();
     assertThat(trip.isPublished()).isTrue();
@@ -262,10 +266,12 @@ class TripServiceUnitTest {
     Trip second = newTrip(ana, 2L);
     when(tripRepository.findVisibleTo(7L, pageable))
         .thenReturn(new PageImpl<>(List.of(first, second), pageable, 4));
+    when(participationService.countByTrips(List.of(1L, 2L))).thenReturn(Map.of(1L, 3L, 2L, 0L));
 
     PageDTO<TripDTO> page = tripService.findPage(pageable);
 
     assertThat(page.content()).extracting(TripDTO::id).containsExactly(1L, 2L);
+    assertThat(page.content()).extracting(TripDTO::participantCount).containsExactly(3L, 0L);
     assertThat(page.content()).extracting(TripDTO::creatorId).containsOnly(7L);
     assertThat(page.page()).isEqualTo(1);
     assertThat(page.size()).isEqualTo(2);
@@ -307,6 +313,8 @@ class TripServiceUnitTest {
 
     TripDTO created = tripService.create(REQUEST);
 
+    assertThat(created.participantCount()).isZero();
+
     assertThat(created.creatorId()).isEqualTo(7L);
     assertThat(created.name()).isEqualTo("Lisbon trip");
     assertThat(created.destination()).isEqualTo("Lisbon");
@@ -339,10 +347,13 @@ class TripServiceUnitTest {
   void findByIdReturnsTheTripToItsCreator() {
     tripOf(ana, 1L);
 
+    when(participationService.countByTrip(1L)).thenReturn(2L);
+
     TripDTO trip = tripService.findById(1L);
 
     assertThat(trip.name()).isEqualTo("Trip");
     assertThat(trip.destination()).isEqualTo("Rome");
+    assertThat(trip.participantCount()).isEqualTo(2);
   }
 
   @Test
@@ -352,9 +363,11 @@ class TripServiceUnitTest {
     trip.setCoverImage(cover);
     trip.setBudget(new BigDecimal("5.00"));
     when(tripRepository.saveAndFlush(trip)).thenReturn(trip);
+    when(participationService.countByTrip(1L)).thenReturn(3L);
 
     TripDTO updated = tripService.update(1L, REQUEST);
 
+    assertThat(updated.participantCount()).isEqualTo(3);
     assertThat(updated.name()).isEqualTo("Lisbon trip");
     assertThat(updated.destination()).isEqualTo("Lisbon");
     assertThat(updated.startDate()).isEqualTo(LocalDate.of(2027, 5, 1));

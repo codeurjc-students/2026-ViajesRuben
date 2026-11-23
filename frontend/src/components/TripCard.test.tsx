@@ -32,7 +32,28 @@ describe('B4 TripCard', () => {
     );
     expect(screen.getByText('Destino: Roma')).toBeInTheDocument();
     expect(screen.getByText('Fechas: 10 jul 2027 – 17 jul 2027')).toBeInTheDocument();
-    expect(screen.queryByText('participantes', { exact: false })).not.toBeInTheDocument();
+  });
+
+  test('I3 shows how many people joined the trip, zero included', () => {
+    const { unmount } = renderAsUser(<TripCard trip={trip} onDeleted={vi.fn()} />);
+    expect(screen.getByText('Participantes: 0')).toBeInTheDocument();
+    unmount();
+
+    renderAsUser(<TripCard trip={{ ...trip, participantCount: 4 }} onDeleted={vi.fn()} />);
+
+    expect(screen.getByText('Participantes: 4')).toBeInTheDocument();
+    expect(screen.queryByText('Participantes: 0')).not.toBeInTheDocument();
+  });
+
+  test('I3 shows the same number to a participant, who is not the creator', () => {
+    renderAsUser(
+      <TripCard
+        trip={{ ...trip, creatorId: ANA.id + 1, participantCount: 2 }}
+        onDeleted={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Participantes: 2')).toBeInTheDocument();
   });
 
   test('I7 a published trip shows the "Público" badge and an unpublished one does not', () => {
