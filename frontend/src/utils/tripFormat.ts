@@ -47,9 +47,9 @@ const DAY = 24 * HOUR;
 const RELATIVE_LIMIT = 30 * DAY;
 
 /**
- * How long ago an instant was, as the browser's Spanish formatter says it: "ahora", "hace 5 min",
- * "hace 2 h", "ayer", "hace 3 d". A month or more ago it is the date, "10 jul 2027". An instant in
- * the future (a clock a little ahead) counts as now.
+ * How long ago an instant was, in the words of the browser's Spanish formatter ("now", "5 min ago",
+ * "2 h ago", "yesterday", "3 d ago", in Spanish). A month or more ago it is the date, formatted like
+ * `formatTripDate`. An instant in the future (a clock a little ahead) counts as now.
  */
 export function formatRelativeTime(isoInstant: string, now: Date = new Date()): string {
   const seconds = Math.max(0, Math.floor((now.getTime() - new Date(isoInstant).getTime()) / 1000));
@@ -60,7 +60,7 @@ export function formatRelativeTime(isoInstant: string, now: Date = new Date()): 
   return formatTripDate(isoInstant);
 }
 
-/** An instant as the date and time of the user's clock: "1 ene 2027, 11:00". */
+/** An instant as the date and time of the user's clock, in Spanish: day, short month, year, time. */
 export function formatDateTime(isoInstant: string): string {
   return dateTimeFormat.format(new Date(isoInstant));
 }

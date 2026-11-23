@@ -1124,7 +1124,7 @@
             }
           ]
         },
-        "description": "The trip's creator, a participant, or the administrator (read only). One page of the trip's activities sorted by date and start time (an activity without a start time comes first on its day): `content`, `page`, `size`, `totalElements` and `last`. `date` keeps only the activities of that day. `sort` accepts `id`, `date`, `startTime`, `name`, `cost` and `createdAt`; another property, or a date that is not yyyy-MM-dd, is a 400. 401, 403 for another user's trip and 404 when the trip does not exist."
+        "description": "The trip's creator, a participant, or the administrator (read only). One page of the trip's activities sorted by date and start time (an activity without a start time comes first on its day): `content`, `page`, `size`, `totalElements` and `last`. `date` keeps only the activities of that day. `sort` accepts `id`, `date`, `startTime`, `name`, `cost` and `createdAt`; another property, or a date that is not yyyy-MM-dd, is a 400. 401, 403 for another user's trip and 404 when the trip does not exist. Each activity says who added it: `authorId` and `authorName`."
       },
       "response": [
         {
@@ -1173,7 +1173,7 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"content\": [\n    {\n      \"id\": 21,\n      \"tripId\": 12,\n      \"authorId\": 7,\n      \"name\": \"Belém Tower\",\n      \"description\": \"Climb to the top\",\n      \"location\": \"Belém\",\n      \"date\": \"2027-05-02\",\n      \"startTime\": \"09:30:00\",\n      \"endTime\": \"11:00:00\",\n      \"cost\": 6.0,\n      \"category\": \"SIGHTSEEING\",\n      \"imageId\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 21,\n      \"tripId\": 12,\n      \"authorId\": 7,\n      \"authorName\": \"Ana\",\n      \"name\": \"Belém Tower\",\n      \"description\": \"Climb to the top\",\n      \"location\": \"Belém\",\n      \"date\": \"2027-05-02\",\n      \"startTime\": \"09:30:00\",\n      \"endTime\": \"11:00:00\",\n      \"cost\": 6.0,\n      \"category\": \"SIGHTSEEING\",\n      \"imageId\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
         }
       ]
     },
@@ -1209,7 +1209,7 @@
             }
           }
         },
-        "description": "Only the trip's creator, who becomes the author. `name` (up to 100 characters) and `date` are required, and `date` must be within the trip's dates. Times are `HH:mm`: the end must be strictly after the start and cannot be given without a start. `location` (200), `description` (2000), `cost` (up to 2 decimals, not negative) and `category` (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`) are optional. Answers 201 with `Location`, 400, 401, 403 or 404. The image is set afterwards with `PUT .../activities/{id}/image`."
+        "description": "The trip's creator or a participant, who becomes the author (`authorId` and `authorName` say who). The change is recorded in the trip's change log (`GET .../activity-log`), as are the following ones. `name` (up to 100 characters) and `date` are required, and `date` must be within the trip's dates. Times are `HH:mm`: the end must be strictly after the start and cannot be given without a start. `location` (200), `description` (2000), `cost` (up to 2 decimals, not negative) and `category` (`SIGHTSEEING`, `FOOD`, `TRANSPORT`, `ACCOMMODATION`, `LEISURE`, `OTHER`) are optional. Answers 201 with `Location`, 400, 401, 403 or 404. The image is set afterwards with `PUT .../activities/{id}/image`."
       },
       "response": [
         {
@@ -1259,7 +1259,56 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"name\": \"Belém Tower\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
+          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"authorName\": \"Ana\",\n  \"name\": \"Belém Tower\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
+        },
+        {
+          "name": "Added by a participant",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Belém Tower\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30\",\n  \"endTime\": \"11:00\",\n  \"location\": \"Belém\",\n  \"description\": \"Climb to the top\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Location",
+              "value": "/api/v1/trips/12/activities/21"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 8,\n  \"authorName\": \"Bob\",\n  \"name\": \"Belém Tower\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
         }
       ]
     },
@@ -1315,7 +1364,7 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"name\": \"Belém Tower\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
+          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"authorName\": \"Ana\",\n  \"name\": \"Belém Tower\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"09:30:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
         }
       ]
     },
@@ -1352,7 +1401,7 @@
             }
           }
         },
-        "description": "Only the trip's creator. Replaces every field with the same rules as the creation; the image is not changed. 400, 401, 403 or 404."
+        "description": "The trip's creator or a participant, whoever added the activity. Replaces every field with the same rules as the creation; the image is not changed. 400, 401, 403 or 404. The log line lists the fields that really changed."
       },
       "response": [
         {
@@ -1399,7 +1448,7 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"name\": \"Belém Tower and Pastéis\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"10:00:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
+          "body": "{\n  \"id\": 21,\n  \"tripId\": 12,\n  \"authorId\": 7,\n  \"authorName\": \"Ana\",\n  \"name\": \"Belém Tower and Pastéis\",\n  \"description\": \"Climb to the top\",\n  \"location\": \"Belém\",\n  \"date\": \"2027-05-02\",\n  \"startTime\": \"10:00:00\",\n  \"endTime\": \"11:00:00\",\n  \"cost\": 6.0,\n  \"category\": \"SIGHTSEEING\",\n  \"imageId\": null\n}"
         }
       ]
     },
@@ -1422,7 +1471,7 @@
             "21"
           ]
         },
-        "description": "Only the trip's creator. Deletes the activity and its image. 401, 403 or 404."
+        "description": "The trip's creator or a participant, whoever added the activity. Deletes the activity and its image. 401, 403 or 404."
       },
       "response": [
         {
@@ -1484,7 +1533,7 @@
             }
           ]
         },
-        "description": "Only the trip's creator. Uploads the image in the `file` part: JPEG, PNG or WebP, up to 5 MB. Answers 201 with `Location` the first time and 200 when it replaces the previous image (which is deleted), 400 for a file that is not a valid image, 401, 403, 404 and 413 for a file that is too large."
+        "description": "The trip's creator or a participant. Uploads the image in the `file` part: JPEG, PNG or WebP, up to 5 MB. Answers 201 with `Location` the first time and 200 when it replaces the previous image (which is deleted), 400 for a file that is not a valid image, 401, 403, 404 and 413 for a file that is too large."
       },
       "response": [
         {
@@ -1657,7 +1706,7 @@
             "image"
           ]
         },
-        "description": "Only the trip's creator. Deletes the image. Also answers 204 when there was none. 401, 403 or 404."
+        "description": "The trip's creator or a participant. Deletes the image. Also answers 204 when there was none. 401, 403 or 404."
       },
       "response": [
         {
@@ -3132,6 +3181,170 @@
       ]
     },
     {
+      "name": "Get the change log of a trip (paginated)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activity-log?page=0&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activity-log"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number, starting at 0"
+            },
+            {
+              "key": "size",
+              "value": "10",
+              "description": "Items per page (default 10, maximum 50)"
+            }
+          ]
+        },
+        "description": "Anyone who can see the trip: its creator, its participants and the administrator. One line for every creation, edit or deletion of an activity (a change of its picture is an edit), newest first by default. Each line has `action` (`CREATED`, `UPDATED` or `DELETED`), `activityName` and `userName` as they were at the time of the change, `activityId` (null once the activity is deleted), `userId` and `createdAt`. For an edit, `changedFields` names the fields that changed (`name`, `description`, `location`, `date`, `startTime`, `endTime`, `cost`, `category`, `image`), never their values; it is empty for any other action. `sort` accepts `id` and `createdAt`; another property is a 400. 401 without a session, 403 for someone who cannot see the trip, 404 when it does not exist. Deleting the trip deletes its log; removing a participant keeps their lines."
+      },
+      "response": [
+        {
+          "name": "Newest first: a deletion, an edit and an addition",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activity-log?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activity-log"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 3,\n      \"activityId\": null,\n      \"activityName\": \"Belém Tower and Pastéis\",\n      \"userId\": 8,\n      \"userName\": \"Bob\",\n      \"action\": \"DELETED\",\n      \"changedFields\": [],\n      \"createdAt\": \"2026-11-19T09:20:00.000000Z\"\n    },\n    {\n      \"id\": 2,\n      \"activityId\": 21,\n      \"activityName\": \"Belém Tower and Pastéis\",\n      \"userId\": 8,\n      \"userName\": \"Bob\",\n      \"action\": \"UPDATED\",\n      \"changedFields\": [\n        \"name\",\n        \"startTime\"\n      ],\n      \"createdAt\": \"2026-11-19T09:10:00.000000Z\"\n    },\n    {\n      \"id\": 1,\n      \"activityId\": 21,\n      \"activityName\": \"Belém Tower\",\n      \"userId\": 7,\n      \"userName\": \"Ana\",\n      \"action\": \"CREATED\",\n      \"changedFields\": [],\n      \"createdAt\": \"2026-11-18T10:15:30.123456Z\"\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 3,\n  \"last\": true\n}"
+        },
+        {
+          "name": "Not allowed to see the trip",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activity-log?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activity-log"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
+              ]
+            }
+          },
+          "status": "Forbidden",
+          "code": 403,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-11-18T10:15:30.123Z\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"message\": \"Only the creator can access this trip\",\n  \"path\": \"/api/v1/trips/12/activity-log\"\n}"
+        },
+        {
+          "name": "No such trip",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/999/activity-log?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "999",
+                "activity-log"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50)"
+                }
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"timestamp\": \"2026-11-18T10:15:30.123Z\",\n  \"status\": 404,\n  \"error\": \"Not Found\",\n  \"message\": \"Trip not found\",\n  \"path\": \"/api/v1/trips/999/activity-log\"\n}"
+        }
+      ]
+    },
+    {
       "name": "Get public trips (paginated)",
       "request": {
         "method": "GET",
@@ -3421,7 +3634,7 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"content\": [\n    {\n      \"id\": 31,\n      \"tripId\": 3,\n      \"authorId\": 1,\n      \"name\": \"Visita guiada al Coliseo\",\n      \"description\": null,\n      \"location\": \"Piazza del Colosseo\",\n      \"date\": \"2027-05-10\",\n      \"startTime\": \"09:00:00\",\n      \"endTime\": \"11:00:00\",\n      \"cost\": 16,\n      \"category\": \"SIGHTSEEING\",\n      \"imageId\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
+          "body": "{\n  \"content\": [\n    {\n      \"id\": 31,\n      \"tripId\": 3,\n      \"authorId\": 1,\n      \"authorName\": null,\n      \"name\": \"Visita guiada al Coliseo\",\n      \"description\": null,\n      \"location\": \"Piazza del Colosseo\",\n      \"date\": \"2027-05-10\",\n      \"startTime\": \"09:00:00\",\n      \"endTime\": \"11:00:00\",\n      \"cost\": 16,\n      \"category\": \"SIGHTSEEING\",\n      \"imageId\": null\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
         },
         {
           "name": "Not an example trip",
