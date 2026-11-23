@@ -1,14 +1,22 @@
 package com.ruben.backend.activity.service;
 
+import com.ruben.backend.activity.dto.ActivityLogEntryDTO;
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.entity.ActivityLogAction;
 import com.ruben.backend.activity.entity.ActivityLogEntry;
 import com.ruben.backend.activity.repository.ActivityLogEntryRepository;
+import com.ruben.backend.common.dto.PageDTO;
+import com.ruben.backend.common.error.BadRequestException;
+import com.ruben.backend.common.error.ForbiddenException;
+import com.ruben.backend.common.error.ResourceNotFoundException;
 import com.ruben.backend.trip.entity.Trip;
+import com.ruben.backend.trip.service.TripAccessService;
 import com.ruben.backend.user.dto.UserDTO;
 import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
 import java.util.List;
+import java.util.Set;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,17 +29,46 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ActivityLogService {
 
+  /** The only properties a client may sort by. */
+  private static final Set<String> SORTABLE = Set.of("id", "createdAt");
+
   private final ActivityLogEntryRepository entryRepository;
   private final UserRepository userRepository;
   private final AuthService authService;
+  private final TripAccessService tripAccessService;
 
   public ActivityLogService(
       ActivityLogEntryRepository entryRepository,
       UserRepository userRepository,
-      AuthService authService) {
+      AuthService authService,
+      TripAccessService tripAccessService) {
     this.entryRepository = entryRepository;
     this.userRepository = userRepository;
     this.authService = authService;
+    this.tripAccessService = tripAccessService;
+  }
+
+  /**
+   * One page of the trip's change log, for whoever may see the trip: its creator, its participants
+   * and the administrator.
+   *
+   * @throws BadRequestException the page asks to sort by a property that is not sortable
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws ForbiddenException the user may not see the trip
+   */
+  @Transactional(readOnly = true)
+  public PageDTO<ActivityLogEntryDTO> findPage(Long tripId, Pageable pageable) {
+    pageable
+        .getSort()
+        .forEach(
+            order -> {
+              if (!SORTABLE.contains(order.getProperty())) {
+                throw new BadRequestException("Cannot sort by '" + order.getProperty() + "'");
+              }
+            });
+    tripAccessService.findForRead(tripId);
+    return PageDTO.from(
+        entryRepository.findByTripId(tripId, pageable).map(ActivityLogEntryDTO::from));
   }
 
   /** The current user added the activity. */

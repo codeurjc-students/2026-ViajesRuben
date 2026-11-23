@@ -409,8 +409,9 @@ class InvitationResponseApiE2ETest {
         .body("content[0].id", equalTo((int) tripId));
   }
 
+  /** The itinerary is the exception: participants change its activities (I4). */
   @Test
-  void aParticipantCannotChangeAnythingOfTheTrip() {
+  void aParticipantCannotChangeTheTripItself() {
     bobJoins();
     String trip = TRIPS + "/" + tripId;
 
@@ -418,7 +419,6 @@ class InvitationResponseApiE2ETest {
     json(bobToken).body("{\"published\":true}").put(trip + "/publication").then().statusCode(403);
     json(bobToken).delete(trip).then().statusCode(403);
     json(bobToken).delete(trip + "/cover").then().statusCode(403);
-    json(bobToken).body(ACTIVITY_BODY).post(trip + "/activities").then().statusCode(403);
     json(bobToken)
         .body("{\"email\":\"carla@example.com\"}")
         .post(trip + "/invitations")
