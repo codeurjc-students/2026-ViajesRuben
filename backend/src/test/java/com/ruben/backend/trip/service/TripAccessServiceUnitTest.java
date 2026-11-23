@@ -174,6 +174,71 @@ class TripAccessServiceUnitTest {
   }
 
   @Test
+  @Tag("I3")
+  void theCreatorMayRemoveAnyParticipantWithoutQueryingTheParticipations() {
+    loggedInAs(ana);
+    Trip trip = tripOf(ana);
+
+    assertThat(tripAccessService.findForParticipantRemoval(1L, 8L)).isSameAs(trip);
+    assertThat(tripAccessService.findForParticipantRemoval(1L, 7L)).isSameAs(trip);
+    verifyNoInteractions(participationService);
+  }
+
+  @Test
+  @Tag("I3")
+  void aParticipantMayRemoveThemselvesThatIsLeave() {
+    loggedInAs(bob);
+    Trip trip = tripOf(ana);
+    when(participationService.isParticipant(1L, 8L)).thenReturn(true);
+
+    assertThat(tripAccessService.findForParticipantRemoval(1L, 8L)).isSameAs(trip);
+  }
+
+  @Test
+  @Tag("I3")
+  void aParticipantMayNotRemoveSomeoneElse() {
+    loggedInAs(bob);
+    tripOf(ana);
+
+    assertThatThrownBy(() -> tripAccessService.findForParticipantRemoval(1L, 9L))
+        .isInstanceOf(ForbiddenException.class);
+    verifyNoInteractions(participationService);
+  }
+
+  @Test
+  @Tag("I3")
+  void someoneWhoIsNotAParticipantMayNotRemoveThemselves() {
+    loggedInAs(bob);
+    tripOf(ana);
+    when(participationService.isParticipant(1L, 8L)).thenReturn(false);
+
+    assertThatThrownBy(() -> tripAccessService.findForParticipantRemoval(1L, 8L))
+        .isInstanceOf(ForbiddenException.class);
+  }
+
+  @Test
+  @Tag("I3")
+  void theAdministratorMayNotRemoveParticipants() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    loggedInAs(admin);
+    tripOf(ana);
+
+    assertThatThrownBy(() -> tripAccessService.findForParticipantRemoval(1L, 8L))
+        .isInstanceOf(ForbiddenException.class);
+  }
+
+  @Test
+  @Tag("I3")
+  void removingFromAMissingTripIsNotFoundBeforeAnyPermissionIsChecked() {
+    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> tripAccessService.findForParticipantRemoval(99L, 8L))
+        .isInstanceOf(ResourceNotFoundException.class)
+        .hasMessage("Trip not found");
+    verifyNoInteractions(authService);
+  }
+
+  @Test
   void aMissingTripIsNotFoundBeforeAnyPermissionIsChecked() {
     when(tripRepository.findById(99L)).thenReturn(Optional.empty());
 

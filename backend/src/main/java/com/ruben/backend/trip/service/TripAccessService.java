@@ -95,11 +95,36 @@ public class TripAccessService {
         .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
   }
 
+  /**
+   * Who may remove a participant (I3): the trip's creator may remove any of them, and a participant
+   * only themselves (leaving). Nobody else, not even the administrator, who does not moderate
+   * participants. Whether {@code userId} really participates is the caller's check, after this one,
+   * so the order stays 404 trip, 403, then the rest.
+   *
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws ForbiddenException the user may not remove that participant
+   */
+  @Transactional(readOnly = true)
+  public Trip findForParticipantRemoval(Long id, Long userId) {
+    Trip trip = load(id);
+    UserDTO current = authService.getCurrentUser();
+    boolean isCreator = trip.getCreator().getId().equals(current.id());
+    // The participation is only queried for someone leaving, never for the creator or a stranger.
+    if (!isCreator
+        && !(current.id().equals(userId) && participationService.isParticipant(id, current.id()))) {
+      throw new ForbiddenException("Only the creator can remove other participants");
+    }
+    return trip;
+  }
+
+  private Trip load(Long id) {
+    return tripRepository
+        .findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
+  }
+
   private Trip find(Long id, boolean administratorAllowed, boolean participantAllowed) {
-    Trip trip =
-        tripRepository
-            .findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Trip not found"));
+    Trip trip = load(id);
     UserDTO current = authService.getCurrentUser();
     boolean isCreator = trip.getCreator().getId().equals(current.id());
     boolean isAllowedAdministrator = administratorAllowed && current.role() == Role.ADMIN;
