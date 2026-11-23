@@ -84,7 +84,7 @@ class ActivityServiceUnitTest {
     trip = new Trip(ana, "Trip", "Rome", START, END);
     ReflectionTestUtils.setField(trip, "id", 1L);
     lenient().when(tripAccessService.findForRead(1L)).thenReturn(trip);
-    lenient().when(tripAccessService.findForWrite(1L)).thenReturn(trip);
+    lenient().when(tripAccessService.findForItineraryWrite(1L)).thenReturn(trip);
   }
 
   private static ActivityRequest request(String name, LocalDate date) {
@@ -115,7 +115,7 @@ class ActivityServiceUnitTest {
   /** Nobody may touch the trip: the access service refuses, whatever the operation. */
   private void tripIsRefused(RuntimeException refusal) {
     lenient().when(tripAccessService.findForRead(1L)).thenThrow(refusal);
-    lenient().when(tripAccessService.findForWrite(1L)).thenThrow(refusal);
+    lenient().when(tripAccessService.findForItineraryWrite(1L)).thenThrow(refusal);
   }
 
   // --- list ---
@@ -677,6 +677,90 @@ class ActivityServiceUnitTest {
     activityService.copyAll(1L, copyTarget(2L), 5);
 
     assertThat(savedCopies()).isEmpty();
+  }
+
+  // --- collaborative itinerary (I4) ---
+
+  /** A participant who did not create the activity: the author is Ana, the current user is Bob. */
+  private User bobTheParticipant() {
+    User bob = UserTestData.user(8L, "bob@example.com", Role.USER, UserStatus.ACTIVE);
+    lenient().when(authService.getCurrentUser()).thenReturn(UserDTO.from(bob));
+    lenient().when(userRepository.getReferenceById(8L)).thenReturn(bob);
+    return bob;
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantCreatesAnActivityAndBecomesItsAuthor() {
+    User bob = bobTheParticipant();
+    when(activityRepository.saveAndFlush(any(Activity.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    ActivityDTO created = activityService.create(1L, request("Museum", START.plusDays(1)));
+
+    assertThat(created.authorId()).isEqualTo(bob.getId());
+    verify(tripAccessService).findForItineraryWrite(1L);
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantEditsAnActivityOfSomeoneElseAndTheAuthorStays() {
+    bobTheParticipant();
+    Activity activity = activity(5L);
+    when(activityRepository.saveAndFlush(activity)).thenReturn(activity);
+
+    ActivityDTO updated = activityService.update(1L, 5L, request("Forum", END));
+
+    assertThat(updated.name()).isEqualTo("Forum");
+    assertThat(updated.authorId()).isEqualTo(ana.getId());
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantDeletesAnActivityOfSomeoneElse() {
+    bobTheParticipant();
+    Activity activity = activity(5L);
+
+    activityService.delete(1L, 5L);
+
+    verify(activityRepository).delete(activity);
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantReplacesAndDeletesThePictureOfAnActivityOfSomeoneElse() {
+    bobTheParticipant();
+    Activity activity = activity(5L);
+    Image stored = image();
+    when(imageService.save(PICTURE)).thenReturn(stored);
+
+    activityService.replaceImage(1L, 5L, PICTURE);
+    activityService.deleteImage(1L, 5L);
+
+    assertThat(activity.getImage()).isNull();
+    verify(imageService).delete(stored.getId());
+    verify(tripAccessService, times(2)).findForItineraryWrite(1L);
+    verify(tripAccessService, never()).findForWrite(any());
+  }
+
+  @Test
+  @Tag("I4")
+  void everyItineraryWriteAsksTheItineraryRuleBeforeLookingForTheActivity() {
+    tripIsRefused(new ForbiddenException("Only the creator can access this trip"));
+
+    assertThatThrownBy(() -> activityService.create(1L, request("Walk", START)))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.update(1L, 5L, request("Walk", START)))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.delete(1L, 5L)).isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.replaceImage(1L, 5L, PICTURE))
+        .isInstanceOf(ForbiddenException.class);
+    assertThatThrownBy(() -> activityService.deleteImage(1L, 5L))
+        .isInstanceOf(ForbiddenException.class);
+    verifyNoInteractions(activityRepository, imageService);
   }
 
   // --- cost and remaining budget ---

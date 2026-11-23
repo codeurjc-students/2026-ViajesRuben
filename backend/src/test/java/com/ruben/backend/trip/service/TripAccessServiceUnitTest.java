@@ -320,6 +320,71 @@ class TripAccessServiceUnitTest {
   }
 
   @Test
+  @Tag("I4")
+  void theCreatorMayChangeTheItineraryWithoutQueryingTheParticipations() {
+    loggedInAs(ana);
+    Trip trip = tripOf(ana);
+
+    assertThat(tripAccessService.findForItineraryWrite(1L)).isSameAs(trip);
+    verifyNoInteractions(participationService);
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantMayChangeTheItinerary() {
+    loggedInAs(ana);
+    Trip trip = tripOf(bob);
+    when(participationService.isParticipant(1L, 7L)).thenReturn(true);
+
+    assertThat(tripAccessService.findForItineraryWrite(1L)).isSameAs(trip);
+  }
+
+  @Test
+  @Tag("I4")
+  void aStrangerMayNotChangeTheItinerary() {
+    loggedInAs(ana);
+    tripOf(bob);
+    when(participationService.isParticipant(1L, 7L)).thenReturn(false);
+
+    assertThatThrownBy(() -> tripAccessService.findForItineraryWrite(1L))
+        .isInstanceOf(ForbiddenException.class);
+  }
+
+  @Test
+  @Tag("I4")
+  void theAdministratorMayNotChangeTheItinerary() {
+    User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);
+    loggedInAs(admin);
+    tripOf(ana);
+    when(participationService.isParticipant(1L, 1L)).thenReturn(false);
+
+    assertThatThrownBy(() -> tripAccessService.findForItineraryWrite(1L))
+        .isInstanceOf(ForbiddenException.class);
+  }
+
+  @Test
+  @Tag("I4")
+  void changingTheItineraryOfAMissingTripIsNotFoundBeforeAnyPermissionIsChecked() {
+    when(tripRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> tripAccessService.findForItineraryWrite(99L))
+        .isInstanceOf(ResourceNotFoundException.class)
+        .hasMessage("Trip not found");
+    verifyNoInteractions(authService);
+  }
+
+  @Test
+  @Tag("I4")
+  void aParticipantStillMayNotChangeTheTripItself() {
+    loggedInAs(ana);
+    tripOf(bob);
+
+    assertThatThrownBy(() -> tripAccessService.findForWrite(1L))
+        .isInstanceOf(ForbiddenException.class);
+    verifyNoInteractions(participationService);
+  }
+
+  @Test
   @Tag("I7")
   void publishingIsDecidedLikeEditingSoOnlyTheCreatorMayDoIt() {
     User admin = UserTestData.user(1L, "admin@tripmate.com", Role.ADMIN, UserStatus.ACTIVE);

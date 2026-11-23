@@ -37,7 +37,7 @@ public class Activity {
   @JoinColumn(name = "trip_id", nullable = false)
   private Trip trip;
 
-  /** Who created it; the creator of the trip for now, any participant once I4 exists. */
+  /** Who created it: the creator of the trip or a participant (I4). */
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "author_id", nullable = false)
   private User author;

@@ -35,7 +35,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * The activities of a trip. Who may see or change them is decided by the trip, through {@link
- * TripAccessService}; an activity id of another trip is not found.
+ * TripAccessService}: the creator and the participants change any activity of the itinerary (I4);
+ * an activity id of another trip is not found.
  */
 @Service
 public class ActivityService {
@@ -137,7 +138,7 @@ public class ActivityService {
    */
   @Transactional
   public ActivityDTO create(Long tripId, ActivityRequest request) {
-    Trip trip = tripAccessService.findForWrite(tripId);
+    Trip trip = tripAccessService.findForItineraryWrite(tripId);
     checkDateInsideTrip(trip, request);
     Activity activity =
         new Activity(
@@ -163,7 +164,7 @@ public class ActivityService {
   /** Replaces every editable field; the picture is not touched. */
   @Transactional
   public ActivityDTO update(Long tripId, Long id, ActivityRequest request) {
-    Trip trip = tripAccessService.findForWrite(tripId);
+    Trip trip = tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     checkDateInsideTrip(trip, request);
     activity.setName(request.name().trim());
@@ -177,7 +178,7 @@ public class ActivityService {
   /** Deletes the activity and then its picture, in this order because the activity points at it. */
   @Transactional
   public void delete(Long tripId, Long id) {
-    tripAccessService.findForWrite(tripId);
+    tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     Image image = activity.getImage();
     activityRepository.delete(activity);
@@ -190,7 +191,7 @@ public class ActivityService {
   /** Stores the picture and deletes the previous one, so no image is left behind. */
   @Transactional
   public ImageResult replaceImage(Long tripId, Long id, MultipartFile file) {
-    tripAccessService.findForWrite(tripId);
+    tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     Image previous = activity.getImage();
     Image image = imageService.save(file);
@@ -206,7 +207,7 @@ public class ActivityService {
   /** Removes the picture; doing it when there is none changes nothing. */
   @Transactional
   public void deleteImage(Long tripId, Long id) {
-    tripAccessService.findForWrite(tripId);
+    tripAccessService.findForItineraryWrite(tripId);
     Activity activity = findActivity(tripId, id);
     Image image = activity.getImage();
     if (image == null) {

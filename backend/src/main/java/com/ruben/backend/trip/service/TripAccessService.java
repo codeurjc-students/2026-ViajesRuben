@@ -83,6 +83,20 @@ public class TripAccessService {
   }
 
   /**
+   * Who may change the itinerary (I4): creating, editing and deleting any activity of the trip and
+   * its picture. The creator and the participants, who plan the trip together; not the
+   * administrator, who moderates but never edits other users' trips. Changing the trip itself stays
+   * with {@link #findForWrite}.
+   *
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws ForbiddenException the user may not change the itinerary
+   */
+  @Transactional(readOnly = true)
+  public Trip findForItineraryWrite(Long id) {
+    return find(id, false, true);
+  }
+
+  /**
    * A published trip is public to read, by anyone and without login. Any other trip is reported as
    * missing, never as forbidden, so the public endpoints reveal nothing about it.
    *
