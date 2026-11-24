@@ -2,8 +2,11 @@ package com.ruben.backend.activity.service;
 
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
+import com.ruben.backend.activity.dto.DayCostDTO;
+import com.ruben.backend.activity.dto.DaySpendingDTO;
 import com.ruben.backend.activity.dto.FirstActivityDTO;
 import com.ruben.backend.activity.dto.TripCostDTO;
+import com.ruben.backend.activity.dto.TripSpendingDTO;
 import com.ruben.backend.activity.entity.Activity;
 import com.ruben.backend.activity.repository.ActivityRepository;
 import com.ruben.backend.common.dto.PageDTO;
@@ -22,8 +25,11 @@ import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AuthService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -135,6 +141,53 @@ public class ActivityService {
     }
     BigDecimal budget = trip.getBudget();
     return new TripCostDTO(total, budget == null ? null : budget.subtract(total));
+  }
+
+  /**
+   * The data of the spending charts (I5). The sums per category and per day come from the database;
+   * here only the days without cost are filled in with 0 and the running sum is added.
+   *
+   * @throws ResourceNotFoundException no trip has that id
+   * @throws ForbiddenException the user may not see the trip
+   */
+  @Transactional(readOnly = true)
+  public TripSpendingDTO findSpending(Long tripId) {
+    Trip trip = tripAccessService.findForRead(tripId);
+    BigDecimal total = activityRepository.sumCost(tripId);
+    return new TripSpendingDTO(
+        trip.getBudget(),
+        total == null ? BigDecimal.ZERO : total,
+        activityRepository.sumCostByCategory(tripId),
+        fillDays(trip.getStartDate(), trip.getEndDate(), activityRepository.sumCostByDay(tripId)));
+  }
+
+  /**
+   * One entry per day from the first to the last day of the trip, 0 where `costs` has no day, with
+   * the running sum. A day with cost outside the trip's dates (an activity left behind by a change
+   * of dates) widens the range, so the last running sum is the total cost. `costs` is in date
+   * order.
+   */
+  static List<DaySpendingDTO> fillDays(LocalDate start, LocalDate end, List<DayCostDTO> costs) {
+    Map<LocalDate, BigDecimal> byDate = new HashMap<>();
+    LocalDate first = start;
+    LocalDate last = end;
+    for (DayCostDTO cost : costs) {
+      byDate.put(cost.date(), cost.total());
+      if (cost.date().isBefore(first)) {
+        first = cost.date();
+      }
+      if (cost.date().isAfter(last)) {
+        last = cost.date();
+      }
+    }
+    List<DaySpendingDTO> days = new ArrayList<>();
+    BigDecimal running = BigDecimal.ZERO;
+    for (LocalDate day = first; !day.isAfter(last); day = day.plusDays(1)) {
+      BigDecimal spent = byDate.getOrDefault(day, BigDecimal.ZERO);
+      running = running.add(spent);
+      days.add(new DaySpendingDTO(day, spent, running));
+    }
+    return days;
   }
 
   /**
