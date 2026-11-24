@@ -1,5 +1,7 @@
 package com.ruben.backend.activity.repository;
 
+import com.ruben.backend.activity.dto.CategorySpendingDTO;
+import com.ruben.backend.activity.dto.DayCostDTO;
 import com.ruben.backend.activity.dto.FirstActivityDTO;
 import com.ruben.backend.activity.dto.OutsideDatesDTO;
 import com.ruben.backend.activity.dto.OverlapDTO;
@@ -85,6 +87,26 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
   /** The sum of the costs of the trip's activities; null when none has a cost. */
   @Query("select sum(a.cost) from Activity a where a.trip.id = :tripId")
   BigDecimal sumCost(@Param("tripId") Long tripId);
+
+  /**
+   * The cost of the trip's activities per category, the biggest first (I5). The activities without
+   * cost are ignored; those without category are one group, with a null category.
+   */
+  @Query(
+      "select new com.ruben.backend.activity.dto.CategorySpendingDTO(a.category, sum(a.cost))"
+          + " from Activity a where a.trip.id = :tripId and a.cost is not null"
+          + " group by a.category order by sum(a.cost) desc, a.category")
+  List<CategorySpendingDTO> sumCostByCategory(@Param("tripId") Long tripId);
+
+  /**
+   * The cost of the trip's activities per day, in date order (I5). Only the days that have an
+   * activity with cost appear.
+   */
+  @Query(
+      "select new com.ruben.backend.activity.dto.DayCostDTO(a.date, sum(a.cost))"
+          + " from Activity a where a.trip.id = :tripId and a.cost is not null"
+          + " group by a.date order by a.date")
+  List<DayCostDTO> sumCostByDay(@Param("tripId") Long tripId);
 
   /** The pictures of a trip's activities, read without loading any entity or bytes. */
   @Query("select a.image.id from Activity a where a.trip.id = :tripId and a.image is not null")

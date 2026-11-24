@@ -11,6 +11,7 @@ import {
   getActivities,
   getActivity,
   getTripCost,
+  getTripSpending,
   updateActivity,
   uploadActivityImage,
 } from './activityService';
@@ -310,6 +311,65 @@ describe('B5 activityService against the REST API', () => {
     await newUser('Bob');
 
     await expect(getTripCost(trip.id)).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe('I5 getTripSpending against the REST API', () => {
+  test('sums the costs per category and per day, fills the days without cost and ignores the free ones', async () => {
+    await newUser();
+    const trip = await createTrip({ ...tripData, budget: 200 });
+    await createActivity(trip.id, activityData({ date: '2027-07-10', cost: 20, category: 'FOOD' }));
+    await createActivity(
+      trip.id,
+      activityData({ date: '2027-07-10', cost: 15.5, category: 'FOOD' }),
+    );
+    await createActivity(
+      trip.id,
+      activityData({ date: '2027-07-12', cost: 100, category: 'ACCOMMODATION' }),
+    );
+    await createActivity(trip.id, activityData({ date: '2027-07-12', cost: 4.5 }));
+    await createActivity(trip.id, activityData({ date: '2027-07-13', category: 'TRANSPORT' }));
+
+    await expect(getTripSpending(trip.id)).resolves.toEqual({
+      budget: 200,
+      totalCost: 140,
+      byCategory: [
+        { category: 'ACCOMMODATION', total: 100 },
+        { category: 'FOOD', total: 35.5 },
+        { category: null, total: 4.5 },
+      ],
+      byDay: [
+        { date: '2027-07-10', total: 35.5, cumulative: 35.5 },
+        { date: '2027-07-11', total: 0, cumulative: 35.5 },
+        { date: '2027-07-12', total: 104.5, cumulative: 140 },
+        { date: '2027-07-13', total: 0, cumulative: 140 },
+        { date: '2027-07-14', total: 0, cumulative: 140 },
+      ],
+    });
+  });
+
+  test('a trip without budget or costs has a null budget, no categories and every day at 0', async () => {
+    await newUser();
+    const trip = await createTrip(tripData);
+
+    const spending = await getTripSpending(trip.id);
+
+    expect(spending.budget).toBeNull();
+    expect(spending.totalCost).toBe(0);
+    expect(spending.byCategory).toEqual([]);
+    expect(spending.byDay).toHaveLength(5);
+    expect(spending.byDay.every((day) => day.total === 0 && day.cumulative === 0)).toBe(true);
+  });
+
+  test('anonymous gets 401, a stranger 403 and an unknown trip 404', async () => {
+    await expect(getTripSpending(1)).rejects.toMatchObject({ status: 401 });
+    await newUser('Ana');
+    const trip = await createTrip(tripData);
+    await expect(getTripSpending(999999999)).rejects.toMatchObject({ status: 404 });
+    vi.restoreAllMocks();
+    await newUser('Bob');
+
+    await expect(getTripSpending(trip.id)).rejects.toMatchObject({ status: 403 });
   });
 });
 

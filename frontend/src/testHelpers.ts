@@ -12,6 +12,7 @@ import type {
   ReceivedInvitation,
   Trip,
   TripConflicts,
+  TripSpending,
   User,
 } from './types';
 
@@ -205,6 +206,11 @@ export function receivedInvitationOf(
     respondedAt: null,
     ...overrides,
   };
+}
+
+/** Builds the spending charts' data for tests: no budget and no cost unless overridden. */
+export function spendingOf(overrides: Partial<TripSpending> = {}): TripSpending {
+  return { budget: null, totalCost: 0, byCategory: [], byDay: [], ...overrides };
 }
 
 /** Builds the conflicts of a trip for tests: none unless overridden. */

@@ -2,7 +2,12 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderRoutes } from '../renderHelpers';
 import { getActivityLog } from '../services/activityLogService';
-import { deleteActivity, getActivities, getTripCost } from '../services/activityService';
+import {
+  deleteActivity,
+  getActivities,
+  getTripCost,
+  getTripSpending,
+} from '../services/activityService';
 import { ApiError } from '../services/apiError';
 import { getConflicts } from '../services/conflictService';
 import { getInvitations } from '../services/invitationService';
@@ -15,6 +20,7 @@ import {
   logEntryOf,
   pageOf,
   participantOf,
+  spendingOf,
   tripOf,
 } from '../testHelpers';
 import type { User } from '../types';
@@ -30,6 +36,7 @@ vi.mock('../services/activityService', () => ({
   getActivities: vi.fn(),
   deleteActivity: vi.fn(),
   getTripCost: vi.fn(),
+  getTripSpending: vi.fn(),
 }));
 vi.mock('../services/conflictService', () => ({ getConflicts: vi.fn() }));
 vi.mock('../services/invitationService', () => ({
@@ -67,6 +74,7 @@ beforeEach(() => {
   vi.mocked(deleteActivity).mockReset();
   vi.mocked(getActivityLog).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
+  vi.mocked(getTripSpending).mockReset().mockResolvedValue(spendingOf());
   vi.mocked(getConflicts).mockReset().mockResolvedValue(conflictsOf());
   vi.mocked(getInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getParticipants).mockReset().mockResolvedValue(pageOf([]));
@@ -759,5 +767,78 @@ describe('B8 TripDetailPage as the administrator', () => {
     await screen.findByRole('heading', { name: 'Verano en Roma' });
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+describe('I5 TripDetailPage spending charts', () => {
+  const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
+  const withCosts = spendingOf({
+    budget: 1200.5,
+    totalCost: 30,
+    byCategory: [{ category: 'FOOD', total: 30 }],
+  });
+
+  test('the creator sees the "Gastos" section with the spending of the trip', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getTripSpending).mockResolvedValue(withCosts);
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Gastos' })).toBeInTheDocument();
+    expect(
+      await screen.findByText('Gasto por categoría', { selector: 'figcaption' }),
+    ).toBeVisible();
+    expect(getTripSpending).toHaveBeenCalledWith(5);
+  });
+
+  test('a participant sees it too', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    vi.mocked(getTripSpending).mockResolvedValue(withCosts);
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByRole('heading', { name: 'Gastos' })).toBeInTheDocument();
+    expect(
+      await screen.findByText('Gasto por categoría', { selector: 'figcaption' }),
+    ).toBeVisible();
+  });
+
+  test('the administrator reviewing the trip neither sees it nor asks for it', async () => {
+    vi.mocked(getTrip).mockResolvedValue({ ...trip, creatorId: ANA.id + 1 });
+    renderRoutes(routes, '/trips/5', ADMIN);
+
+    await screen.findByRole('heading', { name: 'Verano en Roma' });
+
+    expect(screen.queryByRole('heading', { name: 'Gastos' })).not.toBeInTheDocument();
+    expect(getTripSpending).not.toHaveBeenCalled();
+  });
+
+  test('says so when the spending cannot be loaded', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getTripSpending).mockRejectedValue(new ApiError(500));
+    renderRoutes(routes, '/trips/5');
+
+    expect(await screen.findByText('No se pudieron cargar los gastos.')).toBeInTheDocument();
+  });
+
+  test('deleting an activity asks for the spending again and shows the new figures', async () => {
+    vi.mocked(getTrip).mockResolvedValue(trip);
+    vi.mocked(getActivities).mockResolvedValue(
+      pageOf([activityOf({ id: 3, tripId: 5, name: 'Museo', date: '2027-07-10' })]),
+    );
+    vi.mocked(deleteActivity).mockResolvedValue(undefined);
+    vi.mocked(getTripSpending)
+      .mockResolvedValueOnce(withCosts)
+      .mockResolvedValue(spendingOf({ budget: 1200.5 }));
+    renderRoutes(routes, '/trips/5');
+    await screen.findByText('Gasto por categoría', { selector: 'figcaption' });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Museo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar actividad' }));
+
+    expect(
+      await screen.findByText(
+        'Aún no hay gastos. Añade un coste a una actividad para ver los gráficos.',
+      ),
+    ).toBeInTheDocument();
+    expect(getTripSpending).toHaveBeenCalledTimes(2);
   });
 });

@@ -464,3 +464,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I4`.
 - **Human Validation:** The student reviewed and approved the plan and the test output stage by stage, and committed each stage after it.
+
+#### Record 4.9 — Spending charts on the trip page (I5)
+
+- **Date:** 24/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I5: two spending charts on the trip page (spending by category against the budget, and cumulative spending per day).
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.331; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I5` (including the choice of the chart library and the new endpoint), and to write parts of the code (the service that fills the days without cost, the endpoint, and the "Gastos" section), the tests of the six types, the regenerated OpenAPI, the Postman request and some parts of the documentation. The test-matrix skill and the test-auditor and guide-reviewer subagents were run before the hand-over.
+  - The student set the scope and the five stages in the request, approved the plan, and edited and wrote by hand parts of the code, the tests and the documentation while reviewing each stage.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I5`.
+- **Human Validation:** The student reviewed and approved the plan and the test output stage by stage. Every part of the code and tests were reviewed by the student.

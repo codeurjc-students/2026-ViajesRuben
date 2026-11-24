@@ -34,6 +34,32 @@ export interface ActivityData {
   category: ActivityCategory | null;
 }
 
+/** Mirrors the backend CategorySpendingDTO (I5). A null category is the activities without one. */
+export interface CategorySpending {
+  category: ActivityCategory | null;
+  total: number;
+}
+
+/** Mirrors the backend DaySpendingDTO (I5): what was spent that day and the sum up to it. */
+export interface DaySpending {
+  /** ISO date (yyyy-MM-dd). */
+  date: string;
+  total: number;
+  cumulative: number;
+}
+
+/**
+ * Mirrors the backend TripSpendingDTO (I5): the data of the spending charts. `byCategory` has only
+ * the categories with some cost, the biggest first; `byDay` has every day of the trip, 0 included.
+ */
+export interface TripSpending {
+  /** Null when the trip has no budget. */
+  budget: number | null;
+  totalCost: number;
+  byCategory: CategorySpending[];
+  byDay: DaySpending[];
+}
+
 /** Mirrors the backend TripCostDTO: what the activities cost and what is left of the budget. */
 export interface TripCost {
   totalCost: number;

@@ -2005,6 +2005,62 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/trips/{tripId}/activities/spending:
+    get:
+      tags:
+        - activity-controller
+      summary: Get the data of a trip's spending charts
+      description:
+        "The trip's creator, a participant, or the administrator (read\
+        \ only). `budget` is the trip's budget (null without one) and `totalCost`\
+        \ the sum of all the costs (0 without any). `byCategory` is the cost per category,\
+        \ the biggest first, only for the categories with some cost; the activities\
+        \ without category are one entry with a null `category`. `byDay` has every\
+        \ day of the trip with what was spent that day (`total`, 0 when nothing) and\
+        \ the sum up to that day (`cumulative`); a day outside the trip's dates with\
+        \ cost is included too, so the last `cumulative` is `totalCost`. Activities\
+        \ without cost are ignored. The sums are computed in the database."
+      operationId: getSpending
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The spending per category and per day
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/TripSpendingDTO"
+        "400":
+          description: The trip id is not a number
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description:
+            "The user may not see the trip (only its creator, its participants\
+            \ and the administrator may)"
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No trip has that id
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/trips/{tripId}/activities/cost:
     get:
       tags:
@@ -3144,6 +3200,45 @@ components:
           format: int64
         last:
           type: boolean
+    CategorySpendingDTO:
+      type: object
+      properties:
+        category:
+          type: string
+          enum:
+            - SIGHTSEEING
+            - FOOD
+            - TRANSPORT
+            - ACCOMMODATION
+            - LEISURE
+            - OTHER
+        total:
+          type: number
+    DaySpendingDTO:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        total:
+          type: number
+        cumulative:
+          type: number
+    TripSpendingDTO:
+      type: object
+      properties:
+        budget:
+          type: number
+        totalCost:
+          type: number
+        byCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategorySpendingDTO"
+        byDay:
+          type: array
+          items:
+            $ref: "#/components/schemas/DaySpendingDTO"
     TripCostDTO:
       type: object
       properties:
