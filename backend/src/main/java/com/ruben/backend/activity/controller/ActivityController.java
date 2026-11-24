@@ -3,6 +3,7 @@ package com.ruben.backend.activity.controller;
 import com.ruben.backend.activity.dto.ActivityDTO;
 import com.ruben.backend.activity.dto.ActivityRequest;
 import com.ruben.backend.activity.dto.TripCostDTO;
+import com.ruben.backend.activity.dto.TripSpendingDTO;
 import com.ruben.backend.activity.service.ActivityService;
 import com.ruben.backend.common.dto.PageDTO;
 import com.ruben.backend.common.error.ErrorResponse;
@@ -125,6 +126,40 @@ public class ActivityController {
   @GetMapping("/cost")
   public TripCostDTO getCost(@PathVariable Long tripId) {
     return activityService.findCost(tripId);
+  }
+
+  @Operation(
+      summary = "Get the data of a trip's spending charts",
+      description =
+          "The trip's creator, a participant, or the administrator (read only). `budget` is the"
+              + " trip's budget (null without one) and `totalCost` the sum of all the costs (0"
+              + " without any). `byCategory` is the cost per category, the biggest first, only"
+              + " for the categories with some cost; the activities without category are one"
+              + " entry with a null `category`. `byDay` has every day of the trip with what was"
+              + " spent that day (`total`, 0 when nothing) and the sum up to that day"
+              + " (`cumulative`); a day outside the trip's dates with cost is included too, so the"
+              + " last `cumulative` is `totalCost`. Activities without cost are ignored. The sums"
+              + " are computed in the database.")
+  @ApiResponse(responseCode = "200", description = "The spending per category and per day")
+  @ApiResponse(
+      responseCode = "400",
+      description = "The trip id is not a number",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "401",
+      description = NOT_LOGGED_IN,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "403",
+      description = CANNOT_SEE,
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "No trip has that id",
+      content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  @GetMapping("/spending")
+  public TripSpendingDTO getSpending(@PathVariable Long tripId) {
+    return activityService.findSpending(tripId);
   }
 
   @Operation(
