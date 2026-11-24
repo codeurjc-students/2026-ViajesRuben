@@ -6,6 +6,7 @@ import {
   formatDayLabel,
   formatDuration,
   formatRelativeTime,
+  formatShortDay,
   formatTime,
   formatTripDate,
 } from './tripFormat';
@@ -27,6 +28,11 @@ test('B4 formats the budget in euros with the Spanish decimal comma', () => {
 describe('B5 itinerary formats', () => {
   test('labels a day with its weekday, without shifting it', () => {
     expect(formatDayLabel('2027-07-10')).toMatch(/^sáb\.?,? 10 jul\.?$/);
+  });
+
+  test('I5 labels a day for a chart axis with the day and the month only, without shifting it', () => {
+    expect(formatShortDay('2027-07-10')).toMatch(/^10 jul\.?$/);
+    expect(formatShortDay('2027-12-31')).toMatch(/^31 dic\.?$/);
   });
 
   test('shows the time without seconds', () => {

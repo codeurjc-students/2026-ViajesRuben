@@ -34,6 +34,17 @@ export function formatDayLabel(isoDate: string): string {
   return dayLabelFormat.format(new Date(isoDate));
 }
 
+const shortDayFormat = new Intl.DateTimeFormat('es-ES', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
+
+/** "2027-07-10" as "10 jul", short enough for the axis of a chart. */
+export function formatShortDay(isoDate: string): string {
+  return shortDayFormat.format(new Date(isoDate));
+}
+
 const relativeFormat = new Intl.RelativeTimeFormat('es-ES', { numeric: 'auto', style: 'short' });
 const dateTimeFormat = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',

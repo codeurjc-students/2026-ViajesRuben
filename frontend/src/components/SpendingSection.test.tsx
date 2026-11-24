@@ -27,18 +27,22 @@ describe('I5 SpendingSection', () => {
     expect(screen.queryByText('Gasto por categoría')).not.toBeInTheDocument();
   });
 
-  test('shows the spending by category once there are costs', () => {
+  test('shows both charts once there are costs', () => {
     render(
       <SpendingSection
         spending={spendingOf({
           totalCost: 30,
           byCategory: [{ category: 'FOOD', total: 30 }],
+          byDay: [{ date: '2027-07-10', total: 30, cumulative: 30 }],
         })}
         failed={false}
       />,
     );
 
     expect(screen.getByText('Gasto por categoría', { selector: 'figcaption' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Gasto acumulado por día', { selector: 'figcaption' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(EMPTY_MESSAGE)).not.toBeInTheDocument();
   });
 

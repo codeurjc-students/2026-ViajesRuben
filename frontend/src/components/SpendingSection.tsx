@@ -1,11 +1,12 @@
 import Card from 'react-bootstrap/Card';
 import type { TripSpending } from '../types';
+import CumulativeSpendingChart from './CumulativeSpendingChart';
 import SpendingByCategoryChart from './SpendingByCategoryChart';
 import './SpendingSection.css';
 
 /**
  * The trip's "Gastos" section (I5), for its creator and its participants: spending by category
- * against the budget. `spending` is undefined while it loads; `failed` says the server could not
+ * against the budget, and the cumulative spending per day. `spending` is undefined while it loads; `failed` says the server could not
  * give it. It is not part of the public preview, which never shows costs or members.
  */
 export default function SpendingSection({
@@ -30,7 +31,12 @@ export default function SpendingSection({
           Aún no hay gastos. Añade un coste a una actividad para ver los gráficos.
         </p>
       )}
-      {spending && hasCosts && <SpendingByCategoryChart spending={spending} />}
+      {spending && hasCosts && (
+        <>
+          <SpendingByCategoryChart spending={spending} />
+          <CumulativeSpendingChart spending={spending} />
+        </>
+      )}
     </Card>
   );
 }
