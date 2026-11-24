@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useConflicts } from '../hooks/useConflicts';
 import { useTrip } from '../hooks/useTrip';
 import { useTripCost } from '../hooks/useTripCost';
+import { useTripSpending } from '../hooks/useTripSpending';
 import { setPublication } from '../services/tripService';
 import type { Trip } from '../types';
 import { formatBudget, formatDateRange } from '../utils/tripFormat';
@@ -18,6 +19,7 @@ import DeleteTripModal from './DeleteTripModal';
 import InvitationsSection from './InvitationsSection';
 import ItinerarySection from './ItinerarySection';
 import ParticipantsSection from './ParticipantsSection';
+import SpendingSection from './SpendingSection';
 import StoredImage from './StoredImage';
 import './TripDetailPage.css';
 
@@ -25,7 +27,8 @@ import './TripDetailPage.css';
  * `/trips/:tripId`: the trip's summary and its itinerary. The creator also sees the invitations
  * (I1) and the participants (I3). A participant (I2) has no button to change the trip itself, but
  * plans its itinerary together with the creator (I4), and sees who else joined. Everyone who opens
- * the trip, the administrator included, reads its change log (I4) below the itinerary. The
+ * the trip, the administrator included, reads its change log (I4) below the itinerary. The creator
+ * and the participants also see the spending charts (I5) between the two. The
  * administrator reviewing another user's trip (B8) sees it read-only, with only a delete button.
  */
 export default function TripDetailPage() {
@@ -52,6 +55,12 @@ export default function TripDetailPage() {
   // The creator and the participants plan the itinerary together; the administrator only reads.
   const canEditItinerary = isCreator || isParticipant;
   const published = (updated?.id === trip?.id ? updated : trip)?.published ?? false;
+  // The spending charts (I5) are for the creator and the participants, so nobody else asks for them.
+  const {
+    spending,
+    failed: spendingFailed,
+    reload: reloadSpending,
+  } = useTripSpending(canEditItinerary ? trip?.id : undefined);
 
   // Rethrown so the route's error page (inside the layout) is shown.
   if (error) throw error;
@@ -164,10 +173,12 @@ export default function TripDetailPage() {
           onActivityDeleted={() => {
             reloadConflicts();
             reloadCost();
+            reloadSpending();
             setLogVersion((version) => version + 1);
           }}
         />
       )}
+      {trip && canEditItinerary && <SpendingSection spending={spending} failed={spendingFailed} />}
       {trip && <ActivityLogSection key={logVersion} tripId={trip.id} />}
       {trip && (isCreator || isParticipant) && (
         <ParticipantsSection tripId={trip.id} tripName={trip.name} canRemove={isCreator} />

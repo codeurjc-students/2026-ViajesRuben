@@ -5,7 +5,12 @@ import { beforeEach, vi, test, expect } from 'vitest';
 import App from './App';
 import { routes } from './routes';
 import { getActivityLog } from './services/activityLogService';
-import { getActivities, getActivity, getTripCost } from './services/activityService';
+import {
+  getActivities,
+  getActivity,
+  getTripCost,
+  getTripSpending,
+} from './services/activityService';
 import {
   getInvitationByToken,
   getInvitations,
@@ -27,6 +32,7 @@ import {
   pageOf,
   publicTripOf,
   receivedInvitationOf,
+  spendingOf,
   tripOf,
 } from './testHelpers';
 
@@ -40,6 +46,7 @@ vi.mock('./services/activityService', () => ({
   getActivities: vi.fn(),
   getActivity: vi.fn(),
   getTripCost: vi.fn(),
+  getTripSpending: vi.fn(),
 }));
 vi.mock('./services/publicTripService', () => ({
   PUBLIC_PAGE_SIZE: 3,
@@ -73,6 +80,7 @@ beforeEach(() => {
   vi.mocked(getMyInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
+  vi.mocked(getTripSpending).mockReset().mockResolvedValue(spendingOf());
 });
 
 function renderAt(path: string, user: User | null = ANA) {

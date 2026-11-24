@@ -1,0 +1,15 @@
+.spending {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.spending__title {
+  margin-bottom: 0.75rem;
+}
+
+.spending__message {
+  margin-bottom: 0;
+  color: var(--tm-via);
+}

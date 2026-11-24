@@ -1,0 +1,26 @@
+/* Quiet on purpose: the page's bold element is the itinerary, so the charts only need to be legible. */
+.spending-chart {
+  margin: 0 0 1.5rem;
+}
+
+.spending-chart:last-child {
+  margin-bottom: 0;
+}
+
+.spending-chart__title {
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.spending-chart__total {
+  margin-top: 0.75rem;
+}
+
+.spending-chart__figures {
+  margin-bottom: 0.375rem;
+}
+
+.spending-chart__over {
+  margin: 0.375rem 0 0;
+  color: var(--tm-corte);
+}

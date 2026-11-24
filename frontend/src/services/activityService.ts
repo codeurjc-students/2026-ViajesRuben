@@ -1,4 +1,12 @@
-import type { Activity, ActivityData, CoverChange, ImageInfo, Page, TripCost } from '../types';
+import type {
+  Activity,
+  ActivityData,
+  CoverChange,
+  ImageInfo,
+  Page,
+  TripCost,
+  TripSpending,
+} from '../types';
 import { request, sendJson } from './apiError';
 import { DEFAULT_PAGE_SIZE } from './tripService';
 
@@ -25,6 +33,14 @@ export function getActivities(
  */
 export function getTripCost(tripId: number): Promise<TripCost> {
   return request<TripCost>(`${activitiesUrl(tripId)}/cost`);
+}
+
+/**
+ * The data of the spending charts (I5): the cost per category and per day, with the budget and the
+ * total. Answers 403 for another user's trip and 404 when it does not exist.
+ */
+export function getTripSpending(tripId: number): Promise<TripSpending> {
+  return request<TripSpending>(`${activitiesUrl(tripId)}/spending`);
 }
 
 /** Answers 403 for another user's trip and 404 when the trip or the activity of that trip does not exist. */

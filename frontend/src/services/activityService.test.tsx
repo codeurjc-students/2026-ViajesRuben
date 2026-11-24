@@ -7,6 +7,7 @@ import {
   getActivities,
   getActivity,
   getTripCost,
+  getTripSpending,
   updateActivity,
   uploadActivityImage,
 } from './activityService';
@@ -168,5 +169,26 @@ describe('B5 activity operations', () => {
 
     expect(lastCall().url).toBe('/api/v1/trips/3/activities/cost');
     expect(lastCall().init).toBeUndefined();
+  });
+
+  test('I5 getTripSpending reads the spending per category and per day of the trip', async () => {
+    const spending = {
+      budget: 200,
+      totalCost: 30,
+      byCategory: [{ category: 'FOOD', total: 30 }],
+      byDay: [{ date: '2027-05-02', total: 30, cumulative: 30 }],
+    };
+    answer(spending);
+
+    await expect(getTripSpending(3)).resolves.toEqual(spending);
+
+    expect(lastCall().url).toBe('/api/v1/trips/3/activities/spending');
+    expect(lastCall().init).toBeUndefined();
+  });
+
+  test.each([403, 404])('I5 getTripSpending answers %i as an ApiError', async (status) => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status } as Response);
+
+    await expect(getTripSpending(3)).rejects.toMatchObject({ name: 'ApiError', status });
   });
 });
