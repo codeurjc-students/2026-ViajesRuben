@@ -142,10 +142,19 @@ class SpendingApiE2ETest {
   // --- who may read it ---
 
   @Test
-  void theCreatorTheParticipantAndTheAdministratorReadTheSpending() {
-    as(anaToken).get(spending).then().statusCode(200);
-    as(bobToken).get(spending).then().statusCode(200);
-    as(adminToken).get(spending).then().statusCode(200);
+  void theCreatorTheParticipantAndTheAdministratorReadTheSameSpending() {
+    addActivity(anaToken, activities, "2027-07-11", "20.00", "FOOD");
+
+    for (String token : new String[] {anaToken, bobToken, adminToken}) {
+      as(token)
+          .get(spending)
+          .then()
+          .statusCode(200)
+          .body("budget", equalTo(200f))
+          .body("totalCost", equalTo(20f))
+          .body("byCategory.category", contains("FOOD"))
+          .body("byDay.cumulative", contains(0, 20f, 20f, 20f, 20f));
+    }
   }
 
   @Test

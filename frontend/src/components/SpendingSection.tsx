@@ -6,8 +6,9 @@ import './SpendingSection.css';
 
 /**
  * The trip's "Gastos" section (I5), for its creator and its participants: spending by category
- * against the budget, and the cumulative spending per day. `spending` is undefined while it loads; `failed` says the server could not
- * give it. It is not part of the public preview, which never shows costs or members.
+ * against the budget, and the cumulative spending per day. `spending` is undefined while it
+ * loads; `failed` says the server could not give it. It is not part of the public preview, which
+ * never shows costs or members.
  */
 export default function SpendingSection({
   spending,

@@ -1090,6 +1090,94 @@
       ]
     },
     {
+      "name": "Get the spending charts data of a trip",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/12/activities/spending",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "12",
+            "activities",
+            "spending"
+          ]
+        },
+        "description": "The trip's creator, a participant, or the administrator (read only). `budget` is the trip's budget (null without one) and `totalCost` the sum of all the costs (0 without any). `byCategory` is the cost per category, the biggest first, only for the categories with some cost; the activities without category are one entry with a null `category`. `byDay` has every day of the trip with what was spent that day (`total`, 0 when nothing) and the sum up to that day (`cumulative`); a day outside the trip's dates with cost is included too, so the last `cumulative` is `totalCost`. Activities without cost are ignored. The sums are computed in the database. 400 for an id that is not a number, 401, 403 and 404."
+      },
+      "response": [
+        {
+          "name": "Costs in several categories and days",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/spending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "spending"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"budget\": 1200.0,\n  \"totalCost\": 360.0,\n  \"byCategory\": [\n    {\n      \"category\": \"ACCOMMODATION\",\n      \"total\": 300.0\n    },\n    {\n      \"category\": \"FOOD\",\n      \"total\": 55.5\n    },\n    {\n      \"category\": null,\n      \"total\": 4.5\n    }\n  ],\n  \"byDay\": [\n    {\n      \"date\": \"2027-05-01\",\n      \"total\": 300.0,\n      \"cumulative\": 300.0\n    },\n    {\n      \"date\": \"2027-05-02\",\n      \"total\": 0,\n      \"cumulative\": 300.0\n    },\n    {\n      \"date\": \"2027-05-03\",\n      \"total\": 60.0,\n      \"cumulative\": 360.0\n    }\n  ]\n}"
+        },
+        {
+          "name": "Trip without costs or budget",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/12/activities/spending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "12",
+                "activities",
+                "spending"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"budget\": null,\n  \"totalCost\": 0,\n  \"byCategory\": [],\n  \"byDay\": [\n    {\n      \"date\": \"2027-05-01\",\n      \"total\": 0,\n      \"cumulative\": 0\n    },\n    {\n      \"date\": \"2027-05-02\",\n      \"total\": 0,\n      \"cumulative\": 0\n    },\n    {\n      \"date\": \"2027-05-03\",\n      \"total\": 0,\n      \"cumulative\": 0\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
       "name": "Get activities of a trip (paginated, by day)",
       "request": {
         "method": "GET",

@@ -152,6 +152,18 @@ class ActivitySpendingIntegrationTest {
   }
 
   @Test
+  void categoriesWithTheSameTotalAreOrderedByTheirName() {
+    add(tripId, 0, "10.00", ActivityCategory.TRANSPORT);
+    add(tripId, 1, "10.00", ActivityCategory.LEISURE);
+    add(tripId, 2, "10.00", ActivityCategory.FOOD);
+
+    assertThat(activityService.findSpending(tripId).byCategory())
+        .extracting(CategorySpendingDTO::category)
+        .containsExactly(
+            ActivityCategory.FOOD, ActivityCategory.LEISURE, ActivityCategory.TRANSPORT);
+  }
+
+  @Test
   void aTripWithoutBudgetHasANullBudget() {
     long noBudget = newTrip(null);
     add(noBudget, 1, "12.00", ActivityCategory.FOOD);
