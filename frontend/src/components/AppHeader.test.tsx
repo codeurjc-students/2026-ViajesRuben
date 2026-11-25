@@ -213,6 +213,33 @@ describe('B7 header link for the administrator', () => {
   });
 });
 
+describe('I6 header link for the administrator dashboard', () => {
+  test('the administrator sees the Panel link to /admin', () => {
+    renderAt('/trips', authValue({ ...ANA, role: 'ADMIN' }));
+
+    expect(screen.getByRole('link', { name: 'Panel' })).toHaveAttribute('href', '/admin');
+  });
+
+  test('the Panel link is not the current page on /admin/users', () => {
+    renderAt('/admin/users', authValue({ ...ANA, role: 'ADMIN' }));
+
+    expect(screen.getByRole('link', { name: 'Panel' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Usuarios' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('a regular user does not see the Panel link', () => {
+    renderAt('/trips');
+
+    expect(screen.queryByRole('link', { name: 'Panel' })).not.toBeInTheDocument();
+  });
+
+  test('an anonymous visitor does not see the Panel link', () => {
+    renderAt('/', authValue(null));
+
+    expect(screen.queryByRole('link', { name: 'Panel' })).not.toBeInTheDocument();
+  });
+});
+
 describe('B8 header link for trip moderation', () => {
   test('the administrator sees the Viajes link to /admin/trips', () => {
     renderAt('/trips', authValue({ ...ANA, role: 'ADMIN' }));

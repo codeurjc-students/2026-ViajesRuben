@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router';
 import ActivityFormPage from './components/ActivityFormPage';
+import AdminDashboardPage from './components/AdminDashboardPage';
 import AdminTripsPage from './components/AdminTripsPage';
 import AdminUsersPage from './components/AdminUsersPage';
 import AppLayout from './components/AppLayout';
@@ -18,7 +19,7 @@ import TripDetailPage from './components/TripDetailPage';
 import TripFormPage from './components/TripFormPage';
 import TripList from './components/TripList';
 
-/** One route per screen in docs/analysis.md; the home page, trips, profile, auth, public itineraries, user management and trip moderation are built so far. */
+/** One route per screen in docs/analysis.md; the home page, trips, profile, auth, public itineraries, user management, trip moderation and the administrator dashboard are built so far. */
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -56,7 +57,7 @@ export const routes: RouteObject[] = [
                 // Only the administrator; anyone else gets the 403 error page.
                 element: <RequireAdmin />,
                 children: [
-                  { path: '/admin', element: <PlaceholderPage title="Administración" /> },
+                  { path: '/admin', element: <AdminDashboardPage /> },
                   { path: '/admin/users', element: <AdminUsersPage /> },
                   { path: '/admin/trips', element: <AdminTripsPage /> },
                 ],

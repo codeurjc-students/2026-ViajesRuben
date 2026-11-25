@@ -1,0 +1,38 @@
+.admin-dashboard__title {
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
+}
+
+.admin-dashboard__cards {
+  margin-bottom: 1.5rem;
+  padding: 0;
+}
+
+.admin-dashboard__card {
+  padding: 1.25rem;
+  border: 1px solid var(--tm-card-border);
+  box-shadow: var(--tm-card-shadow);
+}
+
+.admin-dashboard__label {
+  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+}
+
+.admin-dashboard__value {
+  margin-bottom: 0;
+  font-family: var(--tm-font-mono);
+  font-size: 2.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (width >= 768px) {
+  .admin-dashboard__links {
+    flex-direction: row;
+  }
+}

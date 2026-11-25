@@ -52,6 +52,11 @@ export default function AppHeader() {
                 </Nav.Link>
                 <Nav.Link href="#">Generador IA</Nav.Link>
                 {user.role === 'ADMIN' && (
+                  <Nav.Link as={NavLink} to="/admin" end>
+                    Panel
+                  </Nav.Link>
+                )}
+                {user.role === 'ADMIN' && (
                   <Nav.Link as={NavLink} to="/admin/users">
                     Usuarios
                   </Nav.Link>

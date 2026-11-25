@@ -10,6 +10,7 @@ export type {
 export type { ActivityLogAction, ActivityLogEntry } from './activityLog';
 export type { BudgetConflict, OutsideDates, Overlap, TripConflicts } from './conflict';
 export type { ImageInfo } from './image';
+export type { PlatformMetrics } from './metrics';
 export type {
   Invitation,
   InvitationAnswer,

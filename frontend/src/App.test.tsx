@@ -18,6 +18,7 @@ import {
 } from './services/invitationService';
 import { getParticipants } from './services/participantService';
 import { getPublicActivities, getPublicTrip, getPublicTrips } from './services/publicTripService';
+import { getMetrics } from './services/adminMetricsService';
 import { getTrips as getAdminTrips } from './services/adminTripService';
 import { getTrip, getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
@@ -63,6 +64,7 @@ vi.mock('./services/invitationService', () => ({
 }));
 vi.mock('./services/participantService', () => ({ getParticipants: vi.fn() }));
 vi.mock('./services/adminTripService', () => ({ getTrips: vi.fn() }));
+vi.mock('./services/adminMetricsService', () => ({ getMetrics: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
 
@@ -79,6 +81,7 @@ beforeEach(() => {
   vi.mocked(getInvitationByToken).mockReset();
   vi.mocked(getMyInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getMetrics).mockReset().mockResolvedValue({ users: 3, trips: 5, activities: 12 });
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
   vi.mocked(getTripSpending).mockReset().mockResolvedValue(spendingOf());
 });
@@ -253,6 +256,33 @@ test('B7 an anonymous visitor opening /admin/users is sent to /login', () => {
   renderAt('/admin/users', null);
 
   expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+});
+
+test('I6 /admin shows the dashboard with the platform totals to the administrator', async () => {
+  renderAt('/admin', ADMIN);
+
+  expect(
+    screen.getByRole('heading', { name: 'Panel de administración', level: 1 }),
+  ).toBeInTheDocument();
+  expect(await screen.findByText('12')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Panel' })).toHaveAttribute('href', '/admin');
+  expect(screen.queryByText('No tienes acceso a esta página')).not.toBeInTheDocument();
+});
+
+test('I6 /admin shows the 403 page to a regular user and never asks for the totals', () => {
+  renderAt('/admin');
+
+  expect(
+    screen.getByRole('heading', { name: 'No tienes acceso a esta página' }),
+  ).toBeInTheDocument();
+  expect(getMetrics).not.toHaveBeenCalled();
+});
+
+test('I6 an anonymous visitor opening /admin is sent to /login', () => {
+  renderAt('/admin', null);
+
+  expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+  expect(getMetrics).not.toHaveBeenCalled();
 });
 
 test('B8 /admin/trips shows its page to the administrator', () => {
