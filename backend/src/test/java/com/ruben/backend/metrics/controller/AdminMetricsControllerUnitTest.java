@@ -1,6 +1,7 @@
 package com.ruben.backend.metrics.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ruben.backend.metrics.dto.PlatformMetricsDTO;
@@ -25,5 +26,6 @@ class AdminMetricsControllerUnitTest {
     when(metricsService.getPlatformMetrics()).thenReturn(metrics);
 
     assertThat(controller.getMetrics()).isEqualTo(metrics);
+    verify(metricsService).getPlatformMetrics();
   }
 }

@@ -10,6 +10,7 @@ import com.ruben.backend.DatabaseCleaner;
 import com.ruben.backend.TestcontainersConfiguration;
 import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
+import com.ruben.backend.user.entity.UserStatus;
 import com.ruben.backend.user.repository.UserRepository;
 import com.ruben.backend.user.service.AdminAccountInitializer;
 import io.restassured.RestAssured;
@@ -128,15 +129,24 @@ class AdminMetricsApiE2ETest {
 
   @Test
   void theAdministratorGetsTheThreeTotalsOfKnownData() {
+    // A blocked user is still an account; an unpublished trip is still a trip.
+    User bob = new User("Bob", "bob@example.com", passwordEncoder.encode(PASSWORD), Role.USER);
+    bob.setStatus(UserStatus.BLOCKED);
+    userRepository.save(bob);
     long rome = createTrip(anaToken, "Rome");
     createTrip(anaToken, "Oslo");
+    json(anaToken)
+        .body("{\"published\":true}")
+        .put(TRIPS + "/" + rome + "/publication")
+        .then()
+        .statusCode(200);
     createActivity(anaToken, rome, "Colosseum");
 
     as(adminToken)
         .get(METRICS)
         .then()
         .statusCode(200)
-        .body("users", equalTo(1))
+        .body("users", equalTo(2))
         .body("trips", equalTo(2))
         .body("activities", equalTo(1))
         .body("$", not(hasKey("aiRequests")));

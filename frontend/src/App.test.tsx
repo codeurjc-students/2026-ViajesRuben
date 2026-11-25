@@ -19,6 +19,7 @@ import {
 import { getParticipants } from './services/participantService';
 import { getPublicActivities, getPublicTrip, getPublicTrips } from './services/publicTripService';
 import { getMetrics } from './services/adminMetricsService';
+import { getUsers as getAdminUsers } from './services/adminUserService';
 import { getTrips as getAdminTrips } from './services/adminTripService';
 import { getTrip, getTrips } from './services/tripService';
 import { ApiError, NetworkError } from './services/apiError';
@@ -65,6 +66,7 @@ vi.mock('./services/invitationService', () => ({
 vi.mock('./services/participantService', () => ({ getParticipants: vi.fn() }));
 vi.mock('./services/adminTripService', () => ({ getTrips: vi.fn() }));
 vi.mock('./services/adminMetricsService', () => ({ getMetrics: vi.fn() }));
+vi.mock('./services/adminUserService', () => ({ getUsers: vi.fn() }));
 vi.mock('./services/authService', () => ({ getCurrentUser: vi.fn() }));
 vi.mock('./services/userService', () => ({ getProfile: vi.fn() }));
 
@@ -81,6 +83,7 @@ beforeEach(() => {
   vi.mocked(getInvitationByToken).mockReset();
   vi.mocked(getMyInvitations).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getAdminTrips).mockReset().mockResolvedValue(pageOf([]));
+  vi.mocked(getAdminUsers).mockReset().mockResolvedValue(pageOf([]));
   vi.mocked(getMetrics).mockReset().mockResolvedValue({ users: 3, trips: 5, activities: 12 });
   vi.mocked(getTripCost).mockReset().mockResolvedValue({ totalCost: 0, remainingBudget: null });
   vi.mocked(getTripSpending).mockReset().mockResolvedValue(spendingOf());
@@ -234,10 +237,11 @@ test('B2 an anonymous visitor opening a private screen is sent to /login', () =>
 
 const ADMIN: User = { ...ANA, id: 9, name: 'Administrator', role: 'ADMIN' };
 
-test.each(['/admin', '/admin/users'])('B7 %s shows its page to the administrator', (path) => {
-  renderAt(path, ADMIN);
+// `/admin` is the dashboard (I6): it loads the totals, so it has its own test below.
+test('B7 /admin/users shows its page to the administrator', () => {
+  renderAt('/admin/users', ADMIN);
 
-  expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Usuarios', level: 1 })).toBeInTheDocument();
   expect(screen.queryByText('No tienes acceso a esta página')).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument();
 });

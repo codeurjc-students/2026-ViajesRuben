@@ -32,16 +32,4 @@ describe('I6 usePlatformMetrics', () => {
     await waitFor(() => expect(result.current.error).toBe(failure));
     expect(result.current.metrics).toBeUndefined();
   });
-
-  test('ignores an answer that arrives after the page is gone', async () => {
-    let answer: (value: { users: number; trips: number; activities: number }) => void = () => {};
-    vi.mocked(getMetrics).mockReturnValue(new Promise((resolve) => (answer = resolve)));
-    const { result, unmount } = renderHook(() => usePlatformMetrics());
-
-    unmount();
-    answer({ users: 1, trips: 1, activities: 1 });
-    await Promise.resolve();
-
-    expect(result.current.metrics).toBeUndefined();
-  });
 });

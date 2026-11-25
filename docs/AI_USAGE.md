@@ -479,3 +479,18 @@ is fully responsible for the delivered work.
 - **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
 - **Context Files:** Some Claude Code configuration and a spec-driven plan for `I5`.
 - **Human Validation:** The student reviewed and approved the plan and the test output stage by stage. Every part of the code and tests were reviewed by the student.
+
+#### Record 4.10 — Platform metrics dashboard for the administrator (I6)
+
+- **Date:** 25/11/2026
+- **Phase:** Phase 4 (Intermediate functionality, I1–I10)
+- **Goal:** Help implement feature I6: a dashboard for the administrator with the platform totals (users, trips and activities).
+- **Tool:** Claude Code (Anthropic)
+- **Specific Version:** Claude Code 2.1.332; models Opus 5.5 (planning) / Sonnet 5.5 (implementation)
+- **Tool Configuration:** Terminal CLI on Windows; modes plan → manual approval of each stage
+- **How it was used:**
+  - Used as a support agent to draft the plan for `I6`, and to write parts of the code (the three counts and their service, the endpoint, the dashboard page and the header link), the tests of the six types, the regenerated OpenAPI, the Postman request and some parts of the documentation. The test-auditor and guide-reviewer subagents were run before the hand-over.
+  - The student set the scope in the request (only the three totals, nothing prepared for the AI requests of version 1.0), decided that users are the regular accounts with the blocked ones included, set the four stages and changed the assertion of the frontend–API test to avoid flaky exact counts, approved the plan, and edited and wrote by hand parts of the code, the tests and the documentation while reviewing each stage.
+- **Tool Complements (MCPs, Plugins, etc.):** Custom skills, review subagents and hooks.
+- **Context Files:** Some Claude Code configuration and a spec-driven plan for `I6`.
+- **Human Validation:** The student reviewed and approved the plan and the test output stage by stage, and committed each stage after it. Every part of the code and tests was reviewed and understood by the student.
