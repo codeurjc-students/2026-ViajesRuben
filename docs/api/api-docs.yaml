@@ -2579,6 +2579,35 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/admin/metrics:
+    get:
+      tags:
+        - admin-metrics-controller
+      summary: Get the platform totals
+      description:
+        "Administrator only. The total number of users (regular accounts,\
+        \ blocked ones included, the administrator not counted), of trips (published\
+        \ or not) and of activities. Not paginated: it is three numbers."
+      operationId: getMetrics
+      responses:
+        "200":
+          description: The platform totals
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/PlatformMetricsDTO"
+        "401":
+          description: Not logged in
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The caller is not the administrator
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /api/v1/trips/{tripId}/participants/{userId}:
     delete:
       tags:
@@ -3384,3 +3413,15 @@ components:
           format: int64
         last:
           type: boolean
+    PlatformMetricsDTO:
+      type: object
+      properties:
+        users:
+          type: integer
+          format: int64
+        trips:
+          type: integer
+          format: int64
+        activities:
+          type: integer
+          format: int64
