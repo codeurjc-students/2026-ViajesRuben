@@ -1,5 +1,6 @@
 package com.ruben.backend.user.repository;
 
+import com.ruben.backend.user.entity.Role;
 import com.ruben.backend.user.entity.User;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
           + " or lower(u.name) like lower(concat('%', :search, '%'))"
           + " or lower(u.email) like lower(concat('%', :search, '%')))")
   Page<User> searchUsers(@Param("search") String search, Pageable pageable);
+
+  /** How many accounts have the role, whatever their status (blocked ones included). */
+  long countByRole(Role role);
 
   /** Turns every administrator except the given one into a regular user and returns how many. */
   @Modifying(flushAutomatically = true)
