@@ -23,9 +23,9 @@ This page explains how to run TripMate from the published Docker images, without
 
 The only requirement is Docker with Docker Compose **2.34.0 or later** (older versions cannot run a Compose file from a registry), and port **443** free on the machine.
 
-| System        | What to install                                                                                                                                                                                                       |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows / Mac | [Docker Desktop](https://docs.docker.com/desktop/) (it includes Docker Compose). Start it before running the commands                                                                                                 |
+| System        | What to install                                                                                                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows / Mac | [Docker Desktop](https://docs.docker.com/desktop/) (it includes Docker Compose). Start it before running the commands                                                                                                         |
 | Linux         | [Docker Engine](https://docs.docker.com/engine/install/) and the [Docker Compose plugin](https://docs.docker.com/compose/install/linux/). On Linux, `docker` commands may need `sudo`, or add your user to the `docker` group |
 
 Check the version with `docker compose version`.
@@ -46,6 +46,8 @@ docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes
 docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:0.1 up -d --yes
 ```
 
+> **Note:** version 0.2 is not released yet, so this example still names `0.1`, which does not have the features of version 0.2 (public itineraries, invitations, participants, change log, charts and metrics). When 0.2 is released, the example changes to `0.2` (`oci://docker.io/rubenruiz7/tripmate-compose:0.2`). Until then, `latest` is also 0.1, and `dev` runs the last version of `main`, which has every feature of 0.2.
+
 Compose lists the variables of the file and asks for confirmation before running an application downloaded from a registry; `--yes` answers yes. Remove it to review the variables first. Every release is published with the tags `x.y.0`, `x.y` and `latest`, for example `0.1.0`, `0.1` and `latest`. `dev` is the last version of the `main` branch.
 
 The first start downloads the images and initializes MySQL, so it can take one or two minutes. To see when the application is ready:
@@ -60,28 +62,21 @@ docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest logs -f app
 
 Open **https://localhost/** in the browser. The certificate is self-signed, so the browser shows a warning: accept it to continue (in Chrome, _Advanced → Proceed to localhost_). The REST API is at https://localhost/api/v1/ and is documented [here](https://raw.githack.com/codeurjc-students/2026-ViajesRuben/main/docs/api/api-docs.html). The emails that the application sends (invitations) are caught by a test inbox at http://localhost:8025, see [Emails](#emails).
 
-| Account       | Email                 | Password    | Role          |
-| ------------- | --------------------- | ----------- | ------------- |
-| Administrator | `admin@tripmate.com`  | `admin`     | Administrator |
-| Ana García    | `ana@tripmate.com`    | `Demo-2026` | Regular user  |
-| Carlos Ruiz   | `carlos@tripmate.com` | `Demo-2026` | Regular user  |
-| Laura Pérez   | `laura@tripmate.com`  | `Demo-2026` | Regular user  |
-
-Without logging in you see the public home page. Any person can also register their own account at `/register`.
+Log in with one of the accounts of the [sample data](#sample-data) (the administrator is `admin@tripmate.com` with the password `admin`). Without logging in you see the public home page and the public itineraries. Any person can also register their own account at `/register`.
 
 ## Sample data
 
-While `SAMPLE_DATA` is `true` (the default), the application creates at start-up, if they do not exist:
+While `SAMPLE_DATA` is `true` (the default), the application creates at start-up, if they do not exist, three regular users and their trips, and three trips of the administrator. All the sample users have the same password (`SAMPLE_USERS_PASSWORD`, `Demo-2026` by default):
 
-- **Three regular users** with the trips shown below. All their passwords are the same (`SAMPLE_USERS_PASSWORD`, `Demo-2026` by default).
+| Account       | Email                 | Password    | Role          | Trips                                                                                                                                  | Public trips      |
+| ------------- | --------------------- | ----------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| Administrator | `admin@tripmate.com`  | `admin`     | Administrator | 3, in Spanish, with a cover photo and activities on every day: "Roma en cinco días", "Escapada a las Maldivas" and "Lo mejor de Tokio" | All three         |
+| Ana García    | `ana@tripmate.com`    | `Demo-2026` | Regular user  | 12 (so "Mis viajes" has a second page of "Más resultados"). "Lisbon getaway" has 7 activities and "Summer in Rome" 4                   | "Lisbon getaway"  |
+| Carlos Ruiz   | `carlos@tripmate.com` | `Demo-2026` | Regular user  | 3, one of them ("Andalusia route") with 3 activities                                                                                   | "Andalusia route" |
+| Laura Pérez   | `laura@tripmate.com`  | `Demo-2026` | Regular user  | 2, one of them ("Weekend in Porto") with 4 activities, with its third day left empty                                                   | None              |
 
-  | User   | Trips                                                                                                           |
-  | ------ | --------------------------------------------------------------------------------------------------------------- |
-  | Ana    | 12 (so "My trips" has a second page of "Más resultados"). "Lisbon getaway" has 7 activities and "Summer in Rome" 4 |
-  | Carlos | 3, one of them ("Andalusia route") with 3 activities                                                            |
-  | Laura  | 2, one of them ("Weekend in Porto") with 4 activities, with its third day left empty                            |
-
-- **Three example trips** created by the administrator (Rome, the Maldives and Tokyo), with budget, description, cover photo and activities on every day. They are the itineraries that the public home page shows to everyone.
+- **Public itineraries:** five trips of three authors are published, so the home page carousel and the "Viajes públicos" page show them to everyone, newest first ("Roma en cinco días" first). A trip is published only when the sample data creates it, so a trip that somebody unpublished stays unpublished after a restart.
+- **No invitations or participants:** every trip starts with only its creator. To try them, invite another sample user from the trip page (see [Emails](#emails)) and accept the invitation as that user.
 
 A trip that already has activities is never modified, so restarting the application does not duplicate or overwrite anything.
 
@@ -97,7 +92,7 @@ SAMPLE_DATA=false docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:
 
 On Windows PowerShell: `$env:SAMPLE_DATA="false"; docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes`.
 
-`SAMPLE_DATA` is read when the application starts and it only adds data. To go from sample data to an empty database, delete the data first (see below). The public home page has no example itineraries without sample data, because they are trips of the administrator.
+`SAMPLE_DATA` is read when the application starts and it only adds data. To go from sample data to an empty database, delete the data first (see below). Without sample data there are no public itineraries until a user publishes one of their trips.
 
 ## Emails
 
@@ -117,16 +112,16 @@ Mailpit keeps the emails only while its container exists: `down` deletes them (s
 
 All of them are environment variables with a default, and the defaults send everything to Mailpit:
 
-| Variable             | Default                                | Description                                                                                                                                 |
-| -------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MAIL_HOST`          | `mailpit`                              | SMTP server. `smtp.gmail.com` for Gmail                                                                                                     |
-| `MAIL_PORT`          | `1025`                                 | SMTP port. `587` for Gmail                                                                                                                  |
-| `MAIL_USERNAME`      | empty                                  | Account that sends the emails (the full address in Gmail)                                                                                   |
-| `MAIL_PASSWORD`      | empty                                  | Password of the account. In Gmail, an _app password_, never the normal password                                                             |
-| `MAIL_SMTP_AUTH`     | `false`                                | `true` if the server asks for `MAIL_USERNAME` and `MAIL_PASSWORD`                                                                           |
-| `MAIL_SMTP_STARTTLS` | `false`                                | `true` to encrypt the connection with STARTTLS                                                                                              |
-| `MAIL_FROM`          | `TripMate <no-reply@tripmate.local>`   | Sender shown in the emails. Gmail replaces it with the account itself, so use the same address                                              |
-| `APP_PUBLIC_URL`     | `https://localhost`                    | Address that the links in the emails start with. It must be reachable from where the email is read (see [below](#links-that-work-from-another-device)) |
+| Variable             | Default                              | Description                                                                                                                                            |
+| -------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MAIL_HOST`          | `mailpit`                            | SMTP server. `smtp.gmail.com` for Gmail                                                                                                                |
+| `MAIL_PORT`          | `1025`                               | SMTP port. `587` for Gmail                                                                                                                             |
+| `MAIL_USERNAME`      | empty                                | Account that sends the emails (the full address in Gmail)                                                                                              |
+| `MAIL_PASSWORD`      | empty                                | Password of the account. In Gmail, an _app password_, never the normal password                                                                        |
+| `MAIL_SMTP_AUTH`     | `false`                              | `true` if the server asks for `MAIL_USERNAME` and `MAIL_PASSWORD`                                                                                      |
+| `MAIL_SMTP_STARTTLS` | `false`                              | `true` to encrypt the connection with STARTTLS                                                                                                         |
+| `MAIL_FROM`          | `TripMate <no-reply@tripmate.local>` | Sender shown in the emails. Gmail replaces it with the account itself, so use the same address                                                         |
+| `APP_PUBLIC_URL`     | `https://localhost`                  | Address that the links in the emails start with. It must be reachable from where the email is read (see [below](#links-that-work-from-another-device)) |
 
 ### Sending real emails with Gmail
 
@@ -190,15 +185,15 @@ The same commands run the application on any server with Docker, for example a L
 2. Open port **443** (TCP) in the firewall of the server, and make sure nothing else uses it.
 3. Replace the development secrets, because the defaults are public. Set them as environment variables before the command:
 
-   | Variable              | What to set                                                                                                                                     |
-   | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-   | `ADMIN_PASSWORD_HASH` | BCrypt hash of the administrator password. Create it with `docker run --rm httpd:2 htpasswd -bnBC 10 "" 'my-password' \| tr -d ':\n'`           |
-   | `JWT_SECRET`          | A new key, with `openssl rand -base64 32`                                                                                                       |
-   | `MYSQL_ROOT_PASSWORD` | A private password for the database                                                                                                             |
-   | `SAMPLE_DATA`         | `false`, so there are no accounts with a known password                                                                                         |
-   | `ADMIN_EMAIL`         | Optional: the email of the administrator                                                                                                        |
-   | `APP_PUBLIC_URL`      | The public address of the server, for example `https://tripmate.example.com`: the links in the invitation emails start with it                  |
-   | `MAIL_*`              | Optional: the SMTP server that sends the invitation emails, instead of the test inbox. See [Emails](#emails)                                    |
+   | Variable              | What to set                                                                                                                           |
+   | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+   | `ADMIN_PASSWORD_HASH` | BCrypt hash of the administrator password. Create it with `docker run --rm httpd:2 htpasswd -bnBC 10 "" 'my-password' \| tr -d ':\n'` |
+   | `JWT_SECRET`          | A new key, with `openssl rand -base64 32`                                                                                             |
+   | `MYSQL_ROOT_PASSWORD` | A private password for the database                                                                                                   |
+   | `SAMPLE_DATA`         | `false`, so there are no accounts with a known password                                                                               |
+   | `ADMIN_EMAIL`         | Optional: the email of the administrator                                                                                              |
+   | `APP_PUBLIC_URL`      | The public address of the server, for example `https://tripmate.example.com`: the links in the invitation emails start with it        |
+   | `MAIL_*`              | Optional: the SMTP server that sends the invitation emails, instead of the test inbox. See [Emails](#emails)                          |
 
 4. Run the application:
 
