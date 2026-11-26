@@ -14,20 +14,20 @@
 
 ## Screens and navigation
 
-| Screen                          | Description                                                                                                                                  | Leads to                                                                         |
-| :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
-| **Public Home**                 | Landing page with a carousel of public itineraries                                                                                           | Log In, Create Account, Public Itineraries                                       |
-| **Public Itineraries**          | Searchable, paginated list of published trips, with read-only preview, copy to one's account (logged-in users) and unpublish (administrator) | Public Home, Log In, My Trips, Trip Details (read-only preview)                  |
-| **Log In**                      | Public authentication form                                                                                                                   | Create Account, My Trips                                                         |
-| **Create Account**              | User registration form                                                                                                                       | Log In, My Trips                                                                 |
-| **My Trips**                    | Main dashboard with the user's trips and pending invitations                                                                                 | Trip Details, Create/Edit Trip, Public Itineraries, User Profile                 |
-| **Create / Edit Trip**          | Form to initialize or update a trip                                                                                                          | My Trips, Trip Details                                                           |
-| **Trip Details & Itinerary**    | Core trip hub: summary, participants, day-by-day plan, conflicts, charts, publish/unpublish, Telegram group                                  | Add/Edit Activity, AI Generator, Create/Edit Trip, My Trips, Telegram (external) |
-| **Add / Edit Activity**         | Form/Modal for itinerary activities                                                                                                          | Trip Details                                                                     |
-| **AI Activity Generator**       | AI proposal generator and acceptance                                                                                                         | Trip Details                                                                     |
-| **User Profile**                | User account settings, personal trip list, and Telegram connection                                                                           | My Trips, Public Home (log out), Admin Panel (if admin), Telegram (external)     |
-| **System Administration Panel** | Global platform metrics, user management, and trip moderation                                                                                | Edit User, Trip Details, User Profile                                            |
-| **Edit User**                   | Administrator form to edit a user's account details and status                                                                               | System Administration Panel                                                      |
+| Screen                          | Description                                                                                                                                                                                       | Leads to                                                                         |
+| :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------- |
+| **Public Home**                 | Landing page with a carousel of public itineraries                                                                                                                                                | Log In, Create Account, Public Itineraries                                       |
+| **Public Itineraries**          | Searchable, paginated list of published trips; each opens the read-only preview, where logged-in users copy it to their account. The administrator unpublishes from the list and from the preview | Public Home, Log In, My Trips, Trip Details (read-only preview)                  |
+| **Log In**                      | Public authentication form                                                                                                                                                                        | Create Account, My Trips                                                         |
+| **Create Account**              | User registration form                                                                                                                                                                            | Log In, My Trips                                                                 |
+| **My Trips**                    | Main dashboard with the user's trips (created or joined) and their pending invitations                                                                                                            | Trip Details, Create/Edit Trip, Public Itineraries, User Profile                 |
+| **Create / Edit Trip**          | Form to initialize or update a trip                                                                                                                                                               | My Trips, Trip Details                                                           |
+| **Trip Details & Itinerary**    | Core trip hub: summary, publish/unpublish, conflicts, day-by-day plan, charts, change log, participants, invitations and, from version 1.0, the Telegram group                                    | Add/Edit Activity, AI Generator, Create/Edit Trip, My Trips, Telegram (external) |
+| **Add / Edit Activity**         | Form/Modal for itinerary activities                                                                                                                                                               | Trip Details                                                                     |
+| **AI Activity Generator**       | AI proposal generator and acceptance                                                                                                                                                              | Trip Details                                                                     |
+| **User Profile**                | User account settings (avatar, name, email, password) and, from version 1.0, the Telegram connection                                                                                              | My Trips, Public Home (log out), Telegram (external)                             |
+| **System Administration Panel** | Global platform metrics, with links to the user management (Usuarios) and trip moderation (Viajes) pages                                                                                          | Usuarios (Edit User), Viajes (Trip Details)                                      |
+| **Edit User**                   | Administrator modal, on the Usuarios page, to edit a user's name and email                                                                                                                        | System Administration Panel (Usuarios)                                           |
 
 ## Navigation flow diagram
 
@@ -37,15 +37,19 @@ The following diagram illustrates the overall user experience and navigation flo
 
 ### 1. Public Home
 
-The public landing page shown to visitors who are not logged in. It introduces **TripMate** with a short pitch and a header with "Log In" and "Sign Up" buttons, displays a carousel of public itineraries (the trips that users have published: destination, duration, budget and a day-by-day preview) to illustrate how the app works, with a "Ver todos" link to the Public Itineraries page, and includes a brief "how it works" section. Anyone can open a public itinerary in a read-only preview without logging in. Before version 0.2 the carousel shows the example itineraries created by the administrator.
+The public landing page shown to visitors who are not logged in. It introduces **TripMate** with a short pitch and a header with "Log In" and "Sign Up" buttons, displays a carousel of public itineraries (the trips that users have published: destination, duration, budget and a day-by-day preview) to illustrate how the app works, with a "Ver todos" link to the Public Itineraries page, and includes a brief "how it works" section. Anyone can open a public itinerary in a read-only preview without logging in. In version 0.1 the carousel showed the example itineraries, the trips created by the administrator; since version 0.2 it shows the public itineraries.
 
 <img src="images/wireframes/PublicHomeWireframe.png" alt="Public home Wireframe" width="500"/>
 
 ### 2. Public Itineraries
 
-Public page, reachable from the header and from the home page, with the complete list of public itineraries (newest first, ten at a time with "Más resultados"), a search by trip name or destination, and a line per trip with its name, destination, dates and author that opens the read-only preview.
+Public page, reachable from the header and from the home page, with the complete list of public itineraries (newest first, ten at a time with "Más resultados"), a search by trip name or destination, and a line per trip with its name, destination, dates and author that opens the read-only preview. In the preview, "Copiar en tu cuenta" copies the itinerary into a new trip of the user (a visitor is asked to log in first). The administrator sees a "Despublicar" button on every line and in the preview.
 
 <img src="images/wireframes/PublicTripsWireframe.png" alt="Public itineraries Wireframe" width="500"/>
+
+The implemented screen (version 0.2):
+
+<img src="images/screenshots/v0.2/public-itineraries.png" alt="Public itineraries page" width="500"/>
 
 ### 3. Log In
 
@@ -61,19 +65,19 @@ The public user onboarding page. It provides a clean registration form containin
 
 ### 5. My Trips
 
-The primary dashboard for authenticated users after logging in. It includes the global application header and displays a grid of existing trip cards (showing destination, dates, and participant count), each with quick actions to view or manage the trip, alongside a prominent "+ Create new trip" button. A "Pending invitations" section lists the trips the user has been invited to, with "Accept" and "Reject" buttons.
+The primary dashboard for authenticated users after logging in. It includes the global application header and displays a grid of cards with the trips the user created or joined. Each card shows the cover, the trip name (which opens the trip), the destination, the dates, the number of people who joined ("Participantes: N", not counting the creator) and a "Público" badge when the trip is published; the creator also has edit and delete buttons on it. A "Nuevo viaje" button creates a trip. A "Pending invitations" section ("Invitaciones pendientes"), shown only when there are any, lists the trips the user has been invited to, with "Accept" and "Reject" buttons.
 
 <img src="images/wireframes/MyTripsWireframe.png" alt="My Trips Wireframe" width="500"/>
 
 ### 6. Create / Edit Trip
 
-A structured form interface used to initialize a new trip or update an existing one. It collects essential trip attributes including the trip name, destination, start and end dates, total budget, description, cover image, and, from version 0.2, an input field to invite initial collaborators by email.
+A structured form interface used to initialize a new trip or update an existing one. It collects essential trip attributes including the trip name, destination, start and end dates, total budget, description and cover image. Collaborators are not invited here: once the trip exists, the creator invites them by email from the trip page (Trip Details & Itinerary).
 
 <img src="images/wireframes/TripFormWireframe.png" alt="Trip form Wireframe" width="500"/>
 
 ### 7. Trip Details & Itinerary
 
-The main control hub for a specific trip. The top section summarizes core trip details (destination, dates, budget) and displays participant avatars with an invite button. The middle section features an interactive day-by-day tab selector to filter and view the chronological list of scheduled activities for the selected date, with warnings for any detected conflicts. A spending section shows the trip's charts. From version 0.2, the creator can publish or unpublish the trip with a button, which adds it to or removes it from the public itineraries. From version 1.0, a Telegram button lets the creator create the trip's Telegram group and lets participants open it.
+The main control hub for a specific trip. The top section summarizes core trip details (cover, destination, dates, budget and remaining budget), with the buttons of the creator: publish or unpublish (which adds the trip to or removes it from the public itineraries), edit and delete. Below it come the warnings for any detected conflicts and an interactive day-by-day tab selector that shows the chronological list of activities of the selected date; the creator and the participants add, edit and delete any activity, and each one says who added it. Then come the spending section with the trip's charts (creator and participants), the change log of the itinerary (who changed which activity and when), the participants with their avatar and join date (the creator can remove them and a participant can leave the trip), and, for the creator only, the invitations section, where people are invited by email and the status of each invitation is shown. The administrator sees the trip read-only, with a button to delete it. From version 1.0, a Telegram button lets the creator create the trip's Telegram group and lets participants open it.
 
 <img src="images/wireframes/TripDetailWireframe.png" alt="Trip detail Wireframe" width="500"/>
 
@@ -91,19 +95,19 @@ An intelligent planning module that leverages an AI engine to generate custom ac
 
 ### 10. User Profile
 
-The account management view displaying the user's personal details (avatar, name, email, account creation date). It includes action buttons to edit profile information or log out, as well as an organized overview of the user's created trips and active group participations. From version 1.0, it also shows the Telegram connection status, with a "Connect Telegram" or "Disconnect" button.
+The account management view displaying the user's personal details: the avatar (upload, replace or delete), the name, the email and the registration date ("Miembro desde"). It includes a button to edit the name and email and a form to change the password (which asks for the current one); logging out is in the header. It does not list the user's trips, which are in My Trips. The administrator can only change their avatar, because their details come from the configuration. From version 1.0, it also shows the Telegram connection status, with a "Connect Telegram" or "Disconnect" button.
 
 <img src="images/wireframes/ProfileWireframe.png" alt="Profile Wireframe" width="500"/>
 
 ### 11. System Administration Panel
 
-A high-level oversight dashboard accessible exclusively to the system administrator. It displays global platform metrics (total users, trips, activities, and AI requests) and provides searchable data tables to manage registered users and moderate platform-wide trips. In the users table, the "Edit" button redirects the administrator to the Edit User screen. In the trips table, the "View" button redirects to the Trip Details & Itinerary page of the selected trip, where the administrator can review its full information and activities, and a "Delete" button removes inappropriate trips.
+A high-level oversight dashboard accessible exclusively to the system administrator ("Panel" in the header). It displays the global platform metrics (total users, trips and activities; the AI requests are added in version 1.0) and links to two pages, which are also in the header: "Usuarios" and "Viajes". "Usuarios" lists and searches the registered users, with an "Editar" button that opens the Edit User modal and a "Bloquear" or "Desbloquear" button with a confirmation. "Viajes" lists and searches the trips of every user, and "Ver viaje" opens the Trip Details & Itinerary page of the selected trip, where the administrator reviews its information, activities and change log and can delete it. The wireframe shows the whole administration in one screen; the implementation splits it into these three pages.
 
 <img src="images/wireframes/AdminPanelWireframe.png" alt="Admin panel Wireframe" width="500"/>
 
 ### 12. Edit User
 
-A form accessible only to the administrator, where a user's account details (name, email, avatar) and status (active or blocked) can be updated. Blocked users cannot log in. The administrator role cannot be assigned from this form, since the application has a single administrator defined in the configuration.
+A modal of the "Usuarios" page, accessible only to the administrator, where a user's name and email are updated (only the user changes their avatar). The status (active or blocked) is changed with the "Bloquear" or "Desbloquear" button of the same page, after a confirmation. Blocked users cannot log in. The administrator role cannot be assigned from this form, since the application has a single administrator defined in the configuration.
 
 <img src="images/wireframes/EditUserWireframe.png" alt="Edit user Wireframe" width="500"/>
 
