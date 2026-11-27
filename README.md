@@ -33,7 +33,7 @@ See [Features of version 0.2](docs/functionalities.md#features-of-version-02) fo
 
 ### Video
 
-One-minute video of version 0.2: [VIDEO_URL_02](VIDEO_URL_02)
+Video of version 0.2: [Intermediate functionality video](https://youtu.be/-2BguX7AQck)
 
 ### Version 0.1
 
@@ -44,7 +44,7 @@ Version 0.1 was the first working version of TripMate. A visitor could browse ex
   <img src="docs/images/screenshots/trip-itinerary.png" alt="Trip itinerary day by day" width="400"/>
 </p>
 
-One-minute video of version 0.1: [https://youtu.be/47QNyhBgbxg](https://youtu.be/47QNyhBgbxg)
+Video of version 0.1: [Basic functionality video](https://youtu.be/47QNyhBgbxg)
 
 ### Next versions
 
@@ -109,6 +109,6 @@ Open https://localhost/ (the browser warns about the self-signed certificate) an
 - **Phase 1 (definition of features and screens):** Claude (Anthropic, Claude Opus 5.5, chat) was used to compare instant messaging platforms (WhatsApp and Telegram) for the optional instant messaging part, to design the Telegram integration and to review this README against the TFG guidelines.
 - **Phase 2 (repository, tests and CI):** Claude (Anthropic, Claude Opus 5.5, chat) was used as a guide to set up the project structure, the automated tests, the CI workflows, static code analysis; and to restructure the documentation. All generated content was reviewed, understood and adapted before being added to the repository.
 - **Phase 3 (basic functionality, B1–B8):** Claude Code (Anthropic, Opus 5.5 for planning and Sonnet 5.5 for implementation) was used as a support agent to plan, write some parts of the code and tests, and help document each feature; the student approved each plan, reviewed and changed the generated code, and verified every stage before committing.
-- **Phase 4 (intermediate functionality, I1–I10):** Claude Code (Anthropic, Opus 5.5 for planning and Sonnet 5.5 for implementation) was used in the same way for every feature, for the fixes of the issues reported by SonarQube Cloud, and to update the documentation of version 0.2; the student decided the scope (for example, that participants edit any activity of the itinerary), approved each plan, reviewed the generated code and verified every stage before committing.
+- **Phase 4 (intermediate functionality, I1–I10):** Claude Code (Anthropic, Opus 5.5 for planning and Sonnet 5.5 for implementation) was used in the same way for every feature (I1–I10); the student decided the scope (for example, that participants edit any activity of the itinerary), approved each plan, reviewed the generated code and verified every stage before committing.
 
 Detailed information about each use of AI tools is available in [AI_USAGE.md](docs/AI_USAGE.md).
