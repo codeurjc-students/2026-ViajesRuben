@@ -5,6 +5,8 @@ All notable changes to the **TripMate** project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ## [0.2.0] - 2026-11-27
 
 Second GitHub release (tag `0.2`): the intermediate functionality I1–I10.
@@ -227,5 +229,6 @@ First GitHub release (tag `0.1`): the basic functionality B1–B8, the Docker im
 - Initial development methodology, project timeline, and Gantt chart.
 - AI usage tracking documentation in `AI_USAGE.md`.
 
+[Unreleased]: https://github.com/codeurjc-students/2026-ViajesRuben/compare/0.2...HEAD
 [0.2.0]: https://github.com/codeurjc-students/2026-ViajesRuben/releases/tag/0.2
 [0.1.0]: https://github.com/codeurjc-students/2026-ViajesRuben/releases/tag/0.1
