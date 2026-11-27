@@ -3552,6 +3552,139 @@
       ]
     },
     {
+      "name": "Search public trips (I8)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/trips/public?search=lisbon&page=0&size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "trips",
+            "public"
+          ],
+          "query": [
+            {
+              "key": "search",
+              "value": "lisbon",
+              "description": "Text to find in the trip name or destination, ignoring case and surrounding spaces; blank lists all"
+            },
+            {
+              "key": "page",
+              "value": "0",
+              "description": "Page number, starting at 0"
+            },
+            {
+              "key": "size",
+              "value": "10",
+              "description": "Items per page (default 10, maximum 50); the public itineraries page asks for 10"
+            }
+          ]
+        },
+        "description": "Public, no login. The search of the public itineraries page (I8): the published trips whose name or destination contains `search`, ignoring case and the spaces around it (`lisbon` finds \"Lisbon getaway\"), the most recently published first, ten at a time as the page asks for them. A blank `search` lists every public itinerary. The answer is the same page of `PublicTripSummaryDTO` as without a search; a search without results is an empty page, never a 404."
+      },
+      "response": [
+        {
+          "name": "Found by destination",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/public?search=lisbon&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "public"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "lisbon",
+                  "description": "Text to find in the trip name or destination, ignoring case and surrounding spaces; blank lists all"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50); the public itineraries page asks for 10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"content\": [\n    {\n      \"trip\": {\n        \"id\": 1,\n        \"name\": \"Lisbon getaway\",\n        \"destination\": \"Lisbon\",\n        \"startDate\": \"2027-05-01\",\n        \"endDate\": \"2027-05-05\",\n        \"budget\": null,\n        \"description\": null,\n        \"coverImageId\": null,\n        \"authorName\": \"Ana García\",\n        \"publishedAt\": \"2026-11-14T10:26:00.123456Z\"\n      },\n      \"firstDays\": [\n        {\n          \"day\": 1,\n          \"activityName\": \"Alfama walking tour\"\n        },\n        {\n          \"day\": 2,\n          \"activityName\": \"Belém Tower\"\n        },\n        {\n          \"day\": 3,\n          \"activityName\": \"Day trip to Sintra\"\n        }\n      ]\n    }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 1,\n  \"last\": true\n}"
+        },
+        {
+          "name": "No results",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/trips/public?search=atlantis&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "trips",
+                "public"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "atlantis",
+                  "description": "Text to find in the trip name or destination, ignoring case and surrounding spaces; blank lists all"
+                },
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Page number, starting at 0"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Items per page (default 10, maximum 50); the public itineraries page asks for 10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"content\": [],\n  \"page\": 0,\n  \"size\": 10,\n  \"totalElements\": 0,\n  \"last\": true\n}"
+        }
+      ]
+    },
+    {
       "name": "Get public trip by id",
       "request": {
         "method": "GET",

@@ -4,19 +4,70 @@
 
 ## Index
 
+- [Features of version 0.2](#features-of-version-02)
 - [Features of version 0.1](#features-of-version-01)
 - [Detailed features](#detailed-features)
   - [Basic functionality (version 0.1)](#basic-functionality-version-01)
   - [Intermediate functionality (version 0.2)](#intermediate-functionality-version-02)
   - [Advanced functionality (version 1.0)](#advanced-functionality-version-10)
 
+## Features of version 0.2
+
+Version 0.2 adds the intermediate functionality (I1–I10) to version 0.1. Trips can be published and copied, and they are planned as a group: the creator invites people by email, and the participants build the itinerary together, with a change log and spending charts. The administrator has a dashboard and moderates the public itineraries. The screenshots below are the ones shown in the [video](../README.md#video).
+
+### Public itineraries (I7, I8)
+
+The home page shows the latest public itineraries (the trips their creators published) three at a time, each with its author, and a "Ver todos" link. "Viajes públicos", in the header, lists every public itinerary, newest first, ten at a time, with a search by trip name or destination. Anyone opens one in a read-only preview, day by day, without logging in.
+
+![Home page with the public itineraries](images/screenshots/v0.2/home-public-itineraries.png)
+![Public itineraries page](images/screenshots/v0.2/public-itineraries.png)
+
+### Publishing and copying an itinerary (I7, I9)
+
+The creator publishes or unpublishes a trip with one button on the trip page, and a "Público" badge marks it there and in "Mis viajes". In a public itinerary, "Copiar en tu cuenta" creates a new trip of the user with its activities and images, optionally from a new start date; a visitor is asked to log in first.
+
+![Published trip](images/screenshots/v0.2/trip-published.png)
+![Copying a public itinerary](images/screenshots/v0.2/copy-trip.png)
+
+### Invitations (I1, I2)
+
+The creator invites people from the "Invitaciones" section of the trip page, with an email address. The invited person receives an email with a link to the invitation page, and also sees the invitation in "Mis viajes" under "Invitaciones pendientes", where they accept or reject it. The creator's list shows whether each invitation is pending, accepted or rejected.
+
+![Invitations of a trip](images/screenshots/v0.2/invitations.png)
+![Pending invitations in My trips](images/screenshots/v0.2/pending-invitations.png)
+
+### Participants (I3)
+
+Accepting makes the user a participant: the trip appears in their "Mis viajes", whose cards show how many people joined each trip. The "Participantes" section of the trip page lists who joined; the creator can remove anyone, and a participant can leave the trip.
+
+![Participants of a trip](images/screenshots/v0.2/participants.png)
+
+### Collaborative itinerary and change log (I4)
+
+The creator and the participants create, edit and delete any activity of the trip, and each activity says who added it. Every change is recorded in the "Historial de cambios" section (who, what and when, with the changed fields of an edit), which shows the latest changes first.
+
+![Collaborative itinerary and change log](images/screenshots/v0.2/change-log.png)
+
+### Spending charts (I5)
+
+The "Gastos" section of the trip page shows the spending by category with the total against the budget, and the cumulative spending over every day of the trip with the budget as a reference line. It is updated when the activities change.
+
+![Spending charts](images/screenshots/v0.2/spending-charts.png)
+
+### Administrator: dashboard and moderation of public itineraries (I6, I10)
+
+"Panel" shows the totals of users, trips and activities of the platform, with links to the user management and trip moderation pages. On the public itineraries page and in the preview, the administrator has a "Despublicar" button: the itinerary leaves the public pages and the user keeps the trip, unpublished.
+
+![Administrator dashboard](images/screenshots/v0.2/admin-dashboard.png)
+![Administrator unpublishing a public itinerary](images/screenshots/v0.2/admin-unpublish.png)
+
 ## Features of version 0.1
 
-Version 0.1 is the basic functionality (B1–B8): a visitor can look at example itineraries, register and log in; a registered user manages their profile, their trips and the day-by-day itinerary of each trip, and is warned about conflicts; the administrator manages users and trips. The screenshots below are the ones shown in the [video](../README.md#video).
+Version 0.1 is the basic functionality (B1–B8). A visitor can look at the example itineraries (public itineraries since 0.2), register and log in. A registered user manages their profile, their trips and the day-by-day itinerary of each trip, and is warned about conflicts. The administrator manages users and trips. The screenshots below are the ones shown in the [video of version 0.1](https://youtu.be/47QNyhBgbxg).
 
 ### Public home page and example itineraries (B1)
 
-Anyone can open the home page without logging in. It has a short introduction with the buttons to register or log in, the example itineraries three at a time, and a box that explains in three steps how TripMate works. An example card shows the cover, the destination, the number of days, the budget and the first activity of each of its first three days. "Ver itinerario completo" opens a read-only preview of the whole itinerary, day by day.
+Anyone can open the home page without logging in. It has a short introduction with the buttons to register or log in, the example itineraries three at a time (since version 0.2, the public itineraries), and a box that explains in three steps how TripMate works. An example card shows the cover, the destination, the number of days, the budget and the first activity of each of its first three days. "Ver itinerario completo" opens a read-only preview of the whole itinerary, day by day.
 
 ![Public home page](images/screenshots/home-public.png)
 ![Example itinerary preview](images/screenshots/example-trip.png)
@@ -44,7 +95,7 @@ The trip page shows the itinerary one day at a time, with a tab for every day of
 
 ### Conflict detection (B6)
 
-Above the itinerary, the creator sees a warning when activities of the same day overlap in time, when an activity is outside the dates of the trip, or when the total cost is above the budget. The warnings never prevent saving, and the activities outside the dates have an "Editar" link.
+Above the itinerary, the creator (since version 0.2, everyone who opens the trip) sees a warning when activities of the same day overlap in time, when an activity is outside the dates of the trip, or when the total cost is above the budget. The warnings never prevent saving, and the activities outside the dates have an "Editar" link.
 
 ![Conflict warning](images/screenshots/conflicts.png)
 
@@ -57,35 +108,35 @@ The administrator has two more pages. "Usuarios" lists and searches users, edits
 
 ## Detailed features
 
-Each feature has an identifier so that it can be traced to its automated tests (see the [traceability matrix](development-guide.md#traceability-between-tests-and-features)). The _Status_ column says whether it is implemented.
+Each feature has an identifier so that it can be traced to its automated tests (see the [traceability matrix](development-guide.md#traceability-between-tests-and-features)). The _Status_ column says whether it is implemented and in which version.
 
 ### Basic functionality (version 0.1)
 
-| ID  | Feature                                                                                                                                                                                                                                                                                                                                  | User type                 | Status         |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | -------------- |
-| B1  | Browse the public home page with example itineraries. The examples are the trips created by the administrator (three in the sample data); they are shown three at a time and opened in a read-only preview, day by day. In version 0.2 the example itineraries become public itineraries (I7–I10): any user can publish their own trips. | Anonymous                 | ✅ Implemented |
-| B2  | Register a new account and log in. The new user is always a regular user, and the administrator's email cannot be registered.                                                                                                                                                                                                            | Anonymous                 | ✅ Implemented |
-| B3  | Log out, and view and edit one's own profile (name, email, password, avatar). The administrator can only change their avatar, because their data comes from the configuration.                                                                                                                                                           | Registered                | ✅ Implemented |
-| B4  | Create, view, edit, and delete one's own trips, including a cover image.                                                                                                                                                                                                                                                                 | Registered (trip creator) | ✅ Implemented |
-| B5  | Create, view, edit, and delete activities in a trip's itinerary, including an image, and browse the itinerary day by day. The trip page also shows the remaining budget.                                                                                                                                                                 | Registered (trip creator) | ✅ Implemented |
-| B6  | Conflict detection: overlapping activities on the same day, activities outside the trip's date range, and total activity cost exceeding the trip budget. They are warnings shown to the trip creator and never block saving (until version 0.2 only the creator).                                                                        | Registered (trip creator) | ✅ Implemented |
-| B7  | User management: list and search users, edit their name and email, and block or unblock accounts. The administrator's own account cannot be edited or blocked here.                                                                                                                                                                      | Administrator             | ✅ Implemented |
-| B8  | Trip moderation: list and search all trips, view any trip in read-only mode (with its itinerary), and delete inappropriate trips. The administrator does not edit other users' trips.                                                                                                                                                    | Administrator             | ✅ Implemented |
+| ID  | Feature                                                                                                                                                                                                                                                                                                                   | User type                                             | Status               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------- |
+| B1  | Browse the public home page with its itineraries, three at a time, and open them in a read-only preview, day by day. In version 0.1 they were the example itineraries (the trips created by the administrator); in version 0.2 they became the public itineraries (I7–I10), the trips that any user publishes.            | Anonymous                                             | ✅ Implemented (0.1) |
+| B2  | Register a new account and log in. The new user is always a regular user, and the administrator's email cannot be registered.                                                                                                                                                                                             | Anonymous                                             | ✅ Implemented (0.1) |
+| B3  | Log out, and view and edit one's own profile (name, email, password, avatar). The administrator can only change their avatar, because their data comes from the configuration.                                                                                                                                            | Registered                                            | ✅ Implemented (0.1) |
+| B4  | Create, view, edit, and delete one's own trips, including a cover image.                                                                                                                                                                                                                                                  | Registered (trip creator)                             | ✅ Implemented (0.1) |
+| B5  | Create, view, edit, and delete activities in a trip's itinerary, including an image, and browse the itinerary day by day. The trip page also shows the remaining budget. Since version 0.2 the participants of the trip can also do it (I4).                                                                              | Registered (trip creator; trip participant since 0.2) | ✅ Implemented (0.1) |
+| B6  | Conflict detection: overlapping activities on the same day, activities outside the trip's date range, and total activity cost exceeding the trip budget. They are warnings that never block saving, shown to the trip creator and, since version 0.2, to everyone who can open the trip (participants and administrator). | Registered (trip creator, trip participant)           | ✅ Implemented (0.1) |
+| B7  | User management: list and search users, edit their name and email, and block or unblock accounts. The administrator's own account cannot be edited or blocked here.                                                                                                                                                       | Administrator                                         | ✅ Implemented (0.1) |
+| B8  | Trip moderation: list and search all trips, view any trip in read-only mode (with its itinerary), and delete inappropriate trips. The administrator does not edit other users' trips.                                                                                                                                     | Administrator                                         | ✅ Implemented (0.1) |
 
 ### Intermediate functionality (version 0.2)
 
-| ID  | Feature                                                                                                                                                                                                                                     | User type                      | Status     |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ---------- |
-| I1  | Invite users to a trip by email; the invited person receives an email with a link to respond.                                                                                                                                               | Trip creator                   | ✅ Implemented |
-| I2  | Accept or reject an invitation, from the email link or from the pending invitations section in "My Trips".                                                                                                                                  | Registered (invited user)      | ✅ Implemented |
-| I3  | Manage participants: the creator can view and remove participants; a participant can leave the trip.                                                                                                                                        | Trip creator, trip participant | ✅ Implemented |
-| I4  | Collaborative itinerary: the creator and the participants create activities and edit or delete any activity of the trip; every change is recorded in a change log (who, what and when) that the members read on the trip page.              | Trip creator, trip participant | ✅ Implemented |
-| I5  | Spending charts on the trip page (spending by category against the budget, cumulative spending per day).                                                                                                                                    | Trip creator, trip participant | ✅ Implemented |
-| I6  | Platform metrics dashboard (total users, trips, activities, and, from version 1.0, AI requests).                                                                                                                                            | Administrator                  | ✅ Implemented |
-| I7  | Public itineraries: the creator publishes or unpublishes their own trips; published trips are shown in a carousel on the public home page and opened in a read-only preview, day by day.                                                    | Trip creator, Anonymous        | ✅ Implemented |
-| I8  | Public itineraries page: the complete list of published trips, with a search by name or destination, paginated.                                                                                                                             | Anonymous                      | ✅ Implemented |
-| I9  | Copy a public itinerary to one's own account: the trip, its activities and its images are copied into a new trip of the user, who can then edit it freely.                                                                                  | Registered                     | ✅ Implemented |
-| I10 | Moderation of public itineraries: the administrator unpublishes a public itinerary, which removes it from the public list but keeps the user's trip; serious cases are still handled by deleting the trip (B8) or blocking its author (B7). | Administrator                  | ✅ Implemented |
+| ID  | Feature                                                                                                                                                                                                                                                                                | User type                      | Status               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------------------- |
+| I1  | Invite users to a trip by email, also an email without an account yet; the invited person receives an email with a link to respond. Only the creator invites and sees the trip's invitations.                                                                                          | Trip creator                   | ✅ Implemented (0.2) |
+| I2  | Accept or reject an invitation, from the email link or from the pending invitations section in "My Trips". Accepting makes the user a participant, who can then open the trip and sees it in "My Trips".                                                                               | Registered (invited user)      | ✅ Implemented (0.2) |
+| I3  | Manage participants: the creator, the participants and the administrator see who joined the trip (only the creator sees their emails); the creator removes participants, and a participant can leave the trip.                                                                         | Trip creator, trip participant | ✅ Implemented (0.2) |
+| I4  | Collaborative itinerary: the creator and the participants create activities and edit or delete any activity of the trip; every change is recorded in a change log (who, what and when) that the members read on the trip page. The administrator only reads the itinerary and its log. | Trip creator, trip participant | ✅ Implemented (0.2) |
+| I5  | Spending charts on the trip page (spending by category against the budget, cumulative spending per day).                                                                                                                                                                               | Trip creator, trip participant | ✅ Implemented (0.2) |
+| I6  | Platform metrics dashboard with three totals: users, trips and activities. The AI requests are added in version 1.0, with the AI features.                                                                                                                                             | Administrator                  | ✅ Implemented (0.2) |
+| I7  | Public itineraries: the creator publishes or unpublishes their own trips; published trips are shown in a carousel on the public home page and opened in a read-only preview, day by day.                                                                                               | Trip creator, Anonymous        | ✅ Implemented (0.2) |
+| I8  | Public itineraries page: the complete list of published trips, with a search by name or destination, paginated.                                                                                                                                                                        | Anonymous                      | ✅ Implemented (0.2) |
+| I9  | Copy a public itinerary to one's own account: the trip, its activities and its images are copied into a new trip of the user, who can then edit it freely.                                                                                                                             | Registered                     | ✅ Implemented (0.2) |
+| I10 | Moderation of public itineraries: the administrator unpublishes a public itinerary, which removes it from the public list but keeps the user's trip; serious cases are still handled by deleting the trip (B8) or blocking its author (B7).                                            | Administrator                  | ✅ Implemented (0.2) |
 
 ### Advanced functionality (version 1.0)
 

@@ -6,29 +6,50 @@
 
 **TripMate** is a web application that lets a group of people plan a trip together: create the trip, build its day-by-day itinerary through activities, invite other participants, and collaborate on the plan. It includes an AI assistant able to generate itinerary proposals based on the destination, dates, budget, and preferences of the group, which the user can review and accept before adding them to the trip. Each trip can also have its own Telegram group, linked to the trip by a TripMate bot, so participants can talk about the trip in a messaging app they already use, receive their invitations there, and be notified when the plan changes. The project is initially developed as a monolithic application, designed to evolve in a second thesis project (TFG2) into a distributed services architecture.
 
-## Version 0.1
+## Version 0.2
 
-Version 0.1 is the first working version of TripMate. A visitor can browse example itineraries on the public home page, register and log in. A registered user can edit their profile, create their own trips with a cover image, build the day-by-day itinerary of each trip with activities (with image, time, location, category and cost), follow the remaining budget and see warnings when activities overlap, fall outside the dates of the trip or exceed the budget. The administrator can search, edit, block and unblock users, and search, review and delete any trip. The application runs as a single Docker image with MySQL, published on DockerHub. These are the features B1–B8; see [Features](docs/functionalities.md) for each one with its screenshots.
+Version 0.2 adds the intermediate functionality (I1–I10) to the basic one of version 0.1, and turns TripMate into a tool to plan a trip as a group:
+
+- **Public itineraries:** any user can publish their trips. The home page shows the latest public itineraries, a public page lists all of them with a search by name or destination, and anyone can open one in a read-only preview, day by day.
+- **Copying:** a registered user copies a public itinerary into their own trips, optionally from a new start date, and then edits it freely.
+- **Invitations by email:** the creator of a trip invites people by email. The invited person accepts or rejects from the link of the email or from "Mis viajes".
+- **Participants:** the creator sees who joined and can remove them, and a participant can leave the trip.
+- **Collaborative itinerary:** the creator and the participants create, edit and delete any activity. Every change is recorded in a change log (who, what and when) shown on the trip page.
+- **Spending charts:** spending by category against the budget, and cumulative spending over the days of the trip.
+- **Administrator:** a dashboard with the totals of users, trips and activities, and the moderation of public itineraries (unpublishing one keeps the user's trip).
+
+See [Features of version 0.2](docs/functionalities.md#features-of-version-02) for each one with its screenshots.
 
 <p>
-  <img src="docs/images/screenshots/home-public.png" alt="Public home page with example itineraries" width="400"/>
-  <img src="docs/images/screenshots/my-trips.png" alt="My trips" width="400"/>
+  <img src="docs/images/screenshots/v0.2/public-itineraries.png" alt="Public itineraries page with search" width="400"/>
+  <img src="docs/images/screenshots/v0.2/invitations.png" alt="Invitations of a trip" width="400"/>
 </p>
 <p>
-  <img src="docs/images/screenshots/trip-itinerary.png" alt="Trip itinerary day by day" width="400"/>
-  <img src="docs/images/screenshots/conflicts.png" alt="Conflict warnings" width="400"/>
+  <img src="docs/images/screenshots/v0.2/change-log.png" alt="Collaborative itinerary and change log" width="400"/>
+  <img src="docs/images/screenshots/v0.2/spending-charts.png" alt="Spending charts" width="400"/>
 </p>
 
-> **Project status:** TripMate is still under development. Version 0.1 contains the basic functionality (B1–B8); the invitations and participants, the spending charts, the metrics and the public itineraries (version 0.2), and the AI assistant and the Telegram integration (version 1.0) are not implemented yet.
+> **Project status:** TripMate is still under development. Versions 0.1 and 0.2 contain the basic (B1–B8) and intermediate (I1–I10) functionality. The AI assistant and the Telegram integration (version 1.0) are not implemented yet.
 
 ### Video
 
-One-minute video of version 0.1: [https://youtu.be/47QNyhBgbxg](https://youtu.be/47QNyhBgbxg)
+Video of version 0.2: [Intermediate functionality video](https://youtu.be/-2BguX7AQck)
+
+### Version 0.1
+
+Version 0.1 was the first working version of TripMate. A visitor could browse example itineraries on the public home page (public itineraries since 0.2), register and log in. A registered user can edit their profile, create their own trips with a cover image, and build the day-by-day itinerary of each trip with activities (with image, time, location, category and cost). They can follow the remaining budget and see warnings when activities overlap, fall outside the dates of the trip or exceed the budget. The administrator can search, edit, block and unblock users, and search, review and delete any trip. The application runs as a single Docker image with MySQL, published on DockerHub. These are the features B1–B8; see [Features of version 0.1](docs/functionalities.md#features-of-version-01).
+
+<p>
+  <img src="docs/images/screenshots/home-public.png" alt="Public home page of version 0.1" width="400"/>
+  <img src="docs/images/screenshots/trip-itinerary.png" alt="Trip itinerary day by day" width="400"/>
+</p>
+
+Video of version 0.1: [Basic functionality video](https://youtu.be/47QNyhBgbxg)
 
 ### Next versions
 
-- **Version 0.2 (intermediate functionality, I1–I10):** invite people to a trip by email and accept or reject invitations, manage the participants of a trip, build the itinerary collaboratively, spending charts on the trip page, a metrics dashboard for the administrator, and public itineraries (publish your trips, a public page with search, copy an itinerary to your account, and moderation by the administrator).
-- **Version 1.0 (advanced functionality, A1–A6):** itinerary proposals and reorganization generated by AI with manual review, and the Telegram integration (account connection, trip group, invitations and notifications), plus the migration of the database schema.
+- **Version 1.0 (advanced functionality, A1–A6):** itinerary proposals and reorganization generated by AI with manual review, and the Telegram integration (account connection, trip group, invitations and notifications). It also includes database schema migrations with Flyway and the update of the dependencies to their latest versions.
+- **TFG 2:** the deployment of the application on a server, and its evolution towards a distributed services architecture.
 
 ## Running the application
 
@@ -47,6 +68,7 @@ Open https://localhost/ (the browser warns about the self-signed certificate) an
 - [Objectives](docs/objectives.md)
 - [Methodology](docs/methodology.md)
 - [Features](docs/functionalities.md)
+  - [Features of version 0.2](docs/functionalities.md#features-of-version-02)
   - [Features of version 0.1](docs/functionalities.md#features-of-version-01)
   - [Detailed features](docs/functionalities.md#detailed-features)
 - [Analysis](docs/analysis.md)
@@ -56,6 +78,7 @@ Open https://localhost/ (the browser warns about the self-signed certificate) an
   - [Accessing the application](docs/execution.md#accessing-the-application)
   - [Sample data](docs/execution.md#sample-data)
   - [Running with and without sample data](docs/execution.md#running-with-and-without-sample-data)
+  - [Emails](docs/execution.md#emails)
   - [Deploying on an external server](docs/execution.md#deploying-on-an-external-server)
 - [Development guide](docs/development-guide.md)
   - [Introduction](docs/development-guide.md#introduction)
@@ -86,5 +109,6 @@ Open https://localhost/ (the browser warns about the self-signed certificate) an
 - **Phase 1 (definition of features and screens):** Claude (Anthropic, Claude Opus 5.5, chat) was used to compare instant messaging platforms (WhatsApp and Telegram) for the optional instant messaging part, to design the Telegram integration and to review this README against the TFG guidelines.
 - **Phase 2 (repository, tests and CI):** Claude (Anthropic, Claude Opus 5.5, chat) was used as a guide to set up the project structure, the automated tests, the CI workflows, static code analysis; and to restructure the documentation. All generated content was reviewed, understood and adapted before being added to the repository.
 - **Phase 3 (basic functionality, B1–B8):** Claude Code (Anthropic, Opus 5.5 for planning and Sonnet 5.5 for implementation) was used as a support agent to plan, write some parts of the code and tests, and help document each feature; the student approved each plan, reviewed and changed the generated code, and verified every stage before committing.
+- **Phase 4 (intermediate functionality, I1–I10):** Claude Code (Anthropic, Opus 5.5 for planning and Sonnet 5.5 for implementation) was used in the same way for every feature (I1–I10); the student decided the scope (for example, that participants edit any activity of the itinerary), approved each plan, reviewed the generated code and verified every stage before committing.
 
 Detailed information about each use of AI tools is available in [AI_USAGE.md](docs/AI_USAGE.md).
