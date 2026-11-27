@@ -59,7 +59,7 @@ The only requirement is [Docker](https://docs.docker.com/get-docker/) with Docke
 docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes
 ```
 
-Compose lists the variables of the file and asks for confirmation before running an application downloaded from a registry; `--yes` answers yes to that question. Remove it to review the variables first. The tag selects the version: `latest` is the last release, `0.1` (or any other release, written `MAJOR.MINOR`) a fixed one, and `dev` the last version of `main`.
+Compose lists the variables of the file and asks for confirmation before running an application downloaded from a registry; `--yes` answers yes to that question. Remove it to review the variables first. The tag selects the version: `latest` is the last release, `0.2` (or any other release, written `MAJOR.MINOR`) a fixed one, and `dev` the last version of `main`.
 
 Open https://localhost/ (the browser warns about the self-signed certificate) and log in as `admin@tripmate.com` with the password `admin`, or as one of the sample users, all with the password `Demo-2026`: `ana@tripmate.com`, `carlos@tripmate.com` or `laura@tripmate.com`. `SAMPLE_DATA=false` starts the application without the sample users and trips. The complete instructions (Windows, Mac and Linux, versions, sample data, stopping, and deployment on an external server) are in [Execution](docs/execution.md). To run it from the source code, see [Running and editing the code](docs/development-guide.md#running-and-editing-the-code).
 

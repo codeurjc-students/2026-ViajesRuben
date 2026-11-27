@@ -233,7 +233,7 @@ The tests are not run while building the image: they run in CI. The resulting im
 
 | File                            | Project        | `app` image               | Use                                                    |
 | ------------------------------- | -------------- | ------------------------- | ------------------------------------------------------ |
-| `docker/docker-compose.yml`     | `tripmate`     | `rubenruiz7/tripmate:0.1` | Released version, downloaded from DockerHub            |
+| `docker/docker-compose.yml`     | `tripmate`     | `rubenruiz7/tripmate:0.2` | Released version, downloaded from DockerHub            |
 | `docker/docker-compose-dev.yml` | `tripmate-dev` | `rubenruiz7/tripmate:dev` | Image built locally, to test changes before publishing |
 
 The image tag in `docker/docker-compose.yml` is always the `MAJOR.MINOR` tag of the last release (`0.1`, see [Versioning](#versioning)); the release workflow publishes that tag next to the full version. The files published by [continuous delivery](#continuous-delivery) have the tag of each publication instead.
@@ -1076,7 +1076,7 @@ Four more GitHub Actions workflows publish the application on DockerHub. They on
 | Case         | Artifact tags            | Image run by the artifact                                   |
 | ------------ | ------------------------ | ----------------------------------------------------------- |
 | Push to main | `dev`                    | `rubenruiz7/tripmate:dev`                                   |
-| Release 0.1  | `0.1.0`, `0.1`, `latest` | `rubenruiz7/tripmate:0.1.0`                                 |
+| Release 0.2  | `0.2.0`, `0.2`, `latest` | `rubenruiz7/tripmate:0.2.0`                                 |
 | Manual run   | The branch tag           | `rubenruiz7/tripmate:feature-x-20261023-abc1234` (same tag) |
 
 **Docker Compose version.** `docker compose publish` and `-f oci://…` need Compose 2.34.0 or later (before that, `publish` was an alpha command). The runner image can change its Compose version without notice, so the workflow installs a pinned version with `docker/setup-compose-action` (`COMPOSE_VERSION` in `publish-docker.yml`) and fails if the installed version is different. Every `docker compose` command that talks to the registry runs with its input closed, `--yes` where Compose supports it, and a step timeout, so it cannot wait for a confirmation.
@@ -1119,7 +1119,7 @@ Releases:
 | `0.0.1` | 15/09/2026          | Phase 1: project documentation (milestone, no GitHub release)                                                                                                                                                                                                                                             |
 | `0.0.2` | 19/10/2026          | Phase 2: minimum functionality, automated tests and continuous integration (milestone, no GitHub release)                                                                                                                                                                                                 |
 | `0.1`   | 04/11/2026          | Phase 3, the first GitHub release (tag `0.1`, version `0.1.0`): basic functionality B1–B8, the Docker image and continuous delivery                                                                                                                                                                       |
-| `0.2`   | RELEASE_DATE_02     | Phase 4, the second GitHub release (tag `0.2`, version `0.2.0`): intermediate functionality I1–I10. Public itineraries with search, copying and moderation; invitations by email, participants and a collaborative itinerary with a change log; spending charts and the administrator's metrics dashboard |
+| `0.2`   | 27/11/2026          | Phase 4, the second GitHub release (tag `0.2`, version `0.2.0`): intermediate functionality I1–I10. Public itineraries with search, copying and moderation; invitations by email, participants and a collaborative itinerary with a change log; spending charts and the administrator's metrics dashboard |
 | `1.0`   | Planned: 20/12/2026 | Phase 5: advanced functionality (A1–A6, AI and Telegram), database migrations with Flyway and the update of the dependencies                                                                                                                                                                              |
 
 ## Running and editing the code

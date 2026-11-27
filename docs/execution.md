@@ -40,13 +40,11 @@ The Compose file is published on DockerHub as an OCI artifact ([`rubenruiz7/trip
 docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:latest up -d --yes
 ```
 
-**A specific version (`0.1`):**
+**A specific version (`0.2`):**
 
 ```bash
-docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:0.1 up -d --yes
+docker compose -f oci://docker.io/rubenruiz7/tripmate-compose:0.2 up -d --yes
 ```
-
-> **Note:** version 0.2 is not released yet, so this example still names `0.1`, which does not have the features of version 0.2 (public itineraries, invitations, participants, change log, charts and metrics). When 0.2 is released, the example changes to `0.2` (`oci://docker.io/rubenruiz7/tripmate-compose:0.2`). Until then, `latest` is also 0.1, and `dev` runs the last version of `main`, which has every feature of 0.2.
 
 Compose lists the variables of the file and asks for confirmation before running an application downloaded from a registry; `--yes` answers yes. Remove it to review the variables first. Every release is published with the tags `x.y.0`, `x.y` and `latest`, for example `0.1.0`, `0.1` and `latest`. `dev` is the last version of the `main` branch.
 
